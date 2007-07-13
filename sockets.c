@@ -21,13 +21,13 @@
 void
 write_signal_handler(int sig)
 {
-	fprintf(stderr,"Received signal %d\n",sig);		
+	fprintf(stderr,"Received signal %d\n",sig);
 }
 
 void
 read_signal_handler(int sig)
 {
-
+	fprintf(stderr,"Received signal %d\n",sig);
 }
 
 void
@@ -51,8 +51,6 @@ open_socket(int  port)
 	int fd = socket(AF_INET,SOCK_STREAM,0);
 	if (0 > fd) return -1;
 	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&one,sizeof(one));
-	// nonblock(fd);
-
 	memset(&addr,0,sizeof(addr));
 	addr.sin_len = sizeof(struct sockaddr_in);
 	addr.sin_family = AF_INET;
@@ -72,7 +70,7 @@ open_socket(int  port)
 }
 
 Socket
-accept_socket(Socket sc, int fd)
+accept_socket(Socket sc, int fd, TLSInfo tls)
 {
 	Socket retval;
 	struct sockaddr_in saddr;
@@ -85,6 +83,7 @@ accept_socket(Socket sc, int fd)
 	nonblock(sock);
 	retval = (Socket)malloc(sizeof(struct socket_cache_struct));
 	memset(retval,0,sizeof(struct socket_cache_struct));
+	retval->tls = (tls ? open_tls(tls,sock) : NULL);
 	retval->buf = NULL;
 	retval->next = sc;
 	retval->fd = sock;
@@ -98,6 +97,7 @@ close_socket(Socket sc)
 {
 	if (!sc) return NULL;
 	Socket retval = sc->next;
+	if (sc->tls) close_tls(sc->tls);
 	close(sc->fd);
 	free(sc);
 	return retval;
@@ -108,21 +108,27 @@ read_socket(Socket sc)
 {
 	int bytes = 0;
 	Buffer retval = sc->buf;
-	fprintf(stderr,"read_socket Buffer Retval = %p\n",retval);
+//	fprintf(stderr,"read_socket Buffer Retval = %p\n",retval);
 	for (retval = new_buffer(retval,(retval ? retval->pos + retval->length : 0)); 
-		bytes = read(sc->fd,retval->data,Max_Buffer_Size); 
+		bytes = (sc->tls ? 
+			read_tls(sc->tls,retval->data,Max_Buffer_Size) : 
+			read(sc->fd,retval->data,Max_Buffer_Size)); 
 		retval = new_buffer(retval,retval->pos + retval->length)) {
-		fprintf(stderr,"Bytes is %d, retval %p\n",bytes,retval);
-		if (bytes == -1 && errno == EAGAIN) {
-			fprintf(stderr, "EAGAIN!\n");
-			fprintf(stderr, "Freeing buffer %p\n",retval);
-			free_buffer(retval);
-			fprintf(stderr,"read_socket return = %p\n",sc->buf);
-			return sc->buf;
+//		fprintf(stderr,"Bytes is %d, retval %p\n",bytes,retval);
+		if (bytes == -1 ) {
+			if (errno == EAGAIN) {
+	//			fprintf(stderr, "EAGAIN!\n");
+	//			fprintf(stderr, "Freeing buffer %p\n",retval);
+				free_buffer(retval);
+	//			fprintf(stderr,"read_socket return = %p\n",sc->buf);
+				return sc->buf;
+			} else {
+				return NULL;	
+			}
 		}
 		retval->length = bytes;
 		sc->buf = retval;
-		fprintf(stderr,"Retval buf %p\n",sc->buf);
+//		fprintf(stderr,"Retval buf %p\n",sc->buf);
 	}
 	return NULL;
 }
@@ -131,6 +137,6 @@ int
 write_socket(Socket sc, char* src, int len)
 {
 	if (! sc) return 0;
-	return write(sc->fd,src,len);
+	return (sc->tls ? write_tls(sc->tls,src,len) :write(sc->fd,src,len));
 }
 

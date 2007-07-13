@@ -50,10 +50,10 @@ unload(Server srv, int fd, char* filename)
 }
 
 void
-incoming(Server srv)
+incoming(Server srv, int fd)
 {
 	Request req;
-	srv->sc = accept_socket(srv->sc,srv->sock);
+	srv->sc = accept_socket(srv->sc,fd,(srv->sock == fd ? NULL : srv->tls));
 	req = open_request(srv->sc);
 	srv->ec = add_read_socket(srv->ec, srv->sc->fd,req);
 	srv->numevents++;
@@ -129,18 +129,20 @@ respond(Server srv, Event ec)
 }
 
 Server
-serve(char* host, short port)
+serve(int port, int tls_port)
 {
 	Server srv = (Server)malloc(sizeof(struct server_struct));
 	srv->kq = kqueue();
 	if (0 > srv->kq) return NULL;
 	if (0 > (srv->sock = open_socket(port))) return NULL;
+	if (0 > (srv->tls_sock = open_socket(tls_port))) return NULL;
+	srv->tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
 	srv->ec = NULL;
 	srv->fc = NULL;
 	srv->sc = NULL;
-	srv->numevents = 1;
+	srv->numevents = 2;
 	srv->ec = monitor_socket(srv->ec,srv->sock);
-	fprintf(stderr,"Have event queue: %p\n",srv->ec);
+	if (tls_port) srv->ec = monitor_socket(srv->ec,srv->tls_sock);
 	srv->done = 0;
 	socket_signal_handlers();
 	return srv;
@@ -152,14 +154,14 @@ run(Server srv)
 	Event ec;
 
 	ec = poll_events(srv->ec,srv->kq,srv->numevents);
-	srv->numevents = 1;
+	srv->numevents = 2;
 	for (srv->ec = NULL; ec; ec = ec->next) {
 		fprintf(stderr,"Processing socket %d\n",ec->event.ident);
 		switch (ec->event.filter) {
 		case EVFILT_READ:
 			if (ec->event.flags == EV_EOF) break;
-			(ec->event.ident == srv->sock)  ?
-				incoming(srv) :
+			(ec->event.ident == srv->sock || ec->event.ident == srv->tls_sock)  ?
+				incoming(srv,ec->event.ident) :
 				request(srv,ec);
 			break;
 		case EVFILT_WRITE:
@@ -208,10 +210,10 @@ main(int argc, char** argv)
 		detach = 1;	
 	}
 	char* port = (argc > (1 + detach) ? argv[1 + detach] : SERVER_PORT);;
-	char* host = (argc > (2 + detach) ? argv[2 + detach] : NULL);
+	char* tls_port = (argc > (2 + detach) ? argv[2 + detach] : TLS_SERVER_PORT);
 
 	if (argc > 3) {
-		fprintf(stderr,"Usage %s [-d] [port] [host]\n", argv[0]);
+		fprintf(stderr,"Usage %s [-d] [port] [tls]\n", argv[0]);
 		exit(1);
 	}
 
@@ -220,7 +222,7 @@ restart:
 		child = fork();
 	}
 	if (child == 0) {
-		Server srv = serve(host,atoi(port));
+		Server srv = serve(atoi(port),atoi(tls_port));
 		if (!srv) return 1;
 		while (! srv->done) srv = run(srv);	
 		stop(srv);

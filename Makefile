@@ -4,7 +4,7 @@
 
 CFLAGS = -ggdb -DXP_UNIX
 INCLUDES = -Ijs -Ijs/Darwin_DBG.OBJ -I/opt/local/include/postgresql82/
-LIBS = -ljs -lpq
+LIBS = -ljs -lpq -lssl -lcrypto
 LDFLAGS = -Ljs/Darwin_DBG.OBJ/ -L/opt/local/lib/postgresql82/
 
 SOURCES = \
@@ -19,6 +19,7 @@ responses.c \
 server.c \
 sockets.c \
 status.c  \
+tls.c \
 uri.c
 
 OBJECTS := $(patsubst %.c,%.o,$(SOURCES))
