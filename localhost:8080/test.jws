@@ -1,0 +1,20 @@
+<?js
+
+include("/header.txt");
+
+foo = query("select id, value from foo");
+for (var j in foo) {
+	var b = foo[j];
+	print(j + " = " + b  + "<br>");
+	for (var k in b) {
+		print("<li>", k, b[k], "</li>");
+	}
+}
+foobar = header("Host"); // set foobar to the hostname of the HTTP request
+?>
+<!--  Print out the hostname we're querrying -->
+<p><?js= "Host: ", foobar =?></p>
+<p>Parameter foo is <?js= param("foo") =?> </p>
+<p>Parameter shoe <?js= param("shoe") =?></p>
+
+<?js include("/footer.txt"); ?>
