@@ -114,7 +114,7 @@ find_buffer(Buffer buf, int pos, char* delim, int len)
 	int i,j,delta;
 	Buffer tmp = seek_buffer(buf,pos);
 	while (tmp) {	
-		 delat = pos - buf->pos;
+		 delta = pos - buf->pos;
 		for (i = delta; i < buf->length; ++i)
 			for (j = 0; j < len; ++j ) 
 				if (delim[j] == buf->data[i]) 
