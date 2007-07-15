@@ -12,4 +12,11 @@
 char* file_path(Request req, char* filename, int flen);
 char* request_path(Request req);
 
+Buffer uri_encode(Buffer buf);
+Buffer uri_decode(Buffer buf);
+
+static char mark_chars[] = "-_.!~*'()";
+static int mark_len = 9;
+static char hex_chars[] = "0123456789abcdef";
+
 #endif

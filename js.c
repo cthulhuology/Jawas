@@ -140,6 +140,68 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	}
 }
 
+static JSBool
+Encode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	char* data;
+	JSString* str;
+	Buffer tmp,buf;
+	if (argc != 1) return JS_FALSE;
+	str = JS_ValueToString(cx,argv[0]);
+	tmp = write_buffer(NULL,JS_GetStringBytes(str),JS_GetStringLength(str));
+	buf = uri_encode(tmp);	
+	data = print_buffer(buf);	
+	str = JS_NewString(cx,data,strlen(data));
+	for (; buf; buf = free_buffer(buf));
+	for (; tmp; tmp = free_buffer(tmp));
+	free(data);
+	*rval = STRING_TO_JSVAL(str);
+	return JS_TRUE;	
+}
+
+static JSBool
+Decode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	char* data;
+	JSString* str;
+	Buffer tmp,buf;
+	if (argc != 1) return JS_FALSE;
+	str = JS_ValueToString(cx,argv[0]);
+	tmp = write_buffer(NULL,JS_GetStringBytes(str),JS_GetStringLength(str));
+	buf = uri_decode(tmp);	
+	data = print_buffer(buf);	
+	fprintf(stderr,"[Decode] (%s)\n",data);
+	str = JS_NewString(cx,data,buf->length);
+	for (; buf; buf = free_buffer(buf));
+	for (; tmp; tmp = free_buffer(tmp));
+	*rval = STRING_TO_JSVAL(str);
+	return JS_TRUE;	
+}
+
+static JSBool
+Location(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+}
+
+static JSBool
+Expires(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+}
+
+static JSBool
+ContentType(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+}
+
+static JSBool
+CacheControl(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+}
+
+static JSBool
+Connection(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+}
 
 static JSClass global_class = {
 	"global", 0,
@@ -153,6 +215,13 @@ static JSFunctionSpec my_functions[] = {
 	{"header", Header, 0 },
 	{"param", Param, 0 },
 	{"query", Query, 0 },
+	{"encode", Encode, 0 },
+	{"decode", Decode, 0 },
+	{"location", Location, 0},
+	{"expires", Expires, 0},
+	{"content_type", ContentType, 0},
+	{"cache_control", CacheControl, 0},
+	{"connection", Connection, 0},
 	{0},
 };
 

@@ -112,3 +112,85 @@ request_path(Request req)
 	return file_path(req,req->path->data,req->path->length);
 }
 
+int
+is_mark_char(char c)
+{
+	int k;
+	for (k = 0; k < mark_len; ++k) if (mark_chars[k] == c) return 1;
+	return 0;
+}
+
+Buffer
+uri_encode(Buffer buf)
+{
+	Buffer retval = new_buffer(NULL,0);
+	char c;
+	int i,j,len = length_buffer(buf);
+	j = 0;
+	for (i = 0; i < len; ++i) {
+		c = fetch_buffer(buf,i);
+		if (c >= 'A' && c <= 'Z' 
+		||  c >= 'a' && c <= 'z'
+		||  c >= '0' && c <= '9'
+		|| is_mark_char(c)) {
+			retval->data[j] = c;
+			++retval->length; 
+			if (j % Max_Buffer_Size == Max_Buffer_Size - 1) retval = new_buffer(retval,j+1);
+			++j;		
+		} else {
+			retval->data[j % Max_Buffer_Size] = '%';
+			++retval->length; 
+			if (j % Max_Buffer_Size == Max_Buffer_Size - 1) retval = new_buffer(retval,j+1);
+			++j;
+			retval->data[j] = hex_chars[c/16];
+			++retval->length; 
+			if (j % Max_Buffer_Size == Max_Buffer_Size - 1) retval = new_buffer(retval,j+1);
+			++j;
+			retval->data[j] = hex_chars[c%16];
+			++retval->length; 
+			if (j % Max_Buffer_Size == Max_Buffer_Size - 1) retval = new_buffer(retval,j+1);
+			++j;	
+		}
+	}
+	return retval;
+}
+
+char
+from_hex(char a, char b)
+{
+	char retval = 0;
+	if (a >= '0' && a <= '9') retval += (a - '0')*16;
+	if (a >= 'A' && a <= 'F') retval += (a - 'A'+10)*16;
+	if (a >= 'a' && a <= 'f') retval += (a - 'a'+10)*16;
+	if (b >= '0' && b <= '9') retval += (b - '0');
+	if (b >= 'A' && b <= 'F') retval += (b - 'A'+10);
+	if (b >= 'a' && b <= 'f') retval += (b - 'a'+10);
+	return retval;
+}
+
+
+Buffer
+uri_decode(Buffer buf)
+{
+	Buffer retval = new_buffer(NULL,0);
+	char c;
+	int i,j, len = length_buffer(buf);
+	j = 0;	
+	for(i = 0; i < len; ++i) {
+		c = fetch_buffer(buf,i);
+		if (c == '%') {
+			retval->data[j % Max_Buffer_Size] = from_hex(fetch_buffer(buf,i+1),fetch_buffer(buf,i+2));
+			++retval->length; 
+			i += 2;
+			if (j % Max_Buffer_Size == Max_Buffer_Size - 1) retval = new_buffer(retval,j+1);
+			++j;
+		} else {
+			retval->data[j % Max_Buffer_Size] = c;
+			++retval->length; 
+			if (j % Max_Buffer_Size == Max_Buffer_Size - 1) retval = new_buffer(retval,j+1);
+			++j;
+		}
+	}
+	fprintf(stderr,"[uri_decode] %s\n",retval->data);
+	return retval;
+}

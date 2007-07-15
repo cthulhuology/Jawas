@@ -28,6 +28,6 @@ Buffer read_buffer(Buffer dst, Buffer src, int pos, int len);
 Buffer write_buffer(Buffer dst, char* src, int len);
 Buffer reverse_buffer(Buffer buf, Buffer last);
 
-void print_buffer(Buffer buf);
+char* print_buffer(Buffer buf);
 
 #endif

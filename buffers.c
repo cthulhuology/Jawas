@@ -92,11 +92,17 @@ read_buffer(Buffer dst, Buffer src, int pos, int len)
 	return read_buffer(retval,src, pos + retval->length,len - retval->length);
 }
 
-void
+char*
 print_buffer(Buffer buf)
 {
-	write(STDERR_FILENO,buf->data,buf->length);	
-	if (buf->next) return print_buffer(buf->next);
+	int i;
+	char* retval = (char*)malloc(length_buffer(buf)+1);
+	for (i = 0; buf; buf = buf->next) {
+		memcpy(retval+i,buf->data,buf->length);
+		i += buf->length;
+	}
+	retval[i] = '\0';
+	return retval;
 }
 
 int

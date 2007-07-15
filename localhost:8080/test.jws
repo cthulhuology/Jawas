@@ -11,10 +11,11 @@ for (var j in foo) {
 	}
 }
 foobar = header("Host"); // set foobar to the hostname of the HTTP request
+shoe = decode(param('shoe'));
 ?>
 <!--  Print out the hostname we're querrying -->
 <p><?js= "Host: ", foobar =?></p>
 <p>Parameter foo is <?js= param("foo") =?> </p>
-<p>Parameter shoe <?js= param("shoe") =?></p>
+<p>Parameter shoe <?js= shoe =?></p>
 
 <?js include("/footer.txt"); ?>
