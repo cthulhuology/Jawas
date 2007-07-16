@@ -4,22 +4,28 @@
 // All Rights Reserved
 //
 
+// Constants
+
 #define DEFAULT_SLOTS	8
 #define MAX_INT_SIZE	12
 #define MAX_DOUBLE_SIZE	32
+
+// Permissions
 
 #define ReadOnly(x)	x && ((int)x & 1)
 #define DontEnum(x)	x && ((int)x & 2)
 #define DontDel(x)	x && ((int)x & 4)
 
-#define R(x)	x | 1
-#define E(x)	x | 2
-#define D(x)	x | 4 
+#define R(x)	(int)x | 1
+#define E(x)	(int)x | 2
+#define D(x)	(int)x | 4 
 
 #define RE(x) R(E(x))
 #define RD(x) R(D(x))
 #define ED(x) E(D(x))
 #define RED(x) R(E(D(x)))
+
+// Functions
 
 #define FUNCTION_MASK  0xfffffffc
 #define PRIM(x) (JData)((int)x | 1)
@@ -31,6 +37,16 @@
 #define isFUNC(x) (int)x & 3 = 2
 
 #define Func(x) JData x (JObject obj, JObject args)
+
+// Constructors
+
+#define JDATA(x,l)	new_jdata(x,l)
+#define OBJECT(x)	new_object(DEFAULT_SLOTS + x)
+#define OBJECT 		OBJECT(0)
+#define ARRAY(x)	new_array(x)
+#define ARGS(x)		new_arguments(x)
+
+// Objects & Slots
 
 #define PERM_MASK 0x7
 #define PERM(x)		(int)x & PERM_MASK
@@ -48,12 +64,10 @@
 
 #define Length(o)	o->len
 
-#define OBJECT(x)	new_object(DEFAULT_SLOTS + x)
-#define OBJECT 		OBJECT(0)
-#define ARRAY(x)	new_array(x)
-#define ARGS(x)		new_arguments(x)
 #define Args(i)		SlotValue(args,i)
 #define Argc		Length(args)
+
+//  Iterators
 
 #define ITERATE(o) \
 	for (int i = 0; o && i < Length(o); ++i)
@@ -64,7 +78,8 @@
 		i = 0;\
 	}
 
-#define JDATA(x,l)	new_jdata(x,l)
+// Conversions
+
 #define JDATA_INT(x)	strtol(x->data,NULL,0)
 #define JDATA_NUM(x)	strtod(x->data,NULL)
 #define JDATA_OBJ(x)	jdata_toObject(x)

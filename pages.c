@@ -4,11 +4,7 @@
 // All Rights Reserved
 //
 
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <unistd.h>
-#include <stdio.h>
-
+#include "include.h"
 #include "defines.h"
 #include "pages.h"
 

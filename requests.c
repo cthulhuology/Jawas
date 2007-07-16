@@ -4,11 +4,7 @@
 // All Rights Reserved
 //
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <strings.h>
-
+#include "include.h"
 #include "defines.h"
 #include "headers.h"
 #include "events.h"

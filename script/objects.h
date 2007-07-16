@@ -4,6 +4,7 @@
 // All Rights Reserved
 //
 
+// Object
 JObject object_obj = {
 	26,
 	{ RED(Get),		PRIM(obj_get) },
@@ -34,6 +35,7 @@ JObject object_obj = {
 	{ NULL, NULL }
 };
 
+// String
 JObject string_obj = {
 	18,
 	{ RED(Construct),	FUNC(str_construct) },
@@ -56,6 +58,7 @@ JObject string_obj = {
 	{ NULL, NULL }
 };
 
+// Boolean
 JObject boolean_obj = {
 	3,
 	{ RED(Construct),	FUNC(bool_construct) },
@@ -63,6 +66,7 @@ JObject boolean_obj = {
 	{ NULL, NULL }
 };
 
+// Integer
 JObject integer_obj = {
 	3,
 	{ RED(Construct),	FUNC(int_construct) },
@@ -70,6 +74,7 @@ JObject integer_obj = {
 	{ NULL, NULL }
 };
 
+// Number
 JObject number_obj = {
 	10,
 	{ RED(Construct),	FUNC(num_construct) },
@@ -84,6 +89,7 @@ JObject number_obj = {
 	{ NULL, NULL }
 };
 
+// Function
 JObject function_obj = {
 	7,
 	{ RED(Construct),	FUNC(func_construct) },
@@ -96,6 +102,7 @@ JObject function_obj = {
 	{ NULL, NULL }
 };
 
+// Array
 JObject array_obj = {
 	14,
 	{ RED(Construct),	FUNC(func_construct) },
@@ -114,6 +121,7 @@ JObject array_obj = {
 	{ NULL, NULL }
 };
 
+// Error
 JObject error_obj = {
 	4,
 	{ RED(Name), Error },
@@ -122,6 +130,7 @@ JObject error_obj = {
 	{ NULL, NULL }
 };
 
+// Scope
 JObject scope_obj = {
 	4,
 	{ RED(This), global_obj },
@@ -130,6 +139,7 @@ JObject scope_obj = {
 	{ NULL, NULL }
 };
 
+// Argument
 JObject argument_obj = {
 	4,
 	{ RED(Callee), NULL },
@@ -138,6 +148,7 @@ JObject argument_obj = {
 	{ NULL, NULL }
 };
 
+// Math
 JObject math_obj = {
 	28,
 	{ RED(_E_),		FUNC(math_e) },
@@ -170,6 +181,7 @@ JObject math_obj = {
 	{ NULL, NULL }
 };
 
+// Date
 JObject date_obj = {
 	28,
 	{ RED(MakeDay),		FUNC(date_make_day) },
@@ -202,6 +214,7 @@ JObject date_obj = {
 	{ NULL, NULL }
 };
 
+// File
 JObject file_obj = {
 	7,
 	{ RED(Open),		FUNC(file_open) },
@@ -213,6 +226,7 @@ JObject file_obj = {
 	{ NULL, NULL }
 };
 
+// Socket
 JObject socket_obj = {
 	9,
 	{ RED(Connect),		FUNC(socket_connect) },
@@ -226,6 +240,7 @@ JObject socket_obj = {
 	{ NULL, NULL }
 };
 
+// RegExp
 JObject regexp_obj = {
 	9,
 	{ RED(global),		False },
@@ -239,12 +254,14 @@ JObject regexp_obj = {
 	{ NULL, NULL }
 };
 
+// XML
 JObject xml_obj = {
 	2,
 	{ NULL, object_obj },
 	{ NULL, NULL }
 };
 
+// Global
 JObject global_obj = {
 	16,
 	{ RED(Global), global_obj },
@@ -264,5 +281,4 @@ JObject global_obj = {
 	{ NULL, object_obj },
 	{ NULL, NULL }
 };
-
 

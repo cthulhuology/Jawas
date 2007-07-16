@@ -4,12 +4,7 @@
 // All Rights Reserved
 //
 
-#include <unistd.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-
+#include "include.h"
 #include "buffers.h"
 #include "uri.h"
 

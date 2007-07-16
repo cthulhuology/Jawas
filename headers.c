@@ -4,14 +4,7 @@
 // All Rights Reserved
 //
 
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/uio.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-
+#include "include.h"
 #include "defines.h"
 #include "pages.h"
 #include "buffers.h"

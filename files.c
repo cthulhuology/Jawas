@@ -3,15 +3,7 @@
 // All Rights Reserved
 //
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/event.h>
-#include <sys/time.h>
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include "include.h"
 #include "files.h"
 
 File

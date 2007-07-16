@@ -4,11 +4,7 @@
 // All Rights Reserved
 //
 
-#include <fcntl.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-
+#include "include.h"
 #include "defines.h"
 #include "headers.h"
 #include "status.h"

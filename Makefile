@@ -1,9 +1,13 @@
-# Makefile
+# 
+# jawasd makefile
 #
-#
+
+PROGRAM = jawasd
+LIBRARY =
 
 CFLAGS = -ggdb -DXP_UNIX
 INCLUDES = -Ijs -Ijs/Darwin_DBG.OBJ -I/opt/local/include/postgresql82/
+
 LIBS = -ljs -lpq -lssl -lcrypto
 LDFLAGS = -Ljs/Darwin_DBG.OBJ/ -L/opt/local/lib/postgresql82/
 
@@ -22,20 +26,6 @@ status.c  \
 tls.c \
 uri.c
 
-OBJECTS := $(patsubst %.c,%.o,$(SOURCES))
-PROGRAM = jawasd
+include rules.mk
 
-all : jawasd
 
-%.o : %.c 
-	gcc -c $< $(CFLAGS) $(INCLUDES)
-
-$(PROGRAM) : $(OBJECTS)
-	gcc -o $@ $(OBJECTS) $(LDFLAGS) $(LIBS)
-
-test : test.c buffers.o files.o
-	gcc -o test test.c buffers.o files.o
-
-.PHONY: clean
-clean : 
-	rm -rf $(PROGRAM) $(OBJECTS)

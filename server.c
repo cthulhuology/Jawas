@@ -3,17 +3,7 @@
 // All Rights Reserved
 //
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/event.h>
-#include <sys/time.h>
-#include <sys/mman.h>
-#include <sys/wait.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-
+#include "include.h"
 #include "defines.h"
 #include "headers.h"
 #include "status.h"
@@ -199,36 +189,3 @@ stop(Server srv)
 	srv->done = 0;
 }
 
-int
-main(int argc, char** argv)
-{
-	int child = 0;
-	int child_status = 0;
-	int detach = 0;
-
-	if (argc > 1 && !strncmp(argv[1],"-d",2)) {
-		detach = 1;	
-	}
-	char* port = (argc > (1 + detach) ? argv[1 + detach] : SERVER_PORT);;
-	char* tls_port = (argc > (2 + detach) ? argv[2 + detach] : TLS_SERVER_PORT);
-
-	if (argc > 3) {
-		fprintf(stderr,"Usage %s [-d] [port] [tls]\n", argv[0]);
-		exit(1);
-	}
-
-restart:
-	if (detach) {
-		child = fork();
-	}
-	if (child == 0) {
-		Server srv = serve(atoi(port),atoi(tls_port));
-		if (!srv) return 1;
-		while (! srv->done) srv = run(srv);	
-		stop(srv);
-	} else {
-		waitpid(child,&child_status,0);
-		goto restart;
-	}
-	return 0;
-}

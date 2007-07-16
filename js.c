@@ -4,17 +4,7 @@
 // All Rights Reserved
 //
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/uio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <stdarg.h>
-
+#include "include.h"
 #include "defines.h"
 #include "uri.h"
 #include "responses.h"

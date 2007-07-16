@@ -4,9 +4,7 @@
 // All Rights Reserved
 //
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include "include.h"
 
 struct status_struct {
 	int code;
