@@ -8,9 +8,9 @@
 #define MAX_INT_SIZE	12
 #define MAX_DOUBLE_SIZE	32
 
-#define ReadOnly(x)	x & 1
-#define DontEnum(x)	x & 2
-#define DontDel(x)	x & 4 
+#define ReadOnly(x)	x && ((int)x & 1)
+#define DontEnum(x)	x && ((int)x & 2)
+#define DontDel(x)	x && ((int)x & 4)
 
 #define R(x)	x | 1
 #define E(x)	x | 2
@@ -33,26 +33,33 @@
 #define Func(x) JData x (JObject obj, JObject args)
 
 #define PERM_MASK 0x7
-#define Perm(x)		(int)x & PERM_MASK
+#define PERM(x)		(int)x & PERM_MASK
 
 #define PROPERTY_MASK 0xfffffff8
-#define Prop(x) 	((JData)((int)x & PROPERTY_MASK))
+#define PROP(x) 	((JData)((int)x & PROPERTY_MASK))
 
 #define Slot(o,i)	o->slots[i]
-#define SlotPerm(o,i)	Perm(Slot(o,i).prop)
-#define SlotProp(o,i)	Prop(Slot(o,i).prop)
+#define SlotPerm(o,i)	PERM(Slot(o,i).prop)
+#define SlotProp(o,i)	PROP(Slot(o,i).prop)
 #define SlotValue(o,i)	Slot(o,i).value
+#define Perm(x)		SlotPerm(obj,x)
+#define Prop(x)		SlotProp(obj,x)
+#define Value(x)	SlotValue(obj,x)
 
 #define Length(o)	o->len
 
 #define OBJECT(x)	new_object(DEFAULT_SLOTS + x)
 #define OBJECT 		OBJECT(0)
+#define ARRAY(x)	new_array(x)
+#define ARGS(x)		new_arguments(x)
+#define Args(i)		SlotValue(args,i)
+#define Argc		Length(args)
 
 #define ITERATE(o) \
 	for (int i = 0; o && i < Length(o); ++i)
 
-#define CHASE_TAIL(o,i) \
-	if (!SlotProp(o,i)) { \
+#define CHASE_PROTOTYPE(o,i) \
+	if (!SlotProp(o,i) && SlotValue(o,i)) { \
 		obj = SlotValue(o,i); \
 		i = 0;\
 	}

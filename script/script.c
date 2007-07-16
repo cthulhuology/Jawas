@@ -41,10 +41,10 @@ num_jdata(double data)
 JObject
 jdata_toObject(JData data)
 {
-
+	return (JObject)data;
 }
 
-// Object functions
+// JObject functions
 
 JObject
 new_object(int slots)
@@ -54,13 +54,15 @@ new_object(int slots)
 	return retval;
 }
 
+// Object Primitives
+
 JData
 obj_get(JObject obj, JData prop)
 {
 	ITERATE(obj) {
-		if (SlotProp(obj,i) == prop)
-			return SlotValue(obj,i);
-		CHASE_TAIL
+		if (Prop(i) == prop)
+			return Value(i);
+		CHASE_PROTOTYPE
 	}
 	return Undefined;
 }
@@ -70,22 +72,22 @@ obj_put(JObject obj, JData prop, JData value)
 {
 	if (False == obj_can_put(obj,prop)) return False;
 	ITERATE(obj) {
-		if (! SlotProp(obj,i) && ! SlotValue(obj,i)) {
-			SlotProp(obj,i) = prop;
-			SlotValue(obj,i) = value;
+		if (!Prop(i) && ! Value(i)) {
+			Prop(i) = prop;
+			Value(i) = value;
 			return True;
 		}
-		CHASE_TAIL
+		CHASE_PROTOTYPE
 	}
 	return False;
 }
 
-JObject
+JData
 obj_prototype(JObject obj, JData prop)
 {
 	ITERATE(o) {
-		if (! SlotProp(obj,i)) 
-			return SlotValue(obj,i);
+		if (!Prop(i)) 
+			return Value(i);
 	}
 	return Undefined;
 }
@@ -100,11 +102,11 @@ JData
 obj_can_put(JObject obj, JData prop)
 {
 	ITERATE(obj) {
-		if (!SlotProp(obj,i) && ! SlotValue(obj,i))
+		if (!Prop(i) && ! Value(i))
 			return True;
-		if (SlotProp(obj,i) == prop)
-			return ReadOnly(SlotPerm(obj,i)) ? False : True;
-		CHASE_TAIL
+		if (Prop(i) == prop)
+			return ReadOnly(Perm(i)) ? False : True;
+		CHASE_PROTOTYPE
 	}
 	return False;
 }
@@ -113,9 +115,9 @@ JData
 obj_has_prop(JObject obj, JData prop)
 {
 	ITERATE(obj) {
-		if (SlotProp(obj,i) == prop)
+		if (Prop(i) == prop)
 			return True;
-		CHASE_TAIL
+		CHASE_PROTOTYPE
 	}	
 	return False;
 }
@@ -124,13 +126,13 @@ JData
 obj_delete(JObject obj, JData prop)
 {
 	ITERATE(obj) {
-		if (SlotProp(obj,i) == prop 
-		&& !DontDel(SlotPerm(obj,i))) {
-			SlotProp(obj,i) = NULL;
-			SlotValue(obj,i) = NULL;
+		if (Prop(obj) == prop 
+		&& !DontDel(Perm(i))) {
+			Prop(i) = NULL;
+			Value(i) = NULL;
 			return True;
 		}
-		CHASE_TAIL
+		CHASE_PROTOTYPE
 	}
 	return False
 }
@@ -147,7 +149,7 @@ obj_has_instance(JObject obj, JData value)
 	return obj_get(obj,Instance);
 }
 
-JObject
+JData
 obj_scope(JObject obj)
 {
 	return (JObject)obj_get(obj,Scope);
@@ -159,34 +161,36 @@ obj_match(JObject obj, JData str, JData index)
 	return False;	
 }
 
+// Object Functions
+
 Func(obj_call)
 {
 	JObject funj;
 	JData value;
 	ITERATE(obj) {
-		if (SlotProp(obj,i) == SlotValue(args,0)) {
-			value = SlotValue(obj,i);
+		if (Prop(i) == Args(0))) {
+			value = Value(i);
 			if (! value)
 				return Undefined;
 			if (isFUNC(value))
 				return CALL(value)(obj,args);
 			if (isPRIM(value)) {
 				if (value == obj_get) 
-					return obj_get(obj,SlotValue(args,0));
+					return obj_get(obj,Args(0));
 				if (value == obj_put)
-					return obj_put(obj,SotValue(args,0),SlotValue(args,1));
+					return obj_put(obj,Args(0),Value(1));
 				if (value == obj_prototype)
-					return obj_prototype(obj,SlotValue(args,0));
+					return obj_prototype(obj,Args(0));
 				if (value == obj_class)
 					return obj_class(obj);
 				if (value == obj_can_put)
-					return obj_can_put(obj,SlotValue(args,0));
+					return obj_can_put(obj,Args(0));
 				if (value == obj_has_prop)
-					return obj_has_prop(obj,SlotValue(args,0));
+					return obj_has_prop(obj,Args(0));
 				if (value == obj_scope)
 					return obj_scope(obj);
 				if (value == obj_match)
-					return obj_match(obj,SlotValue(args,0), SlotValue(args,1));
+					return obj_match(obj,Args(0),Args(1));
 				return Undefined;
 			}
 			if (isVALUE(value)) {
@@ -196,7 +200,7 @@ Func(obj_call)
 				return func_apply(funj,args);
 			}
 		}
-		CHASE_TAIL
+		CHASE_PROTOTYPE
 	}
 	return Undefined;
 }
@@ -211,14 +215,14 @@ Func(obj_construct)
 	JObject retval;
 	int slots = 0;
 	ITERATE(obj) {
-		if (SlotProp(obj,i) == Instance)
-			SlotValue(obj,i) = True;
-		if (isValue(SlotValue(obj,i)))
+		if (Prop(i) == Instance)
+			Value(i) = True;
+		if (isValue(Value(i)))
 			++slots;
-		CHASE_TAIL
+		CHASE_PROTOTYPE
 	}
 	ITERATE(args) {
-		if (isValue(SlotValue(obj,i)))
+		if (isValue(Args(i)))
 			++slots;
 	}
 	retval = OBJECT(slots);	
@@ -231,13 +235,13 @@ Func(obj_construct)
 		}
 	}
 	ITERATE(obj) {
-		if (isValue(SlotValue(obj,i)))
-			obj_put(retval,SlotProp(obj,i),SlotValue(obj,i));
-		CHASE_TAIL
+		if (isValue(Value(i)))
+			obj_put(retval,Prop(i),Value(i));
+		CHASE_PROTOTYPE
 	}
 	ITERATE(args) {
-		if (isValue(SlotValue(args,i)))
-			obj_put(retval,SlotProp(args,i),SlotValue(obj,i));
+		if (isValue(Args(i)))
+			obj_put(retval,SlotProp(args,i),Args(i));
 	}
 	return retval;
 }
@@ -285,9 +289,9 @@ Func(obj_value_of)
 
 Func(obj_has_own_prop)
 {
-	JProp prop = obj_toString(args);
+	JData prop = Args(0);
 	ITERATE(obj) {
-		if (SlotProp(obj,i) == prop)
+		if (Prop(i) == prop)
 			return True;
 	}
 	return False;
@@ -296,7 +300,7 @@ Func(obj_has_own_prop)
 Func(obj_is_proto_of)
 {
 	JObject proto = obj_prototype(obj);
-	if (proto == SlotValue(args,0))
+	if (proto == Args(0))
 		return True;
 	if (proto != object_obj)
 		return obj_is_proto_of(proto,args);
@@ -305,12 +309,38 @@ Func(obj_is_proto_of)
 
 Func(obj_prop_is_enum)
 {
-
+	JData prop = Args(0);
+	ITERATE(obj)  {
+		if (Prop(i) == prop)
+			return DontEnum(Perm(i)) ? False : True;
+		CHASE_PROTOTYPE
+	}
+	return True;
 }
 
 Func(obj_enumerate)
 {
-
+	JObject funj,funa; 
+	JObject retval;
+	int count = 0;
+	ITERATE(obj) {
+		if (DontEnum(Perm(i))) continue;
+		if (Prop(i)) ++count;
+		CHASE_PROTOTYPE
+	}
+	retval = ARRAY(count);
+	funa = ARGS(1);
+	funj = Args(0);	
+	count = 0;
+	ITERATE(obj) {
+		if (DontEnum(Perm(i))) continue;
+		if (Prop(i)  {
+			SlotValue(funa,0) = Value(i);
+			obj_put(retval,INT_JDATA(count++),func_apply(funj,funa))
+		}
+		CHASE_PROTOTYPE
+	}
+	return retval;	
 }
 
 // String functions
@@ -448,7 +478,21 @@ Func(func_apply)
 
 }
 
+// Argument objects
+
+JObject
+new_arguments(int len)
+{
+
+}
+
 // Array functions
+
+JObject
+new_array(int len)
+{
+
+}
 
 Func(array_concat)
 {
