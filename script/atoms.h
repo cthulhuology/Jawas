@@ -134,6 +134,8 @@ atom(Call,4,call)
 atom(Args,4,args)
 atom(Callee,6,callee)
 atom(Length,6,length)
+atom(Instance,8,Instance)
+atom(Enumerate,9,Enumerate)
 
 // functions
 atom(toString,8,toString)

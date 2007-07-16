@@ -5,7 +5,7 @@
 //
 
 JObject object_obj = {
-	24,
+	26,
 	{ RED(Get),		PRIM(obj_get) },
 	{ RED(Put),		PRIM(obj_put) },
 	{ RED(Prototype),	PRIM(obj_prototype) },
@@ -27,8 +27,10 @@ JObject object_obj = {
 	{ RED(hasOwnProperty),	FUNC(obj_has_own_prop) },
 	{ RED(isPrototypeOf),	FUNC(obj_is_proto_of) },
 	{ RED(propertyIsEnum),	FUNC(obj_prop_is_enum) },
+	{ RED(Enumerate),	FUNC(obj_enumerate) },
 	{ RED(Value),		Undefined },
 	{ RED(Length),		One },
+	{ RED(Instance),	False },
 	{ NULL, NULL }
 };
 
@@ -86,9 +88,10 @@ JObject function_obj = {
 	7,
 	{ RED(Construct),	FUNC(func_construct) },
 	{ RED(Call),		FUNC(obj_call) },
+	{ RED(Apply),		FUNC(func_apply) },
 	{ RED(Length),		Zero },
 	{ RED(Args),		Empty },
-	{ RED(Apply),		FUNC(func_apply) },
+	{ RED(Scope),		global_obj },
 	{ NULL, object_obj },
 	{ NULL, NULL }
 };
