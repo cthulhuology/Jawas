@@ -5,7 +5,7 @@
 //
 
 JObject object_obj = {
-	0,
+	24,
 	{ RED(Get),		PRIM(obj_get) },
 	{ RED(Put),		PRIM(obj_put) },
 	{ RED(Prototype),	PRIM(obj_prototype) },
@@ -33,7 +33,7 @@ JObject object_obj = {
 };
 
 JObject string_obj = {
-	0,
+	18,
 	{ RED(Construct),	FUNC(str_construct) },
 	{ RED(SubString),	FUNC(str_substring) },
 	{ RED(Split),		FUNC(str_split) },
@@ -55,24 +55,24 @@ JObject string_obj = {
 };
 
 JObject boolean_obj = {
-	0,
+	3,
 	{ RED(Construct),	FUNC(bool_construct) },
 	{ NULL, object_obj },
 	{ NULL, NULL }
 };
 
 JObject integer_obj = {
-	0,
+	3,
 	{ RED(Construct),	FUNC(int_construct) },
 	{ NULL, number_obj },
 	{ NULL, NULL }
 };
 
 JObject number_obj = {
-	0,
+	10,
 	{ RED(Construct),	FUNC(num_construct) },
-	{ RED(isNaN),		FUNC(obj_isNan) },
-	{ RED(isFinite),	FUNC(obj_isFinite) },
+	{ RED(isNaN),		FUNC(num_isNan) },
+	{ RED(isFinite),	FUNC(num_isFinite) },
 	{ RED(toFixed),		FUNC(num_to_fixed) },
 	{ RED(toExponential),	FUNC(num_to_exp) },
 	{ RED(toPrecision),	FUNC(num_to_precision) },
@@ -83,18 +83,18 @@ JObject number_obj = {
 };
 
 JObject function_obj = {
-	0,
+	7,
 	{ RED(Construct),	FUNC(func_construct) },
 	{ RED(Call),		FUNC(obj_call) },
 	{ RED(Length),		Zero },
-	{ RED(Args),		NULL },
+	{ RED(Args),		Empty },
 	{ RED(Apply),		FUNC(func_apply) },
 	{ NULL, object_obj },
 	{ NULL, NULL }
 };
 
 JObject array_obj = {
-	0,
+	14,
 	{ RED(Construct),	FUNC(func_construct) },
 	{ RED(Concat),		FUNC(array_concat) },
 	{ RED(Join),		FUNC(array_join) },
@@ -112,15 +112,15 @@ JObject array_obj = {
 };
 
 JObject error_obj = {
-	0,
-
+	4,
+	{ RED(Name), Error },
+	{ RED(Message), Empty },
 	{ NULL, object_obj },
 	{ NULL, NULL }
 };
 
 JObject scope_obj = {
-	0,
-	
+	4,
 	{ RED(This), global_obj },
 	{ RED(Scope), NULL },	
 	{ NULL, object_obj },
@@ -128,23 +128,15 @@ JObject scope_obj = {
 };
 
 JObject argument_obj = {
-	0,
-
+	4,
 	{ RED(Callee), NULL },
 	{ RED(Length), ZERO },
 	{ NULL, array_obj },
 	{ NULL, NULL }
 };
 
-JObject file_obj = {
-	0,
-
-	{ NULL, object_obj },
-	{ NULL, NULL }
-};
-
 JObject math_obj = {
-	0,
+	28,
 	{ RED(_E_),		FUNC(math_e) },
 	{ RED(LN10),		FUNC(math_ln10) },
 	{ RED(LN2),		FUNC(math_ln2) },
@@ -176,33 +168,82 @@ JObject math_obj = {
 };
 
 JObject date_obj = {
-	0,
+	28,
+	{ RED(MakeDay),		FUNC(date_make_day) },
+	{ RED(MakeTime),	FUNC(date_make_time) },
+	{ RED(MakeDate),	FUNC(date_make_date) },
+	{ RED(TimeClip),	FUNC(date_time_clip) },
+	{ RED(Parse),		FUNC(date_parse) },
+	{ RED(UTC),		FUNC(date_utc) },
+	{ RED(toDateString),	FUNC(date_to_date_string) },
+	{ RED(toTimeString),	FUNC(date_to_time_string) },
+	{ RED(getTime),		FUNC(date_get_time) },
+	{ RED(getFullYear),	FUNC(date_get_full_year) },
+	{ RED(getMonth),	FUNC(date_get_month) },
+	{ RED(getDate),		FUNC(date_get_date) },
+	{ RED(getDay),		FUNC(date_get_day) },
+	{ RED(getHours),	FUNC(date_get_hours) },
+	{ RED(getMinutes),	FUNC(date_get_minutes) },
+	{ RED(getSeconds),	FUNC(date_get_seconds) },
+	{ RED(getMilliseconds),	FUNC(date_get_milliseconds) },
+	{ RED(getTimezone),	FUNC(date_get_timezone) },
+	{ RED(setTime),		FUNC(date_set_time) },
+	{ RED(setMilliseconds),	FUNC(date_set_milliseconds) },
+	{ RED(setSeconds),	FUNC(date_set_seconds) },
+	{ RED(setMinutes),	FUNC(date_set_minutes) },
+	{ RED(setHours),	FUNC(date_set_hours) },
+	{ RED(setDate),		FUNC(date_set_date) },
+	{ RED(setMonth),	FUNC(date_set_month) },
+	{ RED(setFullYear),	FUNC(date_set_full_year) },
+	{ NULL, object_obj },
+	{ NULL, NULL }
+};
 
+JObject file_obj = {
+	7,
+	{ RED(Open),		FUNC(file_open) },
+	{ RED(Close),		FUNC(file_close) },
+	{ RED(Read),		FUNC(file_read) },
+	{ RED(Write),		FUNC(file_write) },
+	{ RED(Seek),		FUNC(file_seek) },
 	{ NULL, object_obj },
 	{ NULL, NULL }
 };
 
 JObject socket_obj = {
-	0,
-
+	9,
+	{ RED(Connect),		FUNC(socket_connect) },
+	{ RED(Listen),		FUNC(socket_listen) },
+	{ RED(Accept),		FUNC(socket_accept) },
+	{ RED(Bind),		FUNC(socket_bind) },
+	{ RED(Shutdown),	FUNC(socket_shutdown) },
+	{ RED(Read),		FUNC(socket_read) },
+	{ RED(Write),		FUNC(socket_write) },
 	{ NULL, object_obj },
 	{ NULL, NULL }
 };
 
 JObject regexp_obj = {
-	0,
+	9,
+	{ RED(global),		False },
+	{ RED(source),		False },
+	{ RED(ignoreCase),	False },
+	{ RED(multiline),	False },
+	{ RED(lastIndex),	False },
+	{ RED(Exec),		FUNC(regexp_exec) },
+	{ RED(Test),		FUNC(tegexp_test) },
 	{ NULL, object_obj },
 	{ NULL, NULL }
 };
 
 JObject xml_obj = {
-	0,
+	2,
 	{ NULL, object_obj },
 	{ NULL, NULL }
 };
 
-JObject global_obj = { 
-	0,
+JObject global_obj = {
+	16,
 	{ RED(Global), global_obj },
 	{ RD(Object), object_obj },
 	{ RD(String), string_obj },
@@ -212,11 +253,13 @@ JObject global_obj = {
 	{ RD(Error), error_obj },
 	{ RD(Function), function_obj },
 	{ RD(Date), date_obj },
-	{ RD(File), file_obj },
 	{ RD(Math), math_obj },
 	{ RD(RegExp), regexp_obj },
+	{ RD(File), file_obj },
 	{ RD(Socket), socket_obj },
 	{ RD(XML), xml_obj },
 	{ NULL, object_obj },
 	{ NULL, NULL }
 };
+
+

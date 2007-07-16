@@ -8,6 +8,8 @@
 #include "atoms.h"
 #include "objects.h"
 
+// JData functions
+
 JData
 new_jdata(char* data, int len)
 {
@@ -49,6 +51,14 @@ jdata_num(JData data)
 }
 
 JObject
+jdata_toObject(JData data)
+{
+
+}
+
+// Object functions
+
+JObject
 new_object(int slots)
 {
 	JObject retval = (JObject)malloc(sizeof(struct jobject_struct) + sizeof(jslot_struct)* slots);
@@ -84,6 +94,18 @@ obj_put(JObject obj, JData prop, JData value)
 			obj = (JObject)SlotValue(obj,i);
 	}
 	return False;
+}
+
+JObject
+obj_prototype(JObject obj, JData prop)
+{
+	int i;
+	for (i = 0; obj && i < Length(obj); ++i) {
+		if (! SlotProp(obj,i)) {
+			return SlotValue(obj,i);
+		}
+	}
+	return Undefined;
 }
 
 JData
@@ -160,20 +182,27 @@ obj_match(JObject obj, JData str, JData index)
 	return False;	
 }
 
-JData
-obj_call(JObject obj, JObject args)
+Func(obj_call)
 {
 	return False;
 }
 
-JObject
-obj_construct(JObject obj, JObject args)
+Func(obj_eval)
+{
+
+}
+
+Func(obj_construct)
 {
 	return obj;
 }
 
-JData
-obj_toBoolean(JObject obj, JSObject args)
+Func(obj_toString)
+{
+	return obj_default_value(obj);
+}
+
+Func(obj_toBoolean)
 {
 	JData value = obj_default_value(obj);
 	if (value == Undefined) return False;
@@ -184,19 +213,7 @@ obj_toBoolean(JObject obj, JSObject args)
 	return True;
 }
 
-JData
-obj_toNumber(JObject obj, JSObject args)
-{
-	JData value = obj_default_value(obj);
-	if (value == Undefined) return NaN;
-	if (value == Null) return Zero;
-	if (value == True) return One;
-	if (value == False) return Zero;
-	return jdata_num(num_jdata(value));
-}
-
-JData
-obj_toInteger(JObject obj, JSObject args)
+Func(obj_toInteger)
 {
 	JData value = obj_default_value(obj);
 	if (value == Undefined) return NaN;
@@ -206,17 +223,493 @@ obj_toInteger(JObject obj, JSObject args)
 	return jdata_int(int_jdata(value));
 }
 
-JData
-obj_toString(JObject obj, JSObject args)
+Func(obj_toNumber)
 {
-	return obj_default_value(obj);
+	JData value = obj_default_value(obj);
+	if (value == Undefined) return NaN;
+	if (value == Null) return Zero;
+	if (value == True) return One;
+	if (value == False) return Zero;
+	return jdata_num(num_jdata(value));
 }
 
-JObject
-data_toObject(JData data)
+Func(obj_value_of)
 {
 
 }
 
+Func(obj_has_own_prop)
+{
 
+}
+
+Func(obj_is_proto_of)
+{
+
+}
+
+Func(obj_prop_is_enum)
+{
+
+}
+
+// String functions
+
+Func(str_construct)
+{
+
+}
+
+Func(str_substring)
+{
+
+}
+
+Func(str_split)
+{
+
+}
+
+Func(str_slice)
+{
+
+}
+
+Func(str_search)
+{
+
+}
+
+Func(str_replace)
+{
+
+}
+
+Func(str_index_of)
+{
+
+}
+
+Func(str_last_index_of)
+{
+
+}
+
+Func(str_concat)
+{
+
+}
+
+Func(str_char_at)
+{
+
+}
+
+Func(str_char_code_at)
+{
+
+}
+
+Func(str_encodeURI)
+{
+
+}
+
+Func(str_decodeURI)
+{
+
+}
+
+Func(str_tolower)
+{
+
+}
+
+Func(str_toupper)
+{
+
+}
+
+// Boolean functions
+
+Func(bool_construct)
+{
+
+}
+
+// Integer functions
+
+Func(int_construct)
+{
+
+}
+
+// Number functions
+
+Func(num_construct)
+{
+
+}
+
+Func(num_isNan)
+{
+	return NaN == obj_defalt_value(obj) ? True : False;
+}
+
+Func(num_isFinite)
+{
+	return Infinity == obj_default_value(obj) ? False : True;
+}
+
+Func(num_to_fixed)
+{
+
+}
+
+Func(num_to_exp)
+{
+
+}
+
+Func(num_to_precision)
+{
+
+}
+
+// Function functions
+
+Func(func_construct)
+{
+
+}
+
+Func(func_apply)
+{
+
+}
+
+// Array functions
+
+Func(array_concat)
+{
+
+}
+
+Func(array_join)
+{
+
+}
+
+Func(array_push)
+{
+
+}
+
+Func(array_pop)
+{
+
+}
+
+Func(array_reverse)
+{
+
+}
+
+Func(array_shift)
+{
+
+}
+
+Func(array_unshift)
+{
+
+}
+
+Func(array_slice)
+{
+
+}
+
+Func(array_sort)
+{
+
+}
+
+Func(array_splice)
+{
+
+}
+
+// Math functions
+
+Func(math_e)
+{
+}
+
+Func(math_ln10)
+{
+}
+
+Func(math_ln2)
+{
+}
+
+Func(math_log2e)
+{
+}
+
+Func(math_log10e)
+{
+}
+
+Func(math_pi)
+{
+}
+
+Func(math_sqrt12)
+{
+}
+
+Func(math_sqrt2)
+{
+}
+
+Func(math_abs)
+{
+}
+
+Func(math_acos)
+{
+}
+
+Func(math_asin)
+{
+}
+
+Func(math_atan)
+{
+}
+
+Func(math_atan2)
+{
+}
+
+Func(math_ceil)
+{
+}
+
+Func(math_cos)
+{
+}
+
+Func(math_exp)
+{
+}
+
+Func(math_floor)
+{
+}
+
+Func(math_log)
+{
+}
+
+Func(math_max)
+{
+}
+
+Func(math_min)
+{
+}
+
+Func(math_pow)
+{
+}
+
+Func(math_random)
+{
+}
+
+Func(math_round)
+{
+}
+
+Func(math_sin)
+{
+}
+
+Func(math_sqrt)
+{
+}
+
+Func(math_tan)
+{
+}
+
+// Date functions
+
+Func(date_make_day)
+{
+
+}
+
+Func(date_make_time)
+{
+}
+
+Func(date_make_date)
+{
+}
+
+Func(date_time_clip)
+{
+}
+
+Func(date_parse)
+{
+}
+
+Func(date_utc)
+{
+}
+
+Func(date_to_date_string)
+{
+}
+
+Func(date_to_time_string)
+{
+}
+
+Func(date_get_time)
+{
+}
+
+Func(date_get_full_year)
+{
+}
+
+Func(date_get_month)
+{
+}
+
+Func(date_get_date)
+{
+}
+
+Func(date_get_day)
+{
+}
+
+Func(date_get_hours)
+{
+}
+
+Func(date_get_minutes)
+{
+}
+
+Func(date_get_seconds)
+{
+}
+
+Func(date_get_milliseconds)
+{
+}
+
+Func(date_get_timezone)
+{
+}
+
+Func(date_set_time)
+{
+}
+
+Func(date_set_milliseconds)
+{
+}
+
+Func(date_set_seconds)
+{
+}
+
+Func(date_set_minutes)
+{
+}
+
+Func(date_set_hours)
+{
+}
+
+Func(date_set_date)
+{
+}
+
+Func(date_set_month)
+{
+}
+
+Func(date_set_full_year)
+{
+}
+
+// File functions
+Func(file_open)
+{
+}
+
+Func(file_close)
+{
+}
+
+Func(file_read)
+{
+}
+
+Func(file_write)
+{
+}
+
+Func(file_seek)
+{
+}
+
+// Socket functions
+Func(socket_connect)
+{
+}
+
+Func(socket_listen)
+{
+}
+
+Func(socket_accept)
+{
+}
+
+Func(socket_bind)
+{
+}
+
+Func(socket_shutdown)
+{
+}
+
+Func(socket_read)
+{
+}
+
+Func(socket_write)
+{
+}
+
+// RegExp functions
+
+Func(regexp_exec)
+{
+}
+
+Func(regexp_test)
+{
+}
 

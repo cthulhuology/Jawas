@@ -29,6 +29,8 @@
 #define FUNC(x) (JData)((int)x | 2)
 #define CALL(x) (func_t)((int)x & FUNCTION_MASK)
 
+#define Func(x) JData x (JObject obj, JObject args)
+
 #define PROPERTY_MASK 0xfffffff8
 #define Prop(x) 	((JData)((int)x & PROPERTY_MASK))
 
