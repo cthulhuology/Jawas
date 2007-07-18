@@ -9,6 +9,8 @@
 #define DEFAULT_SLOTS	8
 #define MAX_INT_SIZE	12
 #define MAX_DOUBLE_SIZE	32
+#define MAX_INT_CACHE	1024
+#define MAX_JDATA_CACHE	4096
 
 // Permissions
 
@@ -27,14 +29,14 @@
 
 // Functions
 
-#define FUNCTION_MASK  0xfffffffc
+#define FUNCTION_MASK	0xfffffffc
 #define PRIM(x) (JData)((int)x | 1)
 #define FUNC(x) (JData)((int)x | 2)
 #define CALL(x) ((func_t)((int)x & FUNCTION_MASK))
 
-#define isVALUE(x) (int)x & 3 == 0
-#define isPRIM(x) (int)x & 3 = 1
-#define isFUNC(x) (int)x & 3 = 2
+#define isVALUE(x)	(int)x & 3 == 0
+#define isPRIM(x)	(int)x & 3 = 1
+#define isFUNC(x)	(int)x & 3 = 2
 
 #define Func(x) JData x (JObject obj, JObject args)
 
@@ -62,10 +64,16 @@
 #define Prop(x)		SlotProp(obj,x)
 #define Value(x)	SlotValue(obj,x)
 
-#define Length(o)	o->len
-
 #define Args(i)		SlotValue(args,i)
 #define Argc		Length(args)
+
+#define OBJECT_MASK	0x80000000
+#define OBJECT_LEN_MASK	0x7fffffff
+#define isOBJ(x)	x->len & OBJECT_MASK
+#define isDATA(x)	x->len & OBJECT_MASK == 0
+
+#define Length(o)	(isOBJ(o) ? o->len & OBJECT_LEN_MASK  : o->len)
+#define ObjValue	obj_default_value(obj)
 
 //  Iterators
 
@@ -78,6 +86,15 @@
 		i = 0;\
 	}
 
+#define LOCALTIME_TMS \
+	struct tm tms; \
+	localtime_r(JDATA_INT(ObjValue),&tms);
+	
+
+#define SET_LOCALTIME_TMS \
+	obj_put(obj,Value,INT_JDATA(mktime(&tms)));	
+	return ObjValue;
+
 // Conversions
 
 #define JDATA_INT(x)	strtol(x->data,NULL,0)
@@ -87,3 +104,8 @@
 #define NUM_JDATA(x)	num_jdata(x)
 #define OBJ_JDATA(x)	((JData)x)
 
+// Special Atoms
+
+#define Zero		&IntCache[0]
+#define One		&IntCache[2]
+#define Two		&IntCache[4]

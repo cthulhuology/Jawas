@@ -21,12 +21,51 @@ new_jdata(char* data, int len)
 }
 
 JData
+copy_jdata(JData data)
+{
+	return new_jdata(data->data,Length(data));
+}
+
+int* IntCache = NULL;
+JData* JDataCache = NULL;
+
+void
+init_int_cache()
+{
+	IntCache = (int*)malloc(sizeof(int)*2 * MAX_INT_CACHE);
+	for (int i = 0; i < MAX_INT_CACHE; ++i) 
+		IntCache[i*2] = sprintf(&IntCache[i*2+1],"%d",i);
+}
+
+void
+init_jdata_cache()
+{
+	JDataCache = (JData*)malloc(sizeof(JData) * MAX_JDATA_CACHE);
+	for (int i = 0; i < MAX_JDATA_CACHE; ++i) JDataCache[i] = NULL;
+}
+
+JData
+ident_jdata(char* data, int len)
+{
+	char* extra = NULL;
+	int i = strtol(data,&extra,0);					
+	if (!extra && i < MAX_INT_CACHE) return (JData)&IntCache[i*2];
+	for (i = 0; i < MAX_JDATA_CACHE && JDataCache[i]; ++i)
+		if (Length(JDataCache[i]) == len) 
+			if(!memcmp(JDataCache[i]->data,data,len)) 
+				return JDataCache[i];
+	JDataCache[i] = new_jdata(data,len);
+	return JDataCache[i];
+}
+
+JData
 int_jdata(int data)
 {
 	JData retval;
+	if (data < MAX_INT_CACHE) return (JData)&IntCache[i*2];
 	retval = (JData)malloc(MAX_INT_SIZE + sizeof(struct jdata_struct));
 	retval->len = sprintf(retval->data,"%d",data);
-	return retval;
+	return ident_jdata(retval->data,retval->len);
 }
 
 JData
@@ -35,7 +74,7 @@ num_jdata(double data)
 	JData retval;
 	retval = (JData)malloc(MAX_DOUBLE_SIZE + sizeof(struct jdata_struct));
 	retval->len = sprintf(retval->data,"%g",data);
-	return retval;
+	return ident_jdata(retval->data,retval->len);
 }
 
 JObject
@@ -44,13 +83,25 @@ jdata_toObject(JData data)
 	return (JObject)data;
 }
 
+JData
+jdata_boolean(JData value) 
+{
+	if (!value) return False;
+	if (value == Undefined) return False;
+	if (value == Null) return False;
+	if (value == False || value == True) return value;
+	if (value == Nan) return False;
+	if (value == Zero) return False;
+	return True;
+}
+
 // JObject functions
 
 JObject
 new_object(int slots)
 {
 	JObject retval = (JObject)malloc(sizeof(struct jobject_struct) + sizeof(jslot_struct)* slots);
-	retval->len = slots;
+	retval->len = OBJECT_MASK | slots;
 	return retval;
 }
 
@@ -221,10 +272,9 @@ Func(obj_construct)
 			++slots;
 		CHASE_PROTOTYPE
 	}
-	ITERATE(args) {
+	ITERATE(args)
 		if (isValue(Args(i)))
 			++slots;
-	}
 	retval = OBJECT(slots);	
 	ITERATE(retval) {
 		SlotProp(retval,i) = NULL;
@@ -239,32 +289,25 @@ Func(obj_construct)
 			obj_put(retval,Prop(i),Value(i));
 		CHASE_PROTOTYPE
 	}
-	ITERATE(args) {
+	ITERATE(args)
 		if (isValue(Args(i)))
 			obj_put(retval,SlotProp(args,i),Args(i));
-	}
 	return retval;
 }
 
 Func(obj_toString)
 {
-	return obj_default_value(obj);
+	return ObjValue;
 }
 
 Func(obj_toBoolean)
 {
-	JData value = obj_default_value(obj);
-	if (value == Undefined) return False;
-	if (value == Null) return False;
-	if (value == False || value == True) return value;
-	if (value == Nan) return False;
-	if (value == Zero) return False;
-	return True;
+	return jdata_boolean(ObjValue);
 }
 
 Func(obj_toInteger)
 {
-	JData value = obj_default_value(obj);
+	JData value = ObjValue;
 	if (value == Undefined) return NaN;
 	if (value == Null) return Zero;
 	if (value == True) return One;
@@ -274,7 +317,7 @@ Func(obj_toInteger)
 
 Func(obj_toNumber)
 {
-	JData value = obj_default_value(obj);
+	JData value = ObjValue;
 	if (value == Undefined) return NaN;
 	if (value == Null) return Zero;
 	if (value == True) return One;
@@ -284,16 +327,15 @@ Func(obj_toNumber)
 
 Func(obj_value_of)
 {
-	return JDATA_OBJ(obj);
+	return ObjValue;
 }
 
 Func(obj_has_own_prop)
 {
 	JData prop = Args(0);
-	ITERATE(obj) {
+	ITERATE(obj)
 		if (Prop(i) == prop)
 			return True;
-	}
 	return False;
 }
 
@@ -334,7 +376,7 @@ Func(obj_enumerate)
 	count = 0;
 	ITERATE(obj) {
 		if (DontEnum(Perm(i))) continue;
-		if (Prop(i)  {
+		if (Prop(i))  {
 			SlotValue(funa,0) = Value(i);
 			obj_put(retval,INT_JDATA(count++),func_apply(funj,funa))
 		}
@@ -347,17 +389,26 @@ Func(obj_enumerate)
 
 Func(str_construct)
 {
-
+	JObject retval;
+	const_args = ARGS(1);
+	SlotProp(const_args,0) = Value;
+	SlotValue(const_args,0) = Args(0);
+	retval = obj_construct(obj_string,const_args);
+	return retval;	
 }
 
 Func(str_substring)
 {
-
+	int start, end;
+	JData value = ObjValue;
+	start = JDATA_INT(Arg(0));
+	end = (argc == 1 ? Length(obj) : JDATA_INT(Arg(1)));
+	return  new_jdata(value->data + start,end-start);
 }
 
 Func(str_split)
 {
-
+	
 }
 
 Func(str_slice)
@@ -377,27 +428,58 @@ Func(str_replace)
 
 Func(str_index_of)
 {
-
+	JData value = ObjValue; 
+	JData search = Args(0);
+	int slen = Length(search);
+	int vlen = Length(value);
+	int pos = (Argc == 1 ? 0 : JDATA_INT(Args(1)));
+	ITERATE(value) 
+		if ((pos + i + slen < vlen) && !strncmp(&value->data[i+pos],search->data,slen)) 
+			return INT_JDATA(i);
+	return NegOne;
 }
 
 Func(str_last_index_of)
 {
-
+	JData value = ObjValue;
+	JData search = Args(0);
+	int slen = Length(search);
+	int vlen = Length(value);
+	int pos = (Argc == 1 ? 0 : JDATA_INT(Args(1)));
+	for (int i = vlen-slen; i >= pos; --i)
+		if (!strncmp(&value->data[i],search->data,slen))
+			return INT_JDATA(i);
+	return NegOne;
 }
 
 Func(str_concat)
 {
-
+	JData retval, value = ObjValue;	
+	int off, len = 0;
+	ITERATE(args)
+		len += Length(Args(i));
+	retval = new_jdata(NULL,Length(value) + len);
+	memcpy(retval->data,value->data,Length(value));
+	off = Length(value);
+	ITERATE(args) {
+		memcpy(retval->data + off, Args(i)->data, Length(Args(i)));
+		off += Length(Args(i));
+	}
+	return retval;
 }
 
 Func(str_char_at)
 {
-
+	JData value = ObjValue;	
+	int pos = JDATA_INT(Args(0));
+	return pos >= Length(value) ? Empty : new_jdata(&value->data[pos],1);
 }
 
 Func(str_char_code_at)
 {
-
+	JData value = ObjValue;	
+	int pos = JDATA_INT(Args(0));
+	return pos >= Length(value) ? NaN : INT_JDATA(value->data[pos]));
 }
 
 Func(str_encodeURI)
@@ -412,53 +494,68 @@ Func(str_decodeURI)
 
 Func(str_tolower)
 {
-
+	JDate retval = copy_jdata(ObjValue);
+	ITERATE(retval) 
+		retval[i] = tolower(retval[i]);
+	return retval;	
 }
 
 Func(str_toupper)
 {
-
+	JDate retval = copy_jdata(ObjValue);
+	ITERATE(retval) 
+		retval[i] = toupper(retval[i]);
+	return retval;	
 }
 
 // Boolean functions
 
 Func(bool_construct)
 {
-
+	JObject bool_args = ARGS(1);
+	SlotProp(bool_args,0) = Value;
+	SlotValue(bool_args,0) = jdata_boolean(Args(0));
+	return obj_construct(boolean_obj,bool_args);
 }
 
 // Integer functions
 
 Func(int_construct)
 {
-
+	JObject int_args = ARGS(1);
+	SlotProp(int_args,0) = Value;
+	SlotValue(int_args,0) = JDATA_INT(Args(0));
+	return obj_construct(integer_obj,int_args);
 }
 
 // Number functions
 
 Func(num_construct)
 {
-
+	JObject num_args = ARGS(1);
+	SlotProp(num_args,0) = Value;
+	SlotValue(num_args,0) = JDATA_NUM(Args(0));
+	return obj_construct(integer_obj,num_args);
 }
 
 Func(num_isNan)
 {
-	return NaN == obj_defalt_value(obj) ? True : False;
+	return NaN == ObjValue ? True : False;
 }
 
 Func(num_isFinite)
 {
-	return Infinity == obj_default_value(obj) ? False : True;
+	return Infinity == ObjValue ? False : True;
 }
 
 Func(num_to_fixed)
 {
-
+	return INT_JDATA(lround(JDATA_NUM(ObjValue)));
 }
 
 Func(num_to_exp)
 {
-
+	return Zero;
 }
 
 Func(num_to_precision)
@@ -652,21 +749,13 @@ Func(math_tan)
 
 // Date functions
 
-Func(date_make_day)
+Func(date_construct)
 {
-
-}
-
-Func(date_make_time)
-{
-}
-
-Func(date_make_date)
-{
-}
-
-Func(date_time_clip)
-{
+	JData tm = new_jdata(NULL,sizeof(struct tm));
+	JObject tm_args = ARGS(2);
+	SlotProp(tm_args,1) = Value;
+	SlotValue(tm_args,1) = INT_JDATA(mktime(tm->data));
+	return obj_construct(date_obj,tm_args);
 }
 
 Func(date_parse)
@@ -687,74 +776,113 @@ Func(date_to_time_string)
 
 Func(date_get_time)
 {
+	return ObjValue;
 }
 
 Func(date_get_full_year)
 {
+	LOCALTIME_TMS
+	return INT_JDATA(tms.tm_year + 1900);
 }
 
 Func(date_get_month)
 {
+	LOCALTIME_TMS
+	return INT_JDATA(tms.tm_mon);
 }
 
 Func(date_get_date)
 {
+	LOCALTIME_TMS
+	return INT_JDATA(tms.tm_mday);
 }
 
 Func(date_get_day)
 {
+	LOCALTIME_TMS
+	return INT_JDATA(tms.tm_wday);
 }
 
 Func(date_get_hours)
 {
+	LOCALTIME_TMS
+	return INT_JDATA(tms.tm_hour);
 }
 
 Func(date_get_minutes)
 {
+	LOCALTIME_TMS
+	return INT_JDATA(tms.tm_min);
 }
 
 Func(date_get_seconds)
 {
+	LOCALTIME_TMS
+	return INT_JDATA(tms.tm_sec);
 }
 
 Func(date_get_milliseconds)
 {
+	return Zero;
 }
 
 Func(date_get_timezone)
 {
+	LOCALTIME_TMS
+	return INT_JDATA(tms.tm_gmtoff);
 }
 
 Func(date_set_time)
 {
+	obj_put(obj,Value,Args(0));
+	return ObjValue;
 }
 
 Func(date_set_milliseconds)
 {
+	return ObjValue;
 }
 
 Func(date_set_seconds)
 {
+	LOCALTIME_TMS
+	tms->tm_sec = JDATA_INT(Args(0));
+	SET_LOCALTIME_TMS
 }
 
 Func(date_set_minutes)
 {
+	LOCALTIME_TMS
+	tms->tm_min = JDATA_INT(Args(0));
+	SET_LOCALTIME_TMS
 }
 
 Func(date_set_hours)
 {
+	LOCALTIME_TMS
+	tms->tm_hour = JDATA_INT(Args(0));
+	SET_LOCALTIME_TMS
 }
 
 Func(date_set_date)
 {
+	LOCALTIME_TMS
+	tms->tm_mday = JDATA_INT(Args(0));
+	SET_LOCALTIME_TMS
 }
 
 Func(date_set_month)
 {
+	LOCALTIME_TMS
+	tms->tm_mon = JDATA_INT(Args(0));
+	SET_LOCALTIME_TMS
 }
 
 Func(date_set_full_year)
 {
+	LOCALTIME_TMS
+	tms->tm_year = JDATA_INT(Args(0)) - 1900;
+	SET_LOCALTIME_TMS
 }
 
 // File functions

@@ -130,24 +130,6 @@ JObject error_obj = {
 	{ NULL, NULL }
 };
 
-// Scope
-JObject scope_obj = {
-	4,
-	{ RED(This), global_obj },
-	{ RED(Scope), NULL },	
-	{ NULL, object_obj },
-	{ NULL, NULL }
-};
-
-// Argument
-JObject argument_obj = {
-	4,
-	{ RED(Callee), NULL },
-	{ RED(Length), ZERO },
-	{ NULL, array_obj },
-	{ NULL, NULL }
-};
-
 // Math
 JObject math_obj = {
 	28,
