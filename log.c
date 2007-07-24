@@ -17,7 +17,8 @@ char* log_path;
 void
 open_log()
 {	
-	int fd;
+	struct stat st;
+	int fd, ol = 0;
 	time_t now = time(NULL);
 	char* buffer;
 	char* index_path;
@@ -32,12 +33,12 @@ open_log()
 	log_path = file_path(localhost,9,buffer,buflen);	
 	index_path = file_path(localhost,9,"/logs/index.html",16);
 	symlink(log_path,index_path);
+	ol = stat(log_path,&st) < 0 ? 1 : 0;
 	fd = open(log_path,O_WRONLY|O_APPEND|O_CREAT,0600);
 	if (fd < 0) return;
 	dup2(fd,2);
 	log_fd = fd;
-	write(log_fd,"<ol>",4);
-	
+	if (ol) write(fd,"<ol>\n",5);
 	free(buffer);
 }
 
@@ -45,7 +46,6 @@ void
 close_log()
 {
 	free(log_path);
-	write(log_fd,"</ol>",5);
 	close(log_fd);
 }
 

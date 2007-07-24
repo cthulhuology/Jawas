@@ -5,6 +5,8 @@
 //
 
 #include "include.h"
+#include "defines.h"
+#include "log.h"
 #include "server.h"
 #include "jws.h"
 #include "image.h"
@@ -35,15 +37,20 @@ MimeTypes*
 lookup_mimetype(char* filename)
 {
 	MimeTypes* mt;
-	int i,l = strlen(filename) - 1;
-	for (i = l; i > 0; --i)
+	int i,l = strlen(filename);
+	for (i = l - 1; i > 0; --i)
 		if (filename[i-1] == '.') break;
 	l -= i;
+	debug("Looking up ext: %s\n",&filename[i]);
 	for (mt = mime_types; mt->ending.len; ++mt) {
+		debug("Ext %s (%i) MT %s (%i)\n", &filename[i],l, mt->ending.data, mt->ending.len);
 		if (l == mt->ending.len
-		&& !strncmp(mt->ending.data,&filename[i],l))
+		&& !strncmp(mt->ending.data,&filename[i],l)) {
+			debug("Content Type is %s\n", mt->type.data);
 			return mt;
+		}
 	}
+	debug("ending not found going with default\n");
 	return mt;
 }
 

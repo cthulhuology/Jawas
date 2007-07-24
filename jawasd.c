@@ -31,6 +31,7 @@ restart:
 		child = fork();
 	}
 	if (child == 0) {
+		setreuid(70,70);
 		open_log();
 		Server srv = serve(atoi(port),atoi(tls_port));
 		if (!srv) return 1;

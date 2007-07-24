@@ -10,6 +10,8 @@ $(PROGRAM) : $(OBJECTS) $(PROGRAM).c
 .PHONY: clean
 clean : 
 	rm -rf $(PROGRAM) $(OBJECTS) $(LIBARAY)
+	rm -rf localhost/logs
+	mkdir -p localhost/logs
 
 %.o : %.c 
 	gcc -c $< $(CFLAGS) $(INCLUDES)

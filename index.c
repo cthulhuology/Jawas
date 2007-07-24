@@ -19,9 +19,9 @@ is_directory(char* filename)
 
 
 const str indexes[] = {
-	{ 10, "index.html" },
-	{ 9, "index.jws" },
-	{ 9, "index.xml" },
+	{ 11, "/index.html" },
+	{ 10, "/index.jws" },
+	{ 10, "/index.xml" },
 	{ 0, NULL },
 };
 
