@@ -4,6 +4,8 @@
 //
 
 #include "include.h"
+#include "defines.h"
+#include "log.h"
 #include "server.h"
 
 int
@@ -29,10 +31,12 @@ restart:
 		child = fork();
 	}
 	if (child == 0) {
+		open_log();
 		Server srv = serve(atoi(port),atoi(tls_port));
 		if (!srv) return 1;
 		while (! srv->done) srv = run(srv);	
 		stop(srv);
+		close_log();
 	} else {
 		waitpid(child,&child_status,0);
 		goto restart;

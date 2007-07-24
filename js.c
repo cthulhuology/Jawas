@@ -4,8 +4,11 @@
 // All Rights Reserved
 //
 
+#include <sys/un.h>
+
 #include "include.h"
 #include "defines.h"
+#include "log.h"
 #include "uri.h"
 #include "responses.h"
 #include "buffers.h"
@@ -20,6 +23,67 @@ JSInstance ins;
 
 void ProcessFile(char* script);
 
+int
+sms_connect() 
+{
+	struct sockaddr_un unsc;
+	unsc.sun_len = sizeof(unsc);
+	unsc.sun_family = AF_UNIX;
+	memcpy(unsc.sun_path,"/tmp/sms",9);
+
+	int sock = socket(AF_UNIX,SOCK_STREAM,0);
+	if (connect(sock,(struct sockaddr*)&unsc,unsc.sun_len)) {
+		error("Failed to connect to /tmp/sms\n");
+		close(sock);
+		return 0;
+	}
+	return sock;
+}
+
+static JSBool
+SendMessage(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	int i;
+	JSString* str;
+	int sc = sms_connect();
+	write(sc,"SEND ",5);
+	for (i = 0; i < argc; ++i ) {
+		str = JS_ValueToString(cx,argv[i]);
+		write(sc,JS_GetStringBytes(str),JS_GetStringLength(str));
+		write(sc," ",1);
+	}
+	close(sc);
+	return JS_TRUE;	
+}
+
+static JSBool
+AddUser(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	int i;
+	JSString* str;
+	int sc = sms_connect();
+	write(sc,"ADD USER ",9);
+	for (i = 0; i < 3; ++i ) {
+		str = JS_ValueToString(cx,argv[i]);
+		write(sc,JS_GetStringBytes(str),JS_GetStringLength(str));
+		write(sc," ",1);
+	}
+	close(sc);
+	return JS_TRUE;	
+}
+
+static JSBool
+AddChannel(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	JSString* str;
+	int sc = sms_connect();
+	write(sc,"ADD CHANNEL ",12);
+	str = JS_ValueToString(cx,argv[0]);
+	write(sc,JS_GetStringBytes(str),JS_GetStringLength(str));
+	close(sc);
+	return JS_TRUE;	
+}
+
 static JSBool
 Print(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
@@ -33,7 +97,6 @@ Print(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		if (i) ins.buffer = write_buffer(ins.buffer," ",1);
 		cstr = JS_GetStringBytes(str);
 		ins.buffer = write_buffer(ins.buffer, cstr, strlen(cstr));
-		//fprintf(stderr,"[JS %d] %s\n",ins.buffer->length,ins.buffer->data);
 	}
 	ins.buffer = write_buffer(ins.buffer, "\n",1);
 	return JS_TRUE;
@@ -47,7 +110,7 @@ Include(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	char* filename;
 	if (argc != 1) return JS_FALSE;
 	str = JS_ValueToString(cx,argv[0]);
-	filename = file_path(ins.resp->req,JS_GetStringBytes(str),JS_GetStringLength(str));
+	filename = file_path(ins.resp->req->host->data,ins.resp->req->host->length,JS_GetStringBytes(str),JS_GetStringLength(str));
 	fc = load(ins.srv,filename);
 	if (!fc) return JS_FALSE;
 	ProcessFile(fc->data);
@@ -100,20 +163,20 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		case PGRES_TUPLES_OK:
 			arr =  JS_NewArrayObject(cx,0,NULL);
 			if (! arr) {
-				fprintf(stderr,"Failed to initialize array for query : %s\n",JS_GetStringBytes(query));
+				error("Failed to initialize array for query : %s\n",JS_GetStringBytes(query));
 				return JS_FALSE;
 			}
 			for (i = 0; i < PQntuples(res); ++i) {
 				row = JS_NewObject(cx,NULL,NULL,arr);
 				if(!row || ! JS_DefineElement(cx,arr,i,OBJECT_TO_JSVAL(row),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
-					fprintf(stderr,"Failed to initialize object for row %d : %s\n",i,JS_GetStringBytes(query));
+					error("Failed to initialize object for row %i : %s\n",i,JS_GetStringBytes(query));
 					continue;
 				}
 				for (j = 0; j < PQnfields(res); ++j) {
 					value_cstr = PQgetvalue(res,i,j);
 					value = JS_NewString(cx,value_cstr,strlen(value_cstr));
 					if (!JS_DefineProperty(cx,row,PQfname(res,j),STRING_TO_JSVAL(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
-						fprintf(stderr,"Failed to apply column %s to row %d\n",PQfname(res,j),i);
+						error("Failed to apply column %s to row %i\n",PQfname(res,j),i);
 						continue;
 					}
 				}
@@ -160,7 +223,6 @@ Decode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	tmp = write_buffer(NULL,JS_GetStringBytes(str),JS_GetStringLength(str));
 	buf = uri_decode(tmp);	
 	data = print_buffer(buf);	
-	fprintf(stderr,"[Decode] (%s)\n",data);
 	str = JS_NewString(cx,data,buf->length);
 	for (; buf; buf = free_buffer(buf));
 	for (; tmp; tmp = free_buffer(tmp));
@@ -200,6 +262,9 @@ static JSClass global_class = {
 };
 
 static JSFunctionSpec my_functions[] = {
+	{"send_message",SendMessage,0},
+	{"add_user",AddUser,0},
+	{"add_channel",AddChannel,0},
 	{"print", Print, 0},
 	{"include", Include, 0},
 	{"header", Header, 0 },
@@ -259,9 +324,7 @@ ProcessFile(char* script)
 			tmpbuffer = write_buffer(NULL,"print(",6);
 			tmpbuffer = write_buffer(tmpbuffer,&script[tmp+6],len);
 			tmpbuffer = write_buffer(tmpbuffer,");",2);
-			// fprintf(stderr,"Evaluating %d [%s]\n",tmpbuffer->length,tmpbuffer->data);
 			ok = JS_EvaluateScript(ins.cx, ins.glob, tmpbuffer->data, tmpbuffer->length , "js.c", 1, &retval);
-			// fprintf(stderr,"ok? %s\n", (ok == JS_FALSE ? "nope" : "yep"));
 			free_buffer(tmpbuffer);
 			tmp += len + 6;
 			len = tmp+3;
@@ -277,7 +340,7 @@ ProcessFile(char* script)
 	ins.buffer = write_buffer(ins.buffer,&script[len],tmp-len);
 }
 
-Response
+int
 jws_handler(Server srv, File fc, Response resp)
 {
 	Buffer tmp;
@@ -286,11 +349,10 @@ jws_handler(Server srv, File fc, Response resp)
 	if (DestroyJS(&ins)) goto error;
 	resp->contents = ins.buffer;
 	print_buffer(ins.buffer);
-	return resp;
+	return resp->status;
 error:
 	for (;ins.buffer; ins.buffer = free_buffer(ins.buffer));
-	resp->status = 500;
 	resp->contents = NULL;
-	return resp;
+	return 500;
 }
 

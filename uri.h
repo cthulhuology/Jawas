@@ -9,7 +9,7 @@
 
 #include "requests.h"
 
-char* file_path(Request req, char* filename, int flen);
+char* file_path(char* host, int hlen, char* filename, int flen);
 char* request_path(Request req);
 
 Buffer uri_encode(Buffer buf);

@@ -4,7 +4,7 @@
 
 OBJECTS := $(patsubst %.c,%.o,$(SOURCES))
 
-$(PROGRAM) : $(OBJECTS)
+$(PROGRAM) : $(OBJECTS) $(PROGRAM).c
 	gcc -o $@ $(PROGRAM).c $(OBJECTS) $(LDFLAGS) $(LIBS)
 
 .PHONY: clean

@@ -16,7 +16,9 @@ buffers.c \
 events.c \
 files.c \
 headers.c \
+index.c \
 js.c \
+log.c \
 pages.c \
 requests.c \
 responses.c \

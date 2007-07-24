@@ -79,6 +79,5 @@ status_line(int code)
 	memset(line,0,10+stati[i].len);
 	strncpy(line,http_version,9);
 	strncpy(line+9,stati[i].reason,stati[i].len);
-	fprintf(stderr,"Status_line length %d\n",9 + stati[i].len);
 	return line;
 }

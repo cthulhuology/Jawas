@@ -24,4 +24,4 @@ struct js_instance_struct {
 	PGconn* database;
 };
 
-Response jws_handler(Server srv, File fc, Response resp);
+int jws_handler(Server srv, File fc, Response resp);

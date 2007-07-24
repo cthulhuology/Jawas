@@ -6,6 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
+#include "log.h"
 #include "headers.h"
 #include "status.h"
 #include "responses.h"
@@ -33,7 +34,6 @@ send_status(Socket sc, int code)
 {
 	int total = 0;
 	char* status = status_line(code);
-	fprintf(stderr,"Status line length %d\n",strlen(status));
 	total += dup_write(sc,status,strlen(status));
 	free(status);
 	return total;
@@ -86,17 +86,15 @@ send_response(Response resp)
 	int total = 0;
 	char* buffer = malloc(NUM_BUFFER_SIZE);
 
-	fprintf(stderr,"send_response Response %p, headers %p\n",resp,resp->headers);
 	memset(buffer,0,NUM_BUFFER_SIZE);
 	snprintf(buffer,NUM_BUFFER_SIZE,"%d",calculate_content_length(resp->contents));
 	content_length(resp->headers,buffer);
+	content_type(resp->headers,"text/html");
 	server(resp->headers,server_name);
-	dump_headers(resp->headers);
 	total = 0;
 	total += send_status(resp->sc,resp->status);
 	total += send_headers(resp->sc,resp->headers);
 	total += send_contents(resp->sc,resp->contents);
-	fprintf(stderr,"Wrote %d bytes\n",total);
 	free(buffer);
 	return total;
 }
@@ -106,7 +104,7 @@ close_response(Response resp)
 {
 	Buffer buf;
 	if (! resp) return;
-	fprintf(stderr,"Freeing response %p\n",resp);
+	debug("Freeing response %i\n",resp);
 	close_request(resp->req);
 	free_headers(resp->headers);
 	for (buf = resp->contents; buf; buf = free_buffer(buf));

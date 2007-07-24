@@ -61,18 +61,6 @@ append_header(Headers headers, Buffer key, Buffer value)
 	return headers;
 }
 
-void
-dump_headers(Headers headers)
-{
-	int i;
-	for (i = 0; i < MAX_HEADERS && headers[i].key; ++i) {
-		print_buffer(headers[i].key);
-		fprintf(stderr," = ");
-		print_buffer(headers[i].value);
-		fprintf(stderr,"\n");
-	}
-}
-
 HEADER_FUNC(cache_control,Cache_Control_MSG)
 HEADER_FUNC(connection,Connection_MSG)
 HEADER_FUNC(date_field,Date_MSG)

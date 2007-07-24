@@ -6,6 +6,7 @@
 
 #include "include.h"
 #include "events.h"
+#include "log.h"
 #include "defines.h"
 
 Event
@@ -67,14 +68,14 @@ monitor_socket(Event ec, int fd)
 Event
 add_read_socket(Event ec, int fd, Request req)
 {
-	fprintf(stderr,"Adding read socket %p\n",req);
+	debug("Adding read socket %i\n",req);
 	return queue_event(ec, fd, EVFILT_READ, EV_ADD|EV_ONESHOT, 0, 0, req);
 }
 
 Event
 add_write_socket(Event ec, int fd, Response resp)
 {
-	fprintf(stderr,"Adding write socket for request %p\n",resp->req);
+	debug("Adding write socket for request %i\n",resp->req);
 	return queue_event(ec, fd, EVFILT_WRITE, EV_ADD|EV_ONESHOT, 0, 0, resp);
 }
 

@@ -136,10 +136,9 @@ obj_put(JObject obj, JData prop, JData value)
 JData
 obj_prototype(JObject obj, JData prop)
 {
-	ITERATE(o) {
+	ITERATE(o)
 		if (!Prop(i)) 
 			return Value(i);
-	}
 	return Undefined;
 }
 

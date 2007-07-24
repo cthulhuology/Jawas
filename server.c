@@ -5,7 +5,9 @@
 
 #include "include.h"
 #include "defines.h"
+#include "log.h"
 #include "headers.h"
+#include "index.h"
 #include "status.h"
 #include "events.h"
 #include "files.h"
@@ -18,12 +20,13 @@ File
 load(Server srv, char* filename)
 {
 	File retval;
-	fprintf(stderr,"Opening %s\n",filename);
+	if (!filename) return NULL;
+	debug("Opening %s\n",filename);
 	retval = query_cache(&srv->fc,filename);
 	if (retval) return retval;
 	retval = open_file(srv->fc,filename);
 	if (!retval) {
-		fprintf(stderr,"Failed to open %s\n",filename);
+		error("Failed to open %s\n",filename);
 		return NULL;
 	}
 	srv->fc = retval;
@@ -35,7 +38,7 @@ load(Server srv, char* filename)
 void
 unload(Server srv, int fd, char* filename)
 {
-	fprintf(stderr,"Unloading %s\n",filename);
+	debug("Unloading %s\n",filename);
 	srv->fc = close_file(srv->fc,filename);
 }
 
@@ -47,7 +50,7 @@ incoming(Server srv, int fd)
 	req = open_request(srv->sc);
 	srv->ec = add_read_socket(srv->ec, srv->sc->fd,req);
 	srv->numevents++;
-	fprintf(stderr,"[Jawas] Connected %d.%d.%d.%d:%d\n",
+	notice("[Jawas] Connected %i.%i.%i.%i:%i\n",
 		(0xff & srv->sc->peer),
 		(0xff00 & srv->sc->peer) >> 8,
 		(0xff0000 & srv->sc->peer) >> 16,
@@ -79,27 +82,20 @@ request(Server srv, Event ec)
 	File fc;
 	Response resp;
 	Request req = (Request)ec->event.udata;
-	fprintf(stderr,"Doing read for Request %p\n",req);
 	if (!read_request(req)) {
-		fprintf(stderr,"Failed to read request\n");
+		error("Failed to read request\n");
 		disconnect(srv,req);
 		close_request(req);
 		return;
 	}
-	dump_headers(req->headers);
-	
 	if (req->done) {
-		fprintf(stderr,"Request done\n");
 		req->sc->buf = NULL;
 		resp = process_request(req);
 		filename = request_path(resp->req);
-		fprintf(stderr,"Got filename %s\n",filename);
-		fc = load(srv,filename);
-		if (! fc) {
-			resp->status = 404;
-		} else { 
-			jws_handler(srv,fc,resp);
-		}
+		fc = is_directory(filename) ? 
+			load(srv,get_index(filename)) :
+			load(srv,filename);
+		resp->status = (fc ? jws_handler(srv,fc,resp) : 404);
 		srv->ec = add_write_socket(srv->ec,req->sc->fd,resp);
 		srv->numevents++;
 	}
@@ -111,7 +107,6 @@ respond(Server srv, Event ec)
 	Request req;
 	Response resp = (Response)ec->event.udata;
 	Socket sc = resp->sc;
-	fprintf(stderr,"Writing response\n");
 	send_response(resp);
 	disconnect(srv,resp->req);
 	close_response(resp);
@@ -146,7 +141,6 @@ run(Server srv)
 	ec = poll_events(srv->ec,srv->kq,srv->numevents);
 	srv->numevents = 2;
 	for (srv->ec = NULL; ec; ec = ec->next) {
-		fprintf(stderr,"Processing socket %d\n",ec->event.ident);
 		switch (ec->event.filter) {
 		case EVFILT_READ:
 			if (ec->event.flags == EV_EOF) break;
@@ -158,8 +152,6 @@ run(Server srv)
 			respond(srv,ec);
 			break;
 		case EVFILT_VNODE:
-			// if (!ec->event.udata) break;
-			fprintf(stderr,"VNODE on %s\n",ec->event.udata);
 			unload(srv,ec->event.ident,ec->event.udata);
 			break;
 		}

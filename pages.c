@@ -6,6 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
+#include "log.h"
 #include "pages.h"
 
 CacheInfo gci = { NULL, 0, 0, 0, 0, 0, NULL };
@@ -32,7 +33,7 @@ new_page()
 		dump_cache_info();
 	}
 	if (gci.free == NULL) {
-		fprintf(stderr,"[JAWAS] Out of Memory!!!!\n");
+		error("[JAWAS] Out of Memory!!!!\n");
 		return NULL;
 	}
 	++gci.allocated;
@@ -49,7 +50,7 @@ free_page(Page p)
 	Page tmp;
 	for (tmp = gci.free; PAGE_GUARD && tmp; tmp = tmp->next) {
 		if (tmp == p) {
-			fprintf(stderr,"[JAWAS] Double free on page %p\n",p);
+			debug("[JAWAS] Double free on page %i\n",p);
 			for(;;) {}
 		}		
 	}
@@ -63,11 +64,11 @@ free_page(Page p)
 void
 dump_cache_info()
 {
-	fprintf(stderr,"[JAWAS] CacheInfo\n");
-	fprintf(stderr,"\tBase Address: %p\n",gci.baseaddr);
-	fprintf(stderr,"\tSize: %d bytes\n",gci.size);
-	fprintf(stderr,"\tAllocated: %d\n",gci.allocated);
-	fprintf(stderr,"\tFreed: %d\n",gci.freed);
-	fprintf(stderr,"\tAllocations: %d\n",gci.allocations);
-	fprintf(stderr,"\tFrees: %d\n",gci.frees);
+	notice("[JAWAS] CacheInfo\n");
+	notice("\tBase Address: %i\n",gci.baseaddr);
+	notice("\tSize: %i bytes\n",gci.size);
+	notice("\tAllocated: %i\n",gci.allocated);
+	notice("\tFreed: %i\n",gci.freed);
+	notice("\tAllocations: %i\n",gci.allocations);
+	notice("\tFrees: %i\n",gci.frees);
 }

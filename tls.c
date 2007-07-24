@@ -5,6 +5,8 @@
 //
 
 #include "include.h"
+#include "defines.h"
+#include "log.h"
 #include "tls.h"
 
 static int 
@@ -29,13 +31,13 @@ init_tls(char* keyfile, char* password)
 	tls->method = SSLv23_method();
 	tls->ctx = SSL_CTX_new(tls->method);
 	if (!SSL_CTX_use_certificate_file(tls->ctx,keyfile,SSL_FILETYPE_PEM)) {
-		fprintf(stderr,"Failed to use certificate chain file %s\n",keyfile);
+		error("Failed to use certificate chain file %s\n",keyfile);
 		return NULL;
 	}
 	SSL_CTX_set_default_passwd_cb(tls->ctx,password_callback);
 	SSL_CTX_set_default_passwd_cb_userdata(tls->ctx,tls);
 	if(!SSL_CTX_use_PrivateKey_file(tls->ctx,keyfile,SSL_FILETYPE_PEM)) {
-		fprintf(stderr,"Failed to use private key file %s\n",keyfile);
+		error("Failed to use private key file %s\n",keyfile);
 		return NULL;
 	}
 	return tls;

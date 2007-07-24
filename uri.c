@@ -5,8 +5,13 @@
 //
 
 #include "include.h"
+#include "defines.h"
+#include "log.h"
 #include "buffers.h"
 #include "uri.h"
+
+char* cwd;
+int cwdlen;
 
 Headers
 parse_query_string(Buffer buf)
@@ -16,7 +21,6 @@ parse_query_string(Buffer buf)
 	Headers retval = new_headers();
 	Buffer key, value;
 	if (!buf) return NULL;
-	fprintf(stderr, "Query String: ");
 	print_buffer(buf);
 	len = length_buffer(buf);
 	for (i = 0; i < len; ++i) {
@@ -49,7 +53,6 @@ parse_query_string(Buffer buf)
 			}
 		}
 	}
-	dump_headers(retval);
 	return retval;
 }
 
@@ -77,34 +80,33 @@ Buffer
 parse_host(Request req)
 {
 	Buffer host = find_header(req->headers,"Host");
-	if (! host) fprintf(stderr, "FAILED TO LOCATE HOST IN  HEADER!!!\n");
-	else fprintf(stderr, "Host is %d %s\n",host->length, host->data);
+	if (! host) error("FAILED TO LOCATE HOST IN  HEADER!!!\n");
+	else notice("Host is %i %s\n",host->length, host->data);
 	return req->host =  host ? host : write_buffer(NULL,"localhost",9);
 }
 
 char*
-file_path(Request req,char* filename,int flen)
+file_path(char* host,int hlen, char* filename,int flen)
 {
-	size_t cwdlen;
-	while (! req->host) parse_host(req);
-	char* cwd = getcwd(NULL,0);
-	cwdlen = strlen(cwd);
-	char* retval = (char*)malloc(cwdlen + req->host->length + flen + 3);
-	memset(retval,0,cwdlen + req->host->length + flen + 3);
+	if (!cwd) {
+		cwd = getcwd(NULL,0);
+		cwdlen = strlen(cwd);
+	}
+	char* retval = (char*)malloc(cwdlen + hlen + flen + 3);
+	memset(retval,0,cwdlen + hlen + flen + 3);
 	memcpy(retval,cwd,strlen(cwd));
 	memcpy(retval + cwdlen,"/",1);
-	memcpy(retval + cwdlen + 1, req->host->data, req->host->length);
-	memcpy(retval + cwdlen + 1 + req->host->length, filename, flen);
-	free(cwd);
-	fprintf(stderr, "file_path [%s]\n",retval);
+	memcpy(retval + cwdlen + 1, host, hlen);
+	memcpy(retval + cwdlen + 1 + hlen, filename, flen);
 	return retval;	
 }
 
 char*
 request_path(Request req)
 {
+	while (! req->host) parse_host(req);
 	while (! req->path) parse_path(req);	
-	return file_path(req,req->path->data,req->path->length);
+	return file_path(req->host->data,req->host->length,req->path->data,req->path->length);
 }
 
 int
@@ -186,6 +188,5 @@ uri_decode(Buffer buf)
 			++j;
 		}
 	}
-	fprintf(stderr,"[uri_decode] %s\n",retval->data);
 	return retval;
 }

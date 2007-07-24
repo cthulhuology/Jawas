@@ -5,18 +5,20 @@
 //
 
 #include "include.h"
+#include "defines.h"
+#include "log.h"
 #include "sockets.h"
 
 void
 write_signal_handler(int sig)
 {
-	fprintf(stderr,"Received signal %d\n",sig);
+	debug("Received signal %i\n",sig);
 }
 
 void
 read_signal_handler(int sig)
 {
-	fprintf(stderr,"Received signal %d\n",sig);
+	debug("Received signal %i\n",sig);
 }
 
 void
@@ -45,9 +47,9 @@ open_socket(int  port)
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = INADDR_ANY;
-	fprintf(stderr,"[Jawas] Bind to port %d\n",port);	
+	notice("[Jawas] Bind to port %i\n",port);	
 	if (bind(fd,(struct sockaddr*)&addr,sizeof(struct sockaddr_in))) {
-		fprintf(stderr,"[Jawas] Failed to bind to port %d\n",port);	
+		error("[Jawas] Failed to bind to port %i\n",port);	
 		close(fd);
 		return -1;
 	}
@@ -66,7 +68,7 @@ accept_socket(Socket sc, int fd, TLSInfo tls)
 	socklen_t slen = sizeof(struct sockaddr_in);
 	int sock = accept(fd,(struct sockaddr*)&saddr,&slen);
 	if (sock < 1) {
-		fprintf(stderr,"[JAWAS] failed to accept socket\n");
+		error("[JAWAS] failed to accept socket\n");
 		return NULL;
 	}
 	nonblock(sock);
@@ -97,19 +99,14 @@ read_socket(Socket sc)
 {
 	int bytes = 0;
 	Buffer retval = sc->buf;
-//	fprintf(stderr,"read_socket Buffer Retval = %p\n",retval);
 	for (retval = new_buffer(retval,(retval ? retval->pos + retval->length : 0)); 
 		bytes = (sc->tls ? 
 			read_tls(sc->tls,retval->data,Max_Buffer_Size) : 
 			read(sc->fd,retval->data,Max_Buffer_Size)); 
 		retval = new_buffer(retval,retval->pos + retval->length)) {
-//		fprintf(stderr,"Bytes is %d, retval %p\n",bytes,retval);
 		if (bytes == -1 ) {
 			if (errno == EAGAIN) {
-	//			fprintf(stderr, "EAGAIN!\n");
-	//			fprintf(stderr, "Freeing buffer %p\n",retval);
 				free_buffer(retval);
-	//			fprintf(stderr,"read_socket return = %p\n",sc->buf);
 				return sc->buf;
 			} else {
 				return NULL;	
@@ -117,7 +114,6 @@ read_socket(Socket sc)
 		}
 		retval->length = bytes;
 		sc->buf = retval;
-//		fprintf(stderr,"Retval buf %p\n",sc->buf);
 	}
 	return NULL;
 }
