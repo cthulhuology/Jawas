@@ -1,4 +1,4 @@
-// js.c
+// jws.c
 //
 // Copyright (C) 2007 David J. Goehrig
 // All Rights Reserved
@@ -15,7 +15,7 @@
 #include "files.h"
 #include "server.h"
 #include "jsapi.h"
-#include "js.h"
+#include "jws.h"
 
 // Javascript Functions
 

@@ -1,4 +1,4 @@
-// js.h
+// jws.h
 //
 // Copyright (C) 2007 David J. Goehrig
 // All Rights Reserved

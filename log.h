@@ -7,11 +7,7 @@
 #ifndef __HAVE_LOG_H__
 #define __HAVE_LOG_H__
 
-typedef struct str_struct str;
-struct str_struct {
-	int len;
-	char* data;
-};
+#include "str.h"
 
 void open_log();
 void close_log();

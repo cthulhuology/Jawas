@@ -89,7 +89,6 @@ send_response(Response resp)
 	memset(buffer,0,NUM_BUFFER_SIZE);
 	snprintf(buffer,NUM_BUFFER_SIZE,"%d",calculate_content_length(resp->contents));
 	content_length(resp->headers,buffer);
-	content_type(resp->headers,"text/html");
 	server(resp->headers,server_name);
 	total = 0;
 	total += send_status(resp->sc,resp->status);

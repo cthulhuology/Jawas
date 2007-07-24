@@ -16,9 +16,11 @@ buffers.c \
 events.c \
 files.c \
 headers.c \
+image.c \
 index.c \
-js.c \
+jws.c \
 log.c \
+mime.c \
 pages.c \
 requests.c \
 responses.c \

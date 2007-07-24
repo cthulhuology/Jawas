@@ -14,7 +14,7 @@
 #include "sockets.h"
 #include "server.h"
 #include "uri.h"
-#include "js.h"
+#include "jws.h"
 
 File
 load(Server srv, char* filename)
@@ -95,7 +95,7 @@ request(Server srv, Event ec)
 		fc = is_directory(filename) ? 
 			load(srv,get_index(filename)) :
 			load(srv,filename);
-		resp->status = (fc ? jws_handler(srv,fc,resp) : 404);
+		resp->status =  mimetype_handler(srv,fc,resp);
 		srv->ec = add_write_socket(srv->ec,req->sc->fd,resp);
 		srv->numevents++;
 	}
