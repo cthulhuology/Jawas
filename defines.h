@@ -23,6 +23,8 @@
 
 #define NODE_FLAGS NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_RENAME | NOTE_REVOKE
 
+#define min(x,y) (x < y ? x : y)
+
 #define HEADER_FUNC(f,k) \
 Headers \
 f (Headers headers, char* value) {\
@@ -36,10 +38,10 @@ f (Headers headers, char* value) {\
 
 #define MAX_HEADERS (getpagesize() / sizeof(struct headers_struct))
 
+#define MAX_WRITE_SIZE (getpagesize() * 10)
 
 #define RUNTIME_SIZE 8L * 1024L * 1024L
 #define CONTEXT_SIZE 8192
-
 
 #define error(msg ...)	log_msg(0,msg)
 #define notice(msg ...)	log_msg(1,msg)

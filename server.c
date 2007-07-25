@@ -107,7 +107,11 @@ respond(Server srv, Event ec)
 	Request req;
 	Response resp = (Response)ec->event.udata;
 	Socket sc = resp->sc;
-	send_response(resp);
+	if (send_response(resp)) {
+		srv->ec = add_write_socket(srv->ec,resp->sc->fd,resp);
+		srv->numevents++;
+		return;
+	}
 	disconnect(srv,resp->req);
 	close_response(resp);
 	dump_cache_info();

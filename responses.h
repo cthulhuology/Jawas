@@ -16,11 +16,14 @@
 typedef struct response_struct* Response;
 struct response_struct {
 	Socket sc;
-	int status;
 	Request req;
 	Headers headers;
 	Buffer contents;
 	File raw_contents;
+	int status;
+	int length;
+	int written;
+	int done;
 };
 
 Response process_request(Request req);

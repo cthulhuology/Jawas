@@ -60,13 +60,10 @@ send_contents(Socket sc, Buffer buf)
 }
 
 int
-send_raw_contents(Socket sc, File fc)
+send_raw_contents(Socket sc, File fc, int off)
 {
-	int total = 0;
 	if (!sc || !fc) return 0;
-	while (total < fc->st.st_size)
-		total += write_socket(sc,fc->data+total,fc->st.st_size-total);
-	return total;
+	return write_socket(sc,fc->data+off,min(fc->st.st_size-off,MAX_WRITE_SIZE));
 }
 
 static char* server_name = SERVER_VERSION;
@@ -81,28 +78,34 @@ process_request(Request req)
 	resp->status = 200;
 	resp->contents = NULL;
 	resp->raw_contents = NULL;
+	resp->length = -1;
+	resp->written = 0;
+	resp->done = 0;
 	return resp;
 }
 
 int
 send_response(Response resp)
 {
-	int total = 0;
-	char* buffer = malloc(NUM_BUFFER_SIZE);
-
-	memset(buffer,0,NUM_BUFFER_SIZE);
-	snprintf(buffer,NUM_BUFFER_SIZE,"%d",calculate_content_length(resp->contents,resp->raw_contents));
-	content_length(resp->headers,buffer);
-	server(resp->headers,server_name);
-	total = 0;
-	total += send_status(resp->sc,resp->status);
-	total += send_headers(resp->sc,resp->headers);
-	total += resp->contents ?
+	if (resp->length < 0) {
+		char* buffer = malloc(NUM_BUFFER_SIZE);
+		resp->length = calculate_content_length(resp->contents,resp->raw_contents);
+		memset(buffer,0,NUM_BUFFER_SIZE);
+		snprintf(buffer,NUM_BUFFER_SIZE,"%d",resp->length);
+		content_length(resp->headers,buffer);
+		free(buffer);
+		server(resp->headers,server_name);
+		send_status(resp->sc,resp->status);
+		send_headers(resp->sc,resp->headers);
+		if (resp->contents || resp->raw_contents)
+			return 1;
+		return 0;
+	}
+	resp->written += resp->contents ?
 		send_contents(resp->sc,resp->contents):
-		send_raw_contents(resp->sc,resp->raw_contents);
-	free(buffer);
-	debug("Sent %i bytes",total);
-	return total;
+		send_raw_contents(resp->sc,resp->raw_contents,resp->written);
+	debug("Sent %i bytes",resp->written);
+	return resp->written < resp->length;
 }
 
 void
