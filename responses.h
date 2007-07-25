@@ -11,6 +11,7 @@
 #include "buffers.h"
 #include "requests.h"
 #include "sockets.h"
+#include "files.h"
 
 typedef struct response_struct* Response;
 struct response_struct {
@@ -19,6 +20,7 @@ struct response_struct {
 	Request req;
 	Headers headers;
 	Buffer contents;
+	File raw_contents;
 };
 
 Response process_request(Request req);

@@ -233,26 +233,56 @@ Decode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 Location(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
+	JSString* str;	
+	if (argc != 1) return JS_FALSE;
+	str = JS_ValueToString(cx,argv[0]);
+	location(ins.resp->headers,JS_GetStringBytes(str));
+	debug("Loaction: %s",JS_GetStringBytes(str));
+	return JS_TRUE;
 }
 
 static JSBool
 Expires(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
+	JSString* str;	
+	if (argc != 1) return JS_FALSE;
+	str = JS_ValueToString(cx,argv[0]);
+	expires(ins.resp->headers,JS_GetStringBytes(str));
+	debug("Expires: %s",JS_GetStringBytes(str));
+	return JS_TRUE;
 }
 
 static JSBool
 ContentType(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
+	JSString* str;	
+	if (argc != 1) return JS_FALSE;
+	str = JS_ValueToString(cx,argv[0]);
+	content_type(ins.resp->headers,JS_GetStringBytes(str));
+	debug("ContentType: %s",JS_GetStringBytes(str));
+	return JS_TRUE;
 }
 
 static JSBool
 CacheControl(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
+	JSString* str;	
+	if (argc != 1) return JS_FALSE;
+	str = JS_ValueToString(cx,argv[0]);
+	cache_control(ins.resp->headers,JS_GetStringBytes(str));
+	debug("CacheControl: %s",JS_GetStringBytes(str));
+	return JS_TRUE;
 }
 
 static JSBool
 Connection(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
+	JSString* str;	
+	if (argc != 1) return JS_FALSE;
+	str = JS_ValueToString(cx,argv[0]);
+	connection(ins.resp->headers,JS_GetStringBytes(str));
+	debug("Connection: %s",JS_GetStringBytes(str));
+	return JS_TRUE;
 }
 
 static JSClass global_class = {

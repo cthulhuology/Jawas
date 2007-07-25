@@ -11,6 +11,6 @@
 int
 img_handler(Server srv, File fc, Response resp)
 {
-		
-
+	resp->raw_contents = fc;		
+	return 200;
 }

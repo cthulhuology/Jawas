@@ -10,6 +10,7 @@
 #include "index.h"
 #include "log.h"
 
+int today;
 int log_fd;
 int log_level = LOG_LEVEL;
 char* log_path;
@@ -28,6 +29,7 @@ open_log()
 	tms->tm_sec = 0;
 	tms->tm_min = 0;
 	tms->tm_hour = 0;
+	today = tms->tm_yday;
 	now = mktime(tms);
 	buflen = asprintf(&buffer,"/logs/%d.html",now);
 	log_path = file_path(localhost,9,buffer,buflen);	
@@ -40,6 +42,19 @@ open_log()
 	log_fd = fd;
 	if (ol) write(fd,"<ol>\n",5);
 	free(buffer);
+}
+
+time_t
+rotate_logs()
+{
+	time_t retval = time(NULL);
+	struct tm* tms = localtime(&retval);
+	if (tms->tm_yday != today) {
+		write(log_fd,"</ol>",5);
+		close_log();
+		open_log();
+	}
+	return retval;
 }
 
 void
@@ -60,12 +75,12 @@ str log_msgs[] =  {
 void
 log_msg(int lvl, char* fmt,  ...)
 {
-	time_t now = time(NULL);
+	va_list args;
 	int i, tmpl, l;
 	char* tmp;
 	double dtmp;
 	int itmp;
-	va_list args;
+	time_t now = rotate_logs();
 	if (lvl < 0 || lvl > log_level || lvl > max_log_lvl) return;
  	l = strlen(fmt);
 	write(log_fd,"<li>",4);
