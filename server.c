@@ -20,6 +20,8 @@ File
 load(Server srv, char* filename)
 {
 	File retval;
+	Scratch old = gscratch;
+	set_scratch(srv->scratch);
 	if (!filename) return NULL;
 	debug("Opening %s\n",filename);
 	retval = query_cache(&srv->fc,filename);
@@ -27,11 +29,13 @@ load(Server srv, char* filename)
 	retval = open_file(srv->fc,filename);
 	if (!retval) {
 		error("Failed to open %s\n",filename);
+		set_scratch(old);
 		return NULL;
 	}
 	srv->fc = retval;
 	srv->ec = add_file_monitor(srv->ec,srv->fc->fd,srv->fc->name);
 	srv->numevents++;
+	set_scratch(old);
 	return retval;
 }
 
@@ -46,33 +50,44 @@ void
 incoming(Server srv, int fd)
 {
 	Request req;
+	debug("INCOMING START");
+	Scratch scratch = new_scratch(NULL);
+	set_scratch(scratch);
 	srv->sc = accept_socket(srv->sc,fd,(srv->sock == fd ? NULL : srv->tls));
 	req = open_request(srv->sc);
+	set_scratch(srv->scratch);
 	srv->ec = add_read_socket(srv->ec, srv->sc->fd,req);
 	srv->numevents++;
-	notice("[Jawas] Connected %i.%i.%i.%i:%i\n",
+	notice("%i.%i.%i.%i:%i connected\n",
 		(0xff & srv->sc->peer),
 		(0xff00 & srv->sc->peer) >> 8,
 		(0xff0000 & srv->sc->peer) >> 16,
 		(0xff000000 & srv->sc->peer) >> 24,
 		srv->sc->port);
+	debug("INCOMING DONE");
 }
 
 void
-disconnect(Server srv, Request req)
+disconnect(Server srv, Socket sc)
 {
-	Socket sc, last;
+	Socket tmp,last;
 	last = NULL;
-	for (sc = srv->sc; sc; sc = sc->next) {
-		if (sc == req->sc)  {
-			if (last) {
-				last->next = close_socket(sc);
-			} else {
-				srv->sc = close_socket(sc);
-			}
+	debug("DISCONNECT START");
+	for (tmp = srv->sc; tmp; tmp = tmp->next) {
+		debug("disconnect  %p vs %p ", tmp,sc);
+		if (tmp == sc)  {
+			notice("%i.%i.%i.%i:%i disconnected\n",
+				(0xff & sc->peer),
+				(0xff00 & sc->peer) >> 8,
+				(0xff0000 & sc->peer) >> 16,
+				(0xff000000 & sc->peer) >> 24,
+		srv->sc->port);
+			if (last) last->next = close_socket(sc);
+			else srv->sc = close_socket(sc);
 		}
 		last = sc;
 	}
+	debug("DISCONNECT DONE");
 }
 
 void
@@ -81,46 +96,69 @@ request(Server srv, Event ec)
 	char* filename;
 	File fc;
 	Response resp;
+	debug("REQUEST START");
 	Request req = (Request)ec->event.udata;
+	Socket sc = req->sc;;
+	set_scratch(sc->scratch);
 	if (!read_request(req)) {
 		error("Failed to read request\n");
-		disconnect(srv,req);
 		close_request(req);
+		disconnect(srv,sc);
+		set_scratch(srv->scratch);
+		debug("REQUEST DONE");
 		return;
 	}
 	if (req->done) {
-		req->sc->buf = NULL;
+		sc->buf = NULL;
 		resp = process_request(req);
-		filename = request_path(resp->req);
-		fc = is_directory(filename) ? 
-			load(srv,get_index(filename)) :
-			load(srv,filename);
-		resp->status =  mimetype_handler(srv,fc,resp);
-		srv->ec = add_write_socket(srv->ec,req->sc->fd,resp);
+		parse_path(req);	
+		if (! parse_host(req)) {
+			resp->status = error_handler(srv,400,resp);
+		} else {
+			filename = request_path(resp->req);
+			fc = is_directory(filename) ? 
+				load(srv,get_index(filename)) :
+				load(srv,filename);
+			resp->status =  mimetype_handler(srv,fc,resp);
+		}
+		srv->ec = add_write_socket(srv->ec,sc->fd,resp);
 		srv->numevents++;
 	}
+	set_scratch(srv->scratch);
+	debug("REQUEST DONE");
 }
 
 void
 respond(Server srv, Event ec)
 {
 	Request req;
+	debug("RESPOND START");
 	Response resp = (Response)ec->event.udata;
 	Socket sc = resp->sc;
+	set_scratch(sc->scratch);
+//	connection(resp->headers,"keep-alive");
+	connection(resp->headers,"close");
+	transfer_encoding(resp->headers,"identity");
 	if (send_response(resp)) {
-		srv->ec = add_write_socket(srv->ec,resp->sc->fd,resp);
+		srv->ec = add_write_socket(srv->ec,sc->fd,resp);
 		srv->numevents++;
+		set_scratch(srv->scratch);
+		debug("RESPOND CONTINUE");
 		return;
 	}
-	disconnect(srv,resp->req);
 	close_response(resp);
-	dump_cache_info();
+//	reset_socket(sc);
+	disconnect(srv,sc);
+	debug("RESPOND DONE");
 }
 
 Server
 serve(int port, int tls_port)
 {
-	Server srv = (Server)malloc(sizeof(struct server_struct));
+	Scratch scratch = new_scratch(NULL);
+	Server srv = (Server)alloc_scratch(scratch,sizeof(struct server_struct));
+	srv->scratch = scratch;
+	set_scratch(srv->scratch);
 	srv->kq = kqueue();
 	if (0 > srv->kq) return NULL;
 	if (0 > (srv->sock = open_socket(port))) return NULL;
@@ -174,7 +212,7 @@ stop(Server srv)
 	srv->sock = 0;
 	close(srv->kq);
 	srv->kq = 0;
-	for (ec = srv->ec; ec; ec = free_event(ec));
+	free_events();
 	srv->ec = NULL;
 	srv->numevents = 0;
 	for (fc = srv->fc; fc; fc = close_file(fc,fc->name));

@@ -9,11 +9,13 @@
 
 #include "requests.h"
 
+extern int cwdlen;
+
 char* file_path(char* host, int hlen, char* filename, int flen);
 char* request_path(Request req);
 
-Buffer uri_encode(Buffer buf);
-Buffer uri_decode(Buffer buf);
+char* uri_encode(char* str);
+char* uri_decode(char* str);
 
 static char mark_chars[] = "-_.!~*'()";
 static int mark_len = 9;

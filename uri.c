@@ -6,6 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
+#include "alloc.h"
 #include "log.h"
 #include "buffers.h"
 #include "uri.h"
@@ -21,7 +22,6 @@ parse_query_string(Buffer buf)
 	Headers retval = new_headers();
 	Buffer key, value;
 	if (!buf) return NULL;
-	print_buffer(buf);
 	len = length_buffer(buf);
 	for (i = 0; i < len; ++i) {
 		c = fetch_buffer(buf,i);
@@ -63,7 +63,8 @@ parse_path(Request req)
 	Buffer qs;
 	Buffer tmp = seek_buffer(req->contents,0);
 	if (! tmp) return NULL;
-	for (i = 0; tmp->data[i] && !isspace(req->contents->data[i]); ++i);
+	debug("REQUEST: %s",tmp->data);
+	for (i = 0; tmp->data[i] && !isspace(tmp->data[i]); ++i);
 	for (;isspace(tmp->data[i]);++i);
 	for (end = i; tmp->data[end] && !isspace(tmp->data[end]) && tmp->data[end] != '?'; ++end);
 	req->query_vars = NULL;
@@ -80,9 +81,15 @@ Buffer
 parse_host(Request req)
 {
 	Buffer host = find_header(req->headers,"Host");
-	if (! host) error("FAILED TO LOCATE HOST IN  HEADER!!!\n");
-	else notice("Host is %i %s\n",host->length, host->data);
-	return req->host =  host ? host : write_buffer(NULL,"localhost",9);
+	if (! host && req->sc->host) {
+		debug("USING SOCKET HOST");
+		host = write_buffer(NULL,req->sc->host,strlen(req->sc->host));
+	}
+	if (! host) return NULL;
+	if (! req->sc->host) set_host(req->sc,host);
+	req->host = host;
+	notice("Host is %i %s\n",req->host->length, req->host->data);
+	return req->host;
 }
 
 char*
@@ -92,9 +99,9 @@ file_path(char* host,int hlen, char* filename,int flen)
 		cwd = getcwd(NULL,0);
 		cwdlen = strlen(cwd);
 	}
-	char* retval = (char*)malloc(cwdlen + hlen + flen + 3);
+	char* retval = (char*)salloc(cwdlen + hlen + flen + 3);
 	memset(retval,0,cwdlen + hlen + flen + 3);
-	memcpy(retval,cwd,strlen(cwd));
+	memcpy(retval,cwd,cwdlen);
 	memcpy(retval + cwdlen,"/",1);
 	memcpy(retval + cwdlen + 1, host, hlen);
 	memcpy(retval + cwdlen + 1 + hlen, filename, flen);
@@ -104,8 +111,6 @@ file_path(char* host,int hlen, char* filename,int flen)
 char*
 request_path(Request req)
 {
-	while (! req->host) parse_host(req);
-	while (! req->path) parse_path(req);	
 	return file_path(req->host->data,req->host->length,req->path->data,req->path->length);
 }
 
@@ -113,40 +118,38 @@ int
 is_mark_char(char c)
 {
 	int k;
-	for (k = 0; k < mark_len; ++k) if (mark_chars[k] == c) return 1;
+	for (k = 0; k < mark_len; ++k) 
+		if (mark_chars[k] == c) 
+			return 1;
 	return 0;
 }
 
-Buffer
-uri_encode(Buffer buf)
+int
+is_clean_char(char c)
 {
-	Buffer retval = new_buffer(NULL,0);
-	char c;
-	int i,j,len = length_buffer(buf);
+	return (between('A',c,'Z')
+		||  between('a',c,'z')
+		||  between('0',c,'9')
+		|| is_mark_char(c)); 
+}
+
+char*
+uri_encode(char* str)
+{
+	char* retval = NULL;
+	int i, j = 0, len = strlen(str);
+	for (i = 0; i < len; ++i)
+		j += is_clean_char(str[i]) ? 1 : 3;
+	retval = salloc(j);
 	j = 0;
 	for (i = 0; i < len; ++i) {
-		c = fetch_buffer(buf,i);
-		if (c >= 'A' && c <= 'Z' 
-		||  c >= 'a' && c <= 'z'
-		||  c >= '0' && c <= '9'
-		|| is_mark_char(c)) {
-			retval->data[j] = c;
-			++retval->length; 
-			if (j % Max_Buffer_Size == Max_Buffer_Size - 1) retval = new_buffer(retval,j+1);
-			++j;		
+		if (is_clean_char(str[i])) {
+			retval[j++] = str[i];
+			++j;
 		} else {
-			retval->data[j % Max_Buffer_Size] = '%';
-			++retval->length; 
-			if (j % Max_Buffer_Size == Max_Buffer_Size - 1) retval = new_buffer(retval,j+1);
-			++j;
-			retval->data[j] = hex_chars[c/16];
-			++retval->length; 
-			if (j % Max_Buffer_Size == Max_Buffer_Size - 1) retval = new_buffer(retval,j+1);
-			++j;
-			retval->data[j] = hex_chars[c%16];
-			++retval->length; 
-			if (j % Max_Buffer_Size == Max_Buffer_Size - 1) retval = new_buffer(retval,j+1);
-			++j;	
+			retval[j++] = '%';
+			retval[j++] = hex_chars[str[i]/16];
+			retval[j++] = hex_chars[str[i]%16];
 		}
 	}
 	return retval;
@@ -156,36 +159,27 @@ char
 from_hex(char a, char b)
 {
 	char retval = 0;
-	if (a >= '0' && a <= '9') retval += (a - '0')*16;
-	if (a >= 'A' && a <= 'F') retval += (a - 'A'+10)*16;
-	if (a >= 'a' && a <= 'f') retval += (a - 'a'+10)*16;
-	if (b >= '0' && b <= '9') retval += (b - '0');
-	if (b >= 'A' && b <= 'F') retval += (b - 'A'+10);
-	if (b >= 'a' && b <= 'f') retval += (b - 'a'+10);
+	if (between('0',a,'9')) retval += (a - '0')*16;
+	if (between('A',a,'F')) retval += (a - 'A'+10)*16;
+	if (between('a',a,'f')) retval += (a - 'a'+10)*16;
+	if (between('0',b,'9')) retval += (b - '0');
+	if (between('A',b,'F')) retval += (b - 'A'+10);
+	if (between('a',b,'f')) retval += (b - 'a'+10);
 	return retval;
 }
 
 
-Buffer
-uri_decode(Buffer buf)
+char*
+uri_decode(char* str)
 {
-	Buffer retval = new_buffer(NULL,0);
-	char c;
-	int i,j, len = length_buffer(buf);
-	j = 0;	
+	int i, j = 0, len = strlen(str);
+	char* retval = salloc(len);
 	for(i = 0; i < len; ++i) {
-		c = fetch_buffer(buf,i);
-		if (c == '%') {
-			retval->data[j % Max_Buffer_Size] = from_hex(fetch_buffer(buf,i+1),fetch_buffer(buf,i+2));
-			++retval->length; 
+		if (str[i] == '%') {
+			retval[j++] = from_hex(str[i+1],str[i+2]);
 			i += 2;
-			if (j % Max_Buffer_Size == Max_Buffer_Size - 1) retval = new_buffer(retval,j+1);
-			++j;
 		} else {
-			retval->data[j % Max_Buffer_Size] = c;
-			++retval->length; 
-			if (j % Max_Buffer_Size == Max_Buffer_Size - 1) retval = new_buffer(retval,j+1);
-			++j;
+			retval[j++] = str[i];
 		}
 	}
 	return retval;

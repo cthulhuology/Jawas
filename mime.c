@@ -42,16 +42,9 @@ lookup_mimetype(char* filename)
 	for (i = l - 1; i > 0; --i)
 		if (filename[i-1] == '.') break;
 	l -= i;
-	debug("Looking up ext: %s\n",&filename[i]);
-	for (mt = mime_types; mt->ending.len; ++mt) {
-		debug("Ext %s (%i) MT %s (%i)\n", &filename[i],l, mt->ending.data, mt->ending.len);
-		if (l == mt->ending.len
-		&& !strncmp(mt->ending.data,&filename[i],l)) {
-			debug("Content Type is %s\n", mt->type.data);
+	for (mt = mime_types; mt->ending.len; ++mt)
+		if (l == mt->ending.len && !strncmp(mt->ending.data,&filename[i],l))
 			return mt;
-		}
-	}
-	debug("ending not found going with default\n");
 	return mt;
 }
 
@@ -59,10 +52,10 @@ int
 mimetype_handler(Server srv, File fc, Response resp)
 {
 	MimeTypes* mt;
-	if (!srv || !fc || !resp) return 404;
+	if (!srv || !fc || !resp) 
+		return error_handler(srv,404,resp);
 	mt = lookup_mimetype(fc->name);
 	content_type(resp->headers, mt->type.data);
-	connection(resp->headers,"close");
 	return mt->handler(srv,fc,resp);
 }
 

@@ -6,6 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
+#include "alloc.h"
 #include "log.h"
 #include "headers.h"
 #include "status.h"
@@ -28,7 +29,6 @@ send_status(Socket sc, int code)
 	int total = 0;
 	char* status = status_line(code);
 	total += write_socket(sc,status,strlen(status));
-	free(status);
 	return total;
 }
 
@@ -71,7 +71,7 @@ static char* server_name = SERVER_VERSION;
 Response 
 process_request(Request req)
 {
-	Response resp = (Response)malloc(sizeof(struct response_struct));
+	Response resp = (Response)salloc(sizeof(struct response_struct));
 	resp->sc = req->sc;
 	resp->req = req;
 	resp->headers = new_headers();
@@ -87,11 +87,10 @@ process_request(Request req)
 int
 send_response(Response resp)
 {
+	char* buffer;
 	if (resp->length < 0) {
-		char* buffer = malloc(NUM_BUFFER_SIZE);
 		resp->length = calculate_content_length(resp->contents,resp->raw_contents);
-		memset(buffer,0,NUM_BUFFER_SIZE);
-		snprintf(buffer,NUM_BUFFER_SIZE,"%d",resp->length);
+		asprintf(&buffer,"%d",resp->length);
 		content_length(resp->headers,buffer);
 		free(buffer);
 		server(resp->headers,server_name);
@@ -104,7 +103,6 @@ send_response(Response resp)
 	resp->written += resp->contents ?
 		send_contents(resp->sc,resp->contents):
 		send_raw_contents(resp->sc,resp->raw_contents,resp->written);
-	debug("Sent %i bytes",resp->written);
 	return resp->written < resp->length;
 }
 
@@ -113,11 +111,8 @@ close_response(Response resp)
 {
 	Buffer buf;
 	if (! resp) return;
-	debug("Freeing response %i\n",resp);
 	close_request(resp->req);
 	free_headers(resp->headers);
 	for (buf = resp->contents; buf; buf = free_buffer(buf));
-	free(resp);
 }
-
 

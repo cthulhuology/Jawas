@@ -6,6 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
+#include "alloc.h"
 #include "log.h"
 #include "headers.h"
 #include "events.h"
@@ -15,11 +16,11 @@
 Request
 open_request(Socket sc)
 {
-	Request retval = (Request)malloc(sizeof(struct request_struct));
+	Request retval = (Request)salloc(sizeof(struct request_struct));
 	if (retval) {
 		memset(retval,0,sizeof(struct request_struct));
 		retval->sc = sc;
-	}	
+	}
 	return retval;
 }
 
@@ -65,16 +66,18 @@ parse_request_headers(Buffer buf, int* body)
 		if (reset && ! headers[i].key) {
 			for (l = 1; fetch_buffer(buf,o+l) != ':'; ++l);
 			headers[i].key = read_buffer(NULL,buf,o,l);
-			o += l;
+			o += l-1;
 			c = fetch_buffer(buf,o);
+			debug("Headers [%s:]",headers[i].key->data);
 		} 
 		if (reset && c == ':') {
 			o += 1;
 			while(isspace(c = fetch_buffer(buf,o))) ++o;
 			for (l = 1; c != '\r' && c != '\n'; ++l) c = fetch_buffer(buf,o+l); 
 			headers[i].value = read_buffer(NULL,buf,o,l-1);
+			debug("Headers [%s:%s]",headers[i].key->data,headers[i].value->data);
 			reset = 0;
-			o += l;
+			o += l-1;
 			++i;
 		}
 	}
@@ -97,10 +100,6 @@ read_request(Request req)
 		return NULL;
 	}
 	req->done = (length_buffer(req->contents) - req->body) >= request_content_length(req);
-	debug("Request done? %i\n",req->done);
-	debug("Length: %i\n", length_buffer(req->contents));
-	debug("Body: %i\n", req->body);
-	debug("Content-Length: %i\n", request_content_length(req));
 	return req;
 }
 
@@ -114,6 +113,5 @@ close_request(Request req)
 	for (buf = req->contents; buf; buf = free_buffer(buf));
 	if (req->query_vars) free_headers(req->query_vars);
 	free_headers(req->headers);
-	free(req);
 }
 

@@ -6,25 +6,26 @@
 
 #include "include.h"
 #include "defines.h"
+#include "alloc.h"
 #include "log.h"
 #include "sockets.h"
 
-void
-write_signal_handler(int sig)
-{
-	debug("Received signal %i\n",sig);
-}
+SocketInfo gsci = {0,0,0};
 
 void
-read_signal_handler(int sig)
+signal_handler(int sig)
 {
-	debug("Received signal %i\n",sig);
+	error("Received signal %i\n",sig);
 }
 
 void
 socket_signal_handlers()
 {
-	signal(SIGPIPE,write_signal_handler);
+	signal(SIGPIPE,signal_handler);
+	signal(SIGTERM,signal_handler);
+	signal(SIGINT,signal_handler);
+	signal(SIGHUP,signal_handler);
+	
 }
 
 int
@@ -47,9 +48,9 @@ open_socket(int  port)
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = INADDR_ANY;
-	notice("[Jawas] Bind to port %i\n",port);	
+	notice("Bind to port %i\n",port);	
 	if (bind(fd,(struct sockaddr*)&addr,sizeof(struct sockaddr_in))) {
-		error("[Jawas] Failed to bind to port %i\n",port);	
+		error("Failed to bind to port %i\n",port);	
 		close(fd);
 		return -1;
 	}
@@ -72,14 +73,19 @@ accept_socket(Socket sc, int fd, TLSInfo tls)
 		return NULL;
 	}
 	nonblock(sock);
-	retval = (Socket)malloc(sizeof(struct socket_cache_struct));
+	retval = (Socket)salloc(sizeof(struct socket_cache_struct));
 	memset(retval,0,sizeof(struct socket_cache_struct));
+	retval->host = NULL;
 	retval->tls = (tls ? open_tls(tls,sock) : NULL);
 	retval->buf = NULL;
 	retval->next = sc;
 	retval->fd = sock;
 	retval->peer = saddr.sin_addr.s_addr;
 	retval->port = saddr.sin_port;
+	retval->scratch = gscratch;
+	++gsci.current;
+	++gsci.total;
+	gsci.max = max(gsci.current,gsci.max);
 	return retval;
 }
 
@@ -90,8 +96,18 @@ close_socket(Socket sc)
 	Socket retval = sc->next;
 	if (sc->tls) close_tls(sc->tls);
 	close(sc->fd);
-	free(sc);
+	free_scratch(sc->scratch);
+	--gsci.current;
 	return retval;
+}
+
+Socket
+reset_socket(Socket sc)
+{
+	if (!sc) return NULL;
+	free_scratch(sc->scratch);
+	sc->scratch = new_scratch(NULL);
+	return sc;
 }
 
 Buffer
@@ -125,3 +141,11 @@ write_socket(Socket sc, char* src, int len)
 	return (sc->tls ? write_tls(sc->tls,src,len) :write(sc->fd,src,len));
 }
 
+char*
+set_host(Socket sc, Buffer buf)
+{
+	sc->host = salloc(buf->length + 1);
+	memcpy(sc->host,buf->data,buf->length);		
+	sc->host[buf->length] = '\0';
+	return sc->host;
+}

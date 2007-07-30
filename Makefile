@@ -12,6 +12,7 @@ LIBS = -ljs -lpq -lssl -lcrypto
 LDFLAGS = -Ljs/Darwin_DBG.OBJ/ -L/opt/local/lib/postgresql82/
 
 SOURCES = \
+alloc.c \
 buffers.c \
 events.c \
 files.c \

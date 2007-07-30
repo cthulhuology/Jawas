@@ -8,6 +8,8 @@
 
 #include "include.h"
 #include "defines.h"
+#include "alloc.h"
+#include "pages.h"
 #include "log.h"
 #include "uri.h"
 #include "responses.h"
@@ -201,13 +203,8 @@ Encode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	Buffer tmp,buf;
 	if (argc != 1) return JS_FALSE;
 	str = JS_ValueToString(cx,argv[0]);
-	tmp = write_buffer(NULL,JS_GetStringBytes(str),JS_GetStringLength(str));
-	buf = uri_encode(tmp);	
-	data = print_buffer(buf);	
+	data = uri_encode(JS_GetStringBytes(str));
 	str = JS_NewString(cx,data,strlen(data));
-	for (; buf; buf = free_buffer(buf));
-	for (; tmp; tmp = free_buffer(tmp));
-	free(data);
 	*rval = STRING_TO_JSVAL(str);
 	return JS_TRUE;	
 }
@@ -220,12 +217,8 @@ Decode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	Buffer tmp,buf;
 	if (argc != 1) return JS_FALSE;
 	str = JS_ValueToString(cx,argv[0]);
-	tmp = write_buffer(NULL,JS_GetStringBytes(str),JS_GetStringLength(str));
-	buf = uri_decode(tmp);	
-	data = print_buffer(buf);	
+	data = uri_decode(JS_GetStringBytes(str));
 	str = JS_NewString(cx,data,buf->length);
-	for (; buf; buf = free_buffer(buf));
-	for (; tmp; tmp = free_buffer(tmp));
 	*rval = STRING_TO_JSVAL(str);
 	return JS_TRUE;	
 }
@@ -233,55 +226,90 @@ Decode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 Location(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	JSString* str;	
-	if (argc != 1) return JS_FALSE;
-	str = JS_ValueToString(cx,argv[0]);
-	location(ins.resp->headers,JS_GetStringBytes(str));
-	debug("Loaction: %s",JS_GetStringBytes(str));
-	return JS_TRUE;
+	HeaderSetter(location)
 }
 
 static JSBool
 Expires(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	JSString* str;	
-	if (argc != 1) return JS_FALSE;
-	str = JS_ValueToString(cx,argv[0]);
-	expires(ins.resp->headers,JS_GetStringBytes(str));
-	debug("Expires: %s",JS_GetStringBytes(str));
-	return JS_TRUE;
+	HeaderSetter(expires)
 }
 
 static JSBool
 ContentType(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	JSString* str;	
-	if (argc != 1) return JS_FALSE;
-	str = JS_ValueToString(cx,argv[0]);
-	content_type(ins.resp->headers,JS_GetStringBytes(str));
-	debug("ContentType: %s",JS_GetStringBytes(str));
-	return JS_TRUE;
+	HeaderSetter(content_type)
 }
 
 static JSBool
 CacheControl(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	JSString* str;	
-	if (argc != 1) return JS_FALSE;
-	str = JS_ValueToString(cx,argv[0]);
-	cache_control(ins.resp->headers,JS_GetStringBytes(str));
-	debug("CacheControl: %s",JS_GetStringBytes(str));
-	return JS_TRUE;
+	HeaderSetter(cache_control)
 }
 
 static JSBool
 Connection(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	JSString* str;	
-	if (argc != 1) return JS_FALSE;
-	str = JS_ValueToString(cx,argv[0]);
-	connection(ins.resp->headers,JS_GetStringBytes(str));
-	debug("Connection: %s",JS_GetStringBytes(str));
+	HeaderSetter(connection)
+}
+
+static JSBool
+ClientInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	Socket sc;
+	ins.buffer = print_buffer(ins.buffer,"<table>");
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Max Clients:</td><td> %i</td></tr>",gsci.max);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Current Clients:</td><td> %i</td></tr>",gsci.current);
+	ins.buffer = print_buffer(ins.buffer,"</table><hr /><ol>");
+	for (sc = ins.srv->sc; sc; sc = sc->next) 
+		ins.buffer = print_buffer(ins.buffer,"<li>%i.%i.%i.%i:%i</li>",
+			(0xff & sc->peer),
+			(0xff00 & sc->peer) >> 8,
+			(0xff0000 & sc->peer) >> 16,
+			(0xff000000 & sc->peer) >> 24,
+			sc->port);
+	ins.buffer = print_buffer(ins.buffer,"</ol>");
+	return JS_TRUE;
+}
+
+static JSBool
+HitInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	return JS_TRUE;
+}
+
+static JSBool
+MemInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+		
+	ins.buffer = print_buffer(ins.buffer,"<table>");
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Base Address:</td><td> %p</td></tr>",gpi.baseaddr);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Memory Size:</td><td> %i</td></tr>",gpi.size);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Pages Allocated:</td><td> %i</td></tr>",gpi.allocated);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Pages Freed:</td><td> %i</td></tr>",gpi.freed);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Page Allocations:</td><td> %i</td></tr>",gpi.allocations);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Page Frees:</td><td> %i</td></tr>",gpi.frees);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Max Scratch Pads:</td><td> %i</td></tr>",gsi.max_scratches);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Current Scratch Pads:</td><td> %i</td></tr>",gsi.scratches);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Freed Scratch Pads:</td><td> %i</td></tr>",gsi.frees);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Max Memory Allocated:</td><td> %i</td></tr>",gsi.max_memory);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Current Memory Allocated:</td><td> %i</td></tr>",gsi.current);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Memory Allocations:</td><td> %i</td></tr>",gsi.allocs);
+	ins.buffer = print_buffer(ins.buffer,"</table>");
+	return JS_TRUE;
+}
+
+static JSBool
+FileInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	File fc;
+	int total = 0;
+	ins.buffer = print_buffer(ins.buffer,"<table><tr><th>Name</th><th>Hits</th><th>Size</th></tr>");
+	for (fc = ins.srv->fc; fc; fc = fc->next)  {
+		ins.buffer = print_buffer(ins.buffer,"<tr><td>%s</td><td>%i</td><td>%i</td></tr>",&fc->name[cwdlen],fc->count,fc->st.st_size);
+		total += fc->st.st_size;
+	}
+	ins.buffer = print_buffer(ins.buffer,"<tr><td colspan=2>Total:</td><td>%i</td></tr></table>",total);
 	return JS_TRUE;
 }
 
@@ -307,6 +335,10 @@ static JSFunctionSpec my_functions[] = {
 	{"content_type", ContentType, 0},
 	{"cache_control", CacheControl, 0},
 	{"connection", Connection, 0},
+	{"hit_info", HitInfo, 0},
+	{"client_info", ClientInfo, 0},
+	{"mem_info", MemInfo, 0},
+	{"file_info", FileInfo, 0},
 	{0},
 };
 
@@ -378,7 +410,6 @@ jws_handler(Server srv, File fc, Response resp)
 	ProcessFile(fc->data);
 	if (DestroyJS(&ins)) goto error;
 	resp->contents = ins.buffer;
-	print_buffer(ins.buffer);
 	return resp->status;
 error:
 	for (;ins.buffer; ins.buffer = free_buffer(ins.buffer));

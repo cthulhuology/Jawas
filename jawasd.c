@@ -5,6 +5,7 @@
 
 #include "include.h"
 #include "defines.h"
+#include "alloc.h"
 #include "log.h"
 #include "server.h"
 
@@ -31,10 +32,12 @@ restart:
 		child = fork();
 	}
 	if (child == 0) {
-		setreuid(70,70);
+		Scratch scratch = new_scratch(NULL);	
+		set_scratch(scratch);
 		open_log();
 		Server srv = serve(atoi(port),atoi(tls_port));
 		if (!srv) return 1;
+		notice("[%i] Jawasd Running...",getpid());
 		while (! srv->done) srv = run(srv);	
 		stop(srv);
 		close_log();

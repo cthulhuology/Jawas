@@ -13,8 +13,8 @@ struct page_struct {
 	char data[0];
 };
 
-typedef struct cache_info_struct CacheInfo;
-struct cache_info_struct {
+typedef struct page_info_struct PageInfo;
+struct page_info_struct {
 	char* baseaddr;
 	size_t size;
 	size_t allocated;
@@ -25,11 +25,11 @@ struct cache_info_struct {
 	int guard;
 };
 
-extern CacheInfo gci;
+extern PageInfo gpi;
 
 Page new_page();
 void free_page(Page p);
-void dump_cache_info();
+void dump_page_info();
 
 #endif
 

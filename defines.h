@@ -9,8 +9,8 @@
 
 #define LOG_LEVEL 2
 
-#define SERVER_PORT "80"
-#define TLS_SERVER_PORT "443"
+#define SERVER_PORT "8080"
+#define TLS_SERVER_PORT "4433"
 
 #define TLS_KEYFILE "/Users/dave/Desktop/Jawas/server.pem"
 #define TLS_PASSWORD "fullfathomfive"
@@ -18,12 +18,13 @@
 #define PAGE_GUARD 1
 #define CACHE_PAGES 125000
 
-#define NUM_BUFFER_SIZE 20
 #define MAX_INDEX_LEN 12
 
 #define NODE_FLAGS NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_RENAME | NOTE_REVOKE
 
 #define min(x,y) (x < y ? x : y)
+#define max(x,y) (x > y ? x : y)
+#define between(a,x,b)	(x >= a && x <= b)
 
 #define HEADER_FUNC(f,k) \
 Headers \
@@ -35,6 +36,15 @@ f (Headers headers, char* value) {\
 	 write_buffer(headers[i].value,value,strlen(value)); \
 	 return headers;\
 }
+
+#define HeaderSetter(func) \
+	func(ins.resp->headers,JS_GetStringBytes(JS_ValueToString(cx,argv[0])));\
+	return JS_TRUE; 
+
+#define ADVANCE_POINTERS \
+	++retval->length; \
+	if (j % Max_Buffer_Size == Max_Buffer_Size - 1) retval = new_buffer(retval,j+1); \
+	++j;
 
 #define MAX_HEADERS (getpagesize() / sizeof(struct headers_struct))
 

@@ -9,10 +9,13 @@
 #include "log.h"
 #include "defines.h"
 
+Scratch escratch = NULL;
+
 Event
 queue_event(Event ec, int id, short filter, u_short flags, u_int fflags, intptr_t data, void* udata)
 {
-	Event retval = (Event)malloc(sizeof(struct event_cache_struct));
+	if (escratch == NULL) escratch = new_scratch(NULL);
+	Event retval = (Event)alloc_scratch(escratch,sizeof(struct event_cache_struct));
 	retval->event.ident = id;
 	retval->event.filter  = filter;
 	retval->event.flags = flags;
@@ -24,38 +27,33 @@ queue_event(Event ec, int id, short filter, u_short flags, u_int fflags, intptr_
 	return retval;
 }
 
-Event
-free_event(Event ec)
+void
+free_events()
 {
-	if (! ec) return NULL;
-	Event retval = ec->next;
-	free(ec);
-	return retval;
+	if (escratch) free_scratch(escratch);
+	escratch = NULL;
 }
 
 Event
 poll_events(Event ec, int kq, int numevents)
 {
-	Event retval = NULL;
 	int n;
+	Scratch scratch = new_scratch(NULL);
+	Event retval = NULL;
 	struct timespec ts = { 0, 0 };
-
-	struct kevent* cl = (struct kevent*)(ec ? malloc(sizeof(struct kevent)*ec->pos) : NULL);
-	if (cl) memset(cl,0,sizeof(struct kevent)*ec->pos);
-	struct kevent* el = (struct kevent*)malloc(sizeof(struct kevent)*numevents);
-	if (el) memset(el,0,sizeof(struct kevent)*numevents);
+	struct kevent* cl = (struct kevent*)(ec ? alloc_scratch(scratch,sizeof(struct kevent)*ec->pos) : NULL);
+	struct kevent* el = (struct kevent*)alloc_scratch(scratch,sizeof(struct kevent)*numevents);
 
 	for (n = 0; ec; ++n) {
 		memcpy(&cl[n],&ec->event,sizeof(struct kevent));
-		ec = free_event(ec);
+		ec = ec->next;
 	}
-	n = kevent(kq,cl,n,el,numevents, NULL); // &ts);
+	free_events();
+	n = kevent(kq,cl,n,el,numevents, NULL);
 	retval = NULL;	
-	while (n--) {
+	while (n--) 
 		retval = queue_event(retval,el[n].ident,el[n].filter,el[n].flags,el[n].fflags,el[n].data,el[n].udata);
-	}
-	if (cl) free(cl);
-	if (el) free(el);
+	free_scratch(scratch);
 	return retval;
 }
 
@@ -68,14 +66,12 @@ monitor_socket(Event ec, int fd)
 Event
 add_read_socket(Event ec, int fd, Request req)
 {
-	debug("Adding read socket %i\n",req);
 	return queue_event(ec, fd, EVFILT_READ, EV_ADD|EV_ONESHOT, 0, 0, req);
 }
 
 Event
 add_write_socket(Event ec, int fd, Response resp)
 {
-	debug("Adding write socket for request %i\n",resp->req);
 	return queue_event(ec, fd, EVFILT_WRITE, EV_ADD|EV_ONESHOT, 0, 0, resp);
 }
 

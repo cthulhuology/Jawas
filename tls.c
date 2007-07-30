@@ -6,6 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
+#include "alloc.h"
 #include "log.h"
 #include "tls.h"
 
@@ -21,7 +22,7 @@ password_callback(char *str, int num, int flags, void* udata)
 TLSInfo
 init_tls(char* keyfile, char* password)
 {
-	TLSInfo tls = (TLSInfo)malloc(sizeof(struct tls_struct) + strlen(password) + 1);
+	TLSInfo tls = (TLSInfo)salloc(sizeof(struct tls_struct) + strlen(password) + 1);
 	if (!tls) return tls;
 	tls->pass_len = strlen(password) + 1;
 	memcpy(tls->password,password,tls->pass_len);
@@ -46,7 +47,7 @@ init_tls(char* keyfile, char* password)
 TLSSocket
 open_tls(TLSInfo tls, int fd)
 {
-	TLSSocket retval = (TLSSocket)malloc(sizeof(struct tls_socket_struct));;
+	TLSSocket retval = (TLSSocket)salloc(sizeof(struct tls_socket_struct));;
 	if (! tls) return NULL;
 	if (! retval) return retval;
 	retval->ssl = SSL_new(tls->ctx);

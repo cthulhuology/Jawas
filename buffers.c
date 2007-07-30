@@ -88,19 +88,6 @@ read_buffer(Buffer dst, Buffer src, int pos, int len)
 	return read_buffer(retval,src, pos + retval->length,len - retval->length);
 }
 
-char*
-print_buffer(Buffer buf)
-{
-	int i;
-	char* retval = (char*)malloc(length_buffer(buf)+1);
-	for (i = 0; buf; buf = buf->next) {
-		memcpy(retval+i,buf->data,buf->length);
-		i += buf->length;
-	}
-	retval[i] = '\0';
-	return retval;
-}
-
 int
 length_buffer(Buffer buf)
 {
@@ -126,3 +113,49 @@ find_buffer(Buffer buf, int pos, char* delim, int len)
 	return -1;
 }
 
+Buffer
+print_buffer(Buffer buf, char* fmt, ...)
+{
+	va_list args;
+	int i, tmpl, l;
+	char* tmp;
+	double dtmp;
+	int itmp;
+ 	l = strlen(fmt);
+	va_start(args,fmt);
+	for (i = 0; i < l; ++i) {
+		if (fmt[i] == '%') {
+			switch(fmt[++i]) {
+			case 's':
+				tmp = va_arg(args,char*);
+				buf = write_buffer(buf,tmp,strlen(tmp));
+				break;	
+			case 'n':
+				dtmp = va_arg(args,double);
+				tmpl = asprintf(&tmp,"%g",dtmp);
+				buf = write_buffer(buf,tmp,tmpl);
+				free(tmp);	
+				break;
+			case 'i':
+				itmp = va_arg(args,int);
+				tmpl = asprintf(&tmp,"%d",itmp);
+				buf = write_buffer(buf,tmp,tmpl);
+				free(tmp);	
+				break;
+			case 'p':
+				itmp = va_arg(args,int);
+				tmpl = asprintf(&tmp,"%p",itmp);
+				buf = write_buffer(buf,tmp,tmpl);
+				free(tmp);	
+				break;
+			default:
+				buf = write_buffer(buf,&fmt[i],1);
+				break;
+			}
+		} else {
+			buf = write_buffer(buf,&fmt[i],1);
+		}
+	}
+	va_end(args);
+	return buf;
+}

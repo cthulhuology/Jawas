@@ -9,38 +9,37 @@
 #include "log.h"
 #include "pages.h"
 
-CacheInfo gci = { NULL, 0, 0, 0, 0, 0, NULL };
+PageInfo gpi = { NULL, 0, 0, 0, 0, 0, NULL };
 
 Page
 new_page()
 {
 	Page tmp;
 	int i;	
-	if (!gci.free) {
-		gci.baseaddr = mmap(NULL,getpagesize() * CACHE_PAGES,PROT_READ|PROT_WRITE,MAP_ANON,-1,0);
-		if (gci.baseaddr == (char*)-1) return NULL;
-		gci.size = CACHE_PAGES * getpagesize();
-		gci.allocated = 0;
-		gci.freed = 0;
-		gci.allocations = 0;
-		gci.frees = 0;
-		tmp = gci.free = (Page)gci.baseaddr;
+	if (!gpi.free) {
+		gpi.baseaddr = mmap(NULL,getpagesize() * CACHE_PAGES,PROT_READ|PROT_WRITE,MAP_ANON,-1,0);
+		if (gpi.baseaddr == (char*)-1) return NULL;
+		gpi.size = CACHE_PAGES * getpagesize();
+		gpi.allocated = 0;
+		gpi.freed = 0;
+		gpi.allocations = 0;
+		gpi.frees = 0;
+		tmp = gpi.free = (Page)gpi.baseaddr;
 		for (i = 0; i < CACHE_PAGES - 1; ++i) {
-			tmp->next = (Page)(gci.baseaddr+((1+i)*getpagesize()));
-			tmp = (Page)(gci.baseaddr + ((1 + i) * getpagesize()));
+			tmp->next = (Page)(gpi.baseaddr+((1+i)*getpagesize()));
+			tmp = (Page)(gpi.baseaddr + ((1 + i) * getpagesize()));
 		}
 		tmp->next = NULL;
-		dump_cache_info();
 	}
-	if (gci.free == NULL) {
-		error("[JAWAS] Out of Memory!!!!\n");
-		return NULL;
+	if (gpi.free == NULL) {
+		fprintf(stderr,"gpi.free is NULL!");
+		exit(1);
 	}
-	++gci.allocated;
-	++gci.allocations;
-	--gci.freed;
-	tmp = gci.free;
-	gci.free = gci.free->next;
+	++gpi.allocated;
+	++gpi.allocations;
+	--gpi.freed;
+	tmp = gpi.free;
+	gpi.free = gpi.free->next;
 	return tmp;
 }
 
@@ -48,27 +47,29 @@ void
 free_page(Page p)
 {
 	Page tmp;
-	for (tmp = gci.free; PAGE_GUARD && tmp; tmp = tmp->next) {
+	for (tmp = gpi.free; PAGE_GUARD && tmp; tmp = tmp->next) {
 		if (tmp == p) {
-			debug("[JAWAS] Double free on page %i\n",p);
+			debug("Double free on page %i\n",p);
 			for(;;) {}
 		}		
 	}
-	++gci.frees;
-	++gci.freed;
-	--gci.allocated;
-	p->next = gci.free;
-	gci.free = p;	
+	++gpi.frees;
+	++gpi.freed;
+	--gpi.allocated;
+	p->next = gpi.free;
+	gpi.free = p;	
 }
 
 void
-dump_cache_info()
+dump_page_info()
 {
-	notice("[JAWAS] CacheInfo\n");
-	notice("\tBase Address: %i\n",gci.baseaddr);
-	notice("\tSize: %i bytes\n",gci.size);
-	notice("\tAllocated: %i\n",gci.allocated);
-	notice("\tFreed: %i\n",gci.freed);
-	notice("\tAllocations: %i\n",gci.allocations);
-	notice("\tFrees: %i\n",gci.frees);
+	notice("****************************************");
+	notice("PageInfo\n");
+	notice("\tBase Address: %p\n",gpi.baseaddr);
+	notice("\tSize: %i bytes\n",gpi.size);
+	notice("\tAllocated: %i\n",gpi.allocated);
+	notice("\tFreed: %i\n",gpi.freed);
+	notice("\tAllocations: %i\n",gpi.allocations);
+	notice("\tFrees: %i\n",gpi.frees);
+	notice("****************************************");
 }

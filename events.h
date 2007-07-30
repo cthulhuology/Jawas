@@ -20,7 +20,7 @@ struct event_cache_struct {
 };
 
 Event poll_events(Event ec, int kq, int numevents);
-Event free_event(Event ec);
+void free_events();
 Event monitor_socket(Event ec, int fd);
 Event add_read_socket(Event ec, int fd, Request req);
 Event add_write_socket(Event ec, int fd, Response resp);

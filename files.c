@@ -4,12 +4,13 @@
 //
 
 #include "include.h"
+#include "alloc.h"
 #include "files.h"
 
 File
 open_file(File cache, char* filename)
 {
-	File fc = (File)malloc(sizeof(struct file_cache_struct) + strlen(filename) + 1);
+	File fc = (File)salloc(sizeof(struct file_cache_struct) + strlen(filename) + 1);
 	memcpy(fc->name,filename,strlen(filename)+1);
 	fc->fd = open(filename,O_RDONLY,0400);
 	if (fc->fd < 0 || fstat(fc->fd,&fc->st)) return NULL;
@@ -41,7 +42,6 @@ close_file(File fc, char* filename)
 	if (tmp) {
 		munmap(tmp->data,tmp->st.st_size);
 		close(tmp->fd);
-		free(tmp);
 	}
 	return last;
 }

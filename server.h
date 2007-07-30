@@ -6,6 +6,7 @@
 #ifndef __SERVER_H__
 #define __SERVER_H__
 
+#include "alloc.h"
 #include "events.h"
 #include "files.h"
 #include "tls.h"
@@ -20,6 +21,7 @@ struct server_struct {
 	File fc;
 	Socket sc;
 	TLSInfo tls;
+	Scratch scratch;
 	int numevents;
 	int done;
 };
