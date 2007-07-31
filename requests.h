@@ -25,6 +25,7 @@ struct request_struct {
 
 Request open_request(Socket sc);
 Request read_request(Request req);
+Headers parse_post_request(Request req);
 int request_content_length(Request req);
 void close_request(Request req);
 

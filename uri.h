@@ -13,6 +13,7 @@ extern int cwdlen;
 
 char* file_path(char* host, int hlen, char* filename, int flen);
 char* request_path(Request req);
+char* parse_method(Request req);
 
 char* uri_encode(char* str);
 char* uri_decode(char* str);

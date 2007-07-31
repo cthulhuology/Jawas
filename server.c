@@ -14,6 +14,7 @@
 #include "sockets.h"
 #include "server.h"
 #include "uri.h"
+#include "methods.h"
 #include "jws.h"
 
 File
@@ -111,16 +112,11 @@ request(Server srv, Event ec)
 	if (req->done) {
 		sc->buf = NULL;
 		resp = process_request(req);
-		parse_path(req);	
-		if (! parse_host(req)) {
+		parse_path(resp->req);	
+		if (! parse_host(resp->req)) 
 			resp->status = error_handler(srv,400,resp);
-		} else {
-			filename = request_path(resp->req);
-			fc = is_directory(filename) ? 
-				load(srv,get_index(filename)) :
-				load(srv,filename);
-			resp->status =  mimetype_handler(srv,fc,resp);
-		}
+		else 
+			resp->status = dispatch_method(srv,parse_method(req),resp);
 		srv->ec = add_write_socket(srv->ec,sc->fd,resp);
 		srv->numevents++;
 	}

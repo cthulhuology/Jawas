@@ -44,7 +44,6 @@ parse_request_headers(Buffer buf, int* body)
 		error("Failed to allocate new headers\n");
 		return NULL;
 	}
-
 	count = 0;
 	for (o = 0; o < len; ++o ) {
 		c = fetch_buffer(buf,o);
@@ -59,12 +58,13 @@ parse_request_headers(Buffer buf, int* body)
 		if (c == '\r' || c == '\n') {
 			reset = 1;
 			++count;
-			if (count == 4) break;
+			debug("Count is %i",count);
+			if (count > 2) break;
 			continue;
 		}
 		count = 0;
 		if (reset && ! headers[i].key) {
-			for (l = 1; fetch_buffer(buf,o+l) != ':'; ++l);
+			for (l = 1; (o + l) < len && fetch_buffer(buf,o+l) != ':'; ++l);
 			headers[i].key = read_buffer(NULL,buf,o,l);
 			o += l-1;
 			c = fetch_buffer(buf,o);
@@ -73,7 +73,7 @@ parse_request_headers(Buffer buf, int* body)
 		if (reset && c == ':') {
 			o += 1;
 			while(isspace(c = fetch_buffer(buf,o))) ++o;
-			for (l = 1; c != '\r' && c != '\n'; ++l) c = fetch_buffer(buf,o+l); 
+			for (l = 1; (o + l) < len && c != '\r' && c != '\n'; ++l) c = fetch_buffer(buf,o+l); 
 			headers[i].value = read_buffer(NULL,buf,o,l-1);
 			debug("Headers [%s:%s]",headers[i].key->data,headers[i].value->data);
 			reset = 0;
@@ -83,6 +83,37 @@ parse_request_headers(Buffer buf, int* body)
 	}
 	*body = o;
 	return headers;
+}
+
+Headers
+parse_post_request(Request req)
+{
+	Buffer key = NULL, value;
+	char c;
+	int i,o,l,len = length_buffer(req->contents);
+	if (!req->query_vars) 
+		req->query_vars = new_headers();
+	debug("PARSE_POST_REQUEST %i through %i", req->body,len);
+	for (o = req->body; isspace(fetch_buffer(req->contents,o)); ++o);	
+	for (; o < len; ++o) {
+		c = fetch_buffer(req->contents,o); 
+		if (key == NULL) {
+			for (l = 1; o+l < len && '=' != fetch_buffer(req->contents,o+l); ++l);
+			key = read_buffer(NULL,req->contents,o,l);	
+			o += l - 1;
+		}
+		if (c == '=' ) {
+			++o;
+			for (l = 1; o+l < len && '&' != fetch_buffer(req->contents,o+l); ++l);
+			value = read_buffer(NULL,req->contents,o,l);	
+			debug("POST: %s = %s",key->data,value->data);
+			append_header(req->query_vars,key,value);
+			key = NULL;
+			o += l;
+		}
+	}
+	debug("PARSE_POST_DONE");
+	return req->headers;
 }
 
 Request 
@@ -95,6 +126,7 @@ read_request(Request req)
 		return NULL;
 	}
 	req->headers = parse_request_headers(req->contents,&req->body);
+	debug("Request body at offset %i",req->body);
 	if (!req->headers) {
 		error("No request headers on request %i\n",req);
 		return NULL;

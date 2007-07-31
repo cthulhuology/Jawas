@@ -64,6 +64,7 @@ parse_path(Request req)
 	Buffer tmp = seek_buffer(req->contents,0);
 	if (! tmp) return NULL;
 	debug("REQUEST: %s",tmp->data);
+	for (;isspace(tmp->data[i]);++i);	// skip errorenous spaces
 	for (i = 0; tmp->data[i] && !isspace(tmp->data[i]); ++i);
 	for (;isspace(tmp->data[i]);++i);
 	for (end = i; tmp->data[end] && !isspace(tmp->data[end]) && tmp->data[end] != '?'; ++end);
@@ -90,6 +91,22 @@ parse_host(Request req)
 	req->host = host;
 	notice("Host is %i %s\n",req->host->length, req->host->data);
 	return req->host;
+}
+
+char*
+parse_method(Request req)
+{
+	char* retval = NULL;
+	int i,l;
+	Buffer tmp = seek_buffer(req->contents,0);
+	if (!tmp) return NULL;
+	for (i=0;isspace(tmp->data[i]);++i);	// skip errorenous spaces
+	for (l = 1; !isspace(tmp->data[i+l]); ++l);
+	retval = salloc(l+1);
+	memcpy(retval,&tmp->data[i],l);
+	retval[l] = '\0';
+	notice("Method is: %s",retval);
+	return retval;
 }
 
 char*

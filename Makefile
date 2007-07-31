@@ -21,6 +21,7 @@ image.c \
 index.c \
 jws.c \
 log.c \
+methods.c \
 mime.c \
 pages.c \
 requests.c \
