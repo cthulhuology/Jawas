@@ -1,0 +1,52 @@
+<?js
+title = "Admin Page";
+include("/headers.txt");
+?>
+
+<?js 
+	stats = 'files';
+?>
+<?js
+	if (param('stats')) {
+		stats = param('stats');
+	}
+?>
+
+<script type="text/javascript">
+	timeout = new Timeout(1000);
+</script>
+
+<div class="title">
+jawas admin page
+</div>
+<div class="stats">
+<div class="subtitle"><?js= stats =?> stats</div>
+<div class="stat_contents">
+<?js
+	include("/" + stats + ".jws");
+?>
+</div>
+<div class="subfooter">
+<div <?js= (stats == 'files' ? "id=\"active\"" : "") =?> class="tab"><a href="?stats=files">files</a></div>
+<div <?js= (stats == 'clients' ? "id=\"active\"" : "") =?> class="tab"><a href="?stats=clients">clients</a></div>
+<div <?js= (stats == 'memory' ? "id=\"active\"" : "") =?> class="tab"><a href="?stats=memory">memory</a></div>
+</div>
+</div>
+<div class="logs">
+<div class="subtitle">Logs</div>
+<div class="log_contents">
+<?js
+	include("/logs/index.html"); 
+?>
+</div>
+</div>
+<div class="footer">
+Tab <?js= param("stats") =?>
+Button <?js= param("log") =?>
+</div>
+
+<?js
+
+include("/footers.txt");
+
+?>
