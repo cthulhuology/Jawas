@@ -5,12 +5,13 @@
 //
 
 #include "include.h"
+#include "defines.h"
 #include "server.h"
 #include "image.h"
 
 int
-img_handler(Server srv, File fc, Response resp)
+img_handler(File fc)
 {
-	resp->raw_contents = fc;		
+	Resp->raw_contents = fc;		
 	return 200;
 }

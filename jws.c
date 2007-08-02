@@ -113,7 +113,7 @@ Include(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	if (argc != 1) return JS_FALSE;
 	s = JS_ValueToString(cx,argv[0]);
 	filename = file_path(ins.resp->req->host,char_str(JS_GetStringBytes(s),JS_GetStringLength(s)));
-	fc = load(ins.srv,filename);
+	fc = load(filename);
 	if (!fc) return JS_FALSE;
 	ProcessFile(fc->data);
 	return JS_TRUE;
@@ -284,17 +284,16 @@ MemInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		
 	ins.buffer = print_buffer(ins.buffer,"<table>");
 	ins.buffer = print_buffer(ins.buffer,"<tr><td>Base Address:</td><td> %p</td></tr>",gpi.baseaddr);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Memory Size:</td><td> %i</td></tr>",gpi.size);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Free Memory Size:</td><td> %i</td></tr>",gpi.size - (gpi.allocated * getpagesize()));
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Allocated Memory:</td><td> %i</td></tr>",gpi.allocated * getpagesize());
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Scratch Memory:</td><td> %i</td></tr>",gsi.current);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Max Scratch Memory:</td><td> %i</td></tr>",gsi.max_memory);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Scratch Memory Allocations:</td><td> %i</td></tr>",gsi.allocs);
 	ins.buffer = print_buffer(ins.buffer,"<tr><td>Pages Allocated:</td><td> %i</td></tr>",gpi.allocated);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Pages Freed:</td><td> %i</td></tr>",gpi.freed);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Scratch Pages Allocated:</td><td> %i</td></tr>",gsi.scratches);
 	ins.buffer = print_buffer(ins.buffer,"<tr><td>Page Allocations:</td><td> %i</td></tr>",gpi.allocations);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Page Frees:</td><td> %i</td></tr>",gpi.frees);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Max Scratch Pads:</td><td> %i</td></tr>",gsi.max_scratches);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Current Scratch Pads:</td><td> %i</td></tr>",gsi.scratches);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Freed Scratch Pads:</td><td> %i</td></tr>",gsi.frees);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Max Memory Allocated:</td><td> %i</td></tr>",gsi.max_memory);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Current Memory Allocated:</td><td> %i</td></tr>",gsi.current);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Memory Allocations:</td><td> %i</td></tr>",gsi.allocs);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Freed Pages:</td><td> %i</td></tr>",gpi.frees);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Freed Scratch Pages:</td><td> %i</td></tr>",gsi.frees);
 	ins.buffer = print_buffer(ins.buffer,"</table>");
 	return JS_TRUE;
 }
@@ -379,46 +378,41 @@ ProcessFile(char* script)
 	int o;
 	int len = 0;
 	for (o = 0; script[o]; ++o) {
-		if (!strncmp(&script[o],"<?js=",5)) {
+		if (!strncmp(&script[o],"<?js",4)) {
 			if (len < o)
 				ins.buffer = write_buffer(ins.buffer,&script[len],o-len);
 			len = 0;
-			while (strncmp(&script[o+len+6],"=?>",3)) ++len;
-			scratch = char_str(&script[o+6],len);	
-			scratch = Str("print(%s);",scratch);
-			debug("Evaluating [%s][%i]",scratch,scratch->len);
-			ok = JS_EvaluateScript(ins.cx, ins.glob, scratch->data, scratch->len, "js.c", 1, &retval);
-			notice("Evaluated [%s] %c", scratch, ( ok == JS_TRUE ? "ok" : "failed"));
-			o += len + 6;
-			len = o+3;
-		} else if (!strncmp(&script[o],"<?js",4)) {
-			if (len < o)
-				ins.buffer = write_buffer(ins.buffer,&script[len],o-len);
-			len = 0;
-			while (strncmp(&script[o+len+5],"?>",2)) ++len;
-			scratch = char_str(&script[o+5],len-1);
-			ok = JS_EvaluateScript(ins.cx, ins.glob, scratch->data, scratch->len , "js.c", 1, &retval);
-			notice("Evaluated [%s] %c",scratch, ( ok == JS_TRUE ? "ok" : "failed"));
-			o += len + 5;
-			len = o+2;
+			if (script[o+4] == '=') {
+				while (strncmp(&script[o+len+6],"=?>",3)) ++len;
+				scratch = char_str(&script[o+6],len);	
+				scratch = Str("print(%s);",scratch);
+				o += len + 6;
+				len = o+3;
+			} else {
+				while (strncmp(&script[o+len+5],"?>",2)) ++len;
+				scratch = char_str(&script[o+5],len-1);
+				o += len + 5;
+				len = o+2;
+			}
+			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, scratch->data, scratch->len, "js.c", 1, &retval))
+				notice("Failed to evaluate [%s]", scratch);
 		}
 	}
-	debug("Writing [%s]",char_str(&script[len],o-len));
 	ins.buffer = write_buffer(ins.buffer,&script[len],o-len);
 }
 
 int
-jws_handler(Server srv, File fc, Response resp)
+jws_handler(File fc)
 {
 	Buffer tmp;
-	if (InitJS(&ins,srv,resp)) goto error;
+	if (InitJS(&ins,srv,Resp)) goto error;
 	ProcessFile(fc->data);
 	if (DestroyJS(&ins)) goto error;
-	resp->contents = ins.buffer;
-	return resp->status;
+	Resp->contents = ins.buffer;
+	return Resp->status;
 error:
 	for (;ins.buffer; ins.buffer = free_buffer(ins.buffer));
-	resp->contents = NULL;
+	Resp->contents = NULL;
 	return 500;
 }
 

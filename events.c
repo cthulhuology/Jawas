@@ -5,9 +5,11 @@
 //
 
 #include "include.h"
-#include "events.h"
+#include "alloc.h"
 #include "log.h"
 #include "defines.h"
+#include "server.h"
+#include "events.h"
 
 Scratch escratch = NULL;
 
@@ -57,27 +59,31 @@ poll_events(Event ec, int kq, int numevents)
 	return retval;
 }
 
-Event
-monitor_socket(Event ec, int fd)
+void
+monitor_socket(int fd)
 {
-	return queue_event(ec, fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
+	srv->ec = queue_event(srv->ec,fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
+	srv->numevents++;
 }
 
-Event
-add_read_socket(Event ec, int fd, Request req)
+void
+add_read_socket(int fd, Request req)
 {
-	return queue_event(ec, fd, EVFILT_READ, EV_ADD|EV_ONESHOT, 0, 0, req);
+	srv->ec = queue_event(srv->ec,fd, EVFILT_READ, EV_ADD|EV_ONESHOT, 0, 0, req);
+	srv->numevents++;
 }
 
-Event
-add_write_socket(Event ec, int fd, Response resp)
+void
+add_write_socket(int fd, Response resp)
 {
-	return queue_event(ec, fd, EVFILT_WRITE, EV_ADD|EV_ONESHOT, 0, 0, resp);
+	srv->ec = queue_event(srv->ec,fd, EVFILT_WRITE, EV_ADD|EV_ONESHOT, 0, 0, resp);
+	srv->numevents++;
 }
 
-Event
-add_file_monitor(Event ec, int fd, char* filename)
+void
+add_file_monitor(int fd, char* filename)
 {
-	return queue_event(ec, fd, EVFILT_VNODE, EV_ADD|EV_ONESHOT, NODE_FLAGS, 0, filename);
+	srv->ec = queue_event(srv->ec,fd, EVFILT_VNODE, EV_ADD|EV_ONESHOT, NODE_FLAGS, 0, filename);
+	srv->numevents++;
 }
 

@@ -32,9 +32,7 @@ find_header(Headers headers, char* key)
 	int i;
 	if (! headers || ! key) return NULL;
 	int len = strlen(key);
-	debug("find_header %c[%i]",key,len);
 	for (i = 0; i < MAX_HEADERS && headers[i].key; ++i ) {
-		debug("vs %s[%i] : %s[%i]",headers[i].key,headers[i].key->len,headers[i].value,headers[i].value->len);
 		if (len == headers[i].key->len 
 		&& !strncasecmp(headers[i].key->data,key,len)) 
 			return headers[i].value;

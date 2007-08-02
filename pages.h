@@ -16,12 +16,11 @@ struct page_struct {
 typedef struct page_info_struct PageInfo;
 struct page_info_struct {
 	char* baseaddr;
+	Page free;
 	size_t size;
 	size_t allocated;
-	size_t freed;			
 	size_t allocations;
 	size_t frees;
-	Page free;
 	int guard;
 };
 

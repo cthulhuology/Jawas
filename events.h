@@ -21,10 +21,11 @@ struct event_cache_struct {
 
 Event poll_events(Event ec, int kq, int numevents);
 void free_events();
-Event monitor_socket(Event ec, int fd);
-Event add_read_socket(Event ec, int fd, Request req);
-Event add_write_socket(Event ec, int fd, Response resp);
-Event add_file_monitor(Event ec, int fd, char* filename);
+
+void monitor_socket(int fd);
+void add_read_socket(int fd, Request req);
+void add_write_socket(int fd, Response resp);
+void add_file_monitor(int fd, char* filename);
 
 #define NODE_FLAGS NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_RENAME | NOTE_REVOKE
 

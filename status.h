@@ -11,6 +11,6 @@
 #include "server.h"
 
 char* status_line(int code);
-int error_handler(Server srv, int code, Response resp);
+int error_handler(int code);
 
 #endif

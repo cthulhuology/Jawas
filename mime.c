@@ -42,7 +42,6 @@ lookup_mimetype(char* filename)
 	for (i = l - 1; i > 0; --i)
 		if (filename[i-1] == '.') break;
 	l -= i;
-	debug("File ending is %c",&filename[i]);
 	for (mt = mime_types; mt->ending.len; ++mt)
 		if (l == mt->ending.len && !strncmp(mt->ending.data,&filename[i],l))
 			return mt;
@@ -50,13 +49,13 @@ lookup_mimetype(char* filename)
 }
 
 int
-mimetype_handler(Server srv, File fc, Response resp)
+mimetype_handler(File fc)
 {
 	MimeTypes* mt;
-	if (!srv || !fc || !resp) 
-		return error_handler(srv,404,resp);
+	if (!fc) 
+		return error_handler(404);
 	mt = lookup_mimetype(fc->name);
-	content_type(resp->headers, mt->type.data);
-	return mt->handler(srv,fc,resp);
+	content_type(Resp->headers, mt->type.data);
+	return mt->handler(fc);
 }
 

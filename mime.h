@@ -13,9 +13,9 @@ typedef struct mime_struct MimeTypes;
 struct mime_struct {
 	cstr ending;
 	cstr type;
-	int (*handler)(Server,File,Response);
+	int (*handler)(File);
 };
 
-int mimetype_handler(Server srv, File fc, Response resp);
+int mimetype_handler(File fc);
 
 #endif

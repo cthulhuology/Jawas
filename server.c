@@ -17,48 +17,73 @@
 #include "methods.h"
 #include "jws.h"
 
+Server srv = NULL;
+Scratch old_scratch_pad;
+
+void
+server_scratch()
+{
+	old_scratch_pad = gscratch;
+	set_scratch(srv->scratch);
+}
+
+void
+old_scratch()
+{
+	set_scratch(old_scratch_pad);
+	old_scratch_pad = srv->scratch;
+}
+
+void
+client_scratch()
+{
+	old_scratch_pad = gscratch;
+	set_scratch(Sock->scratch);
+}
+
 File
-load(Server srv, str filename)
+load(str filename)
 {
 	File retval;
-	Scratch old = gscratch;
-	set_scratch(srv->scratch);
 	if (!filename) return NULL;
+	server_scratch();	
 	debug("Opening %s\n",filename);
 	retval = query_cache(&srv->fc,filename);
-	if (retval) return retval;
+	if (retval) {
+		old_scratch();
+		return retval;
+	}
 	retval = open_file(srv->fc,filename);
 	if (!retval) {
 		error("Failed to open %s\n",filename);
-		set_scratch(old);
+		old_scratch();
 		return NULL;
 	}
 	srv->fc = retval;
-	srv->ec = add_file_monitor(srv->ec,srv->fc->fd,srv->fc->name);
-	srv->numevents++;
-	set_scratch(old);
+	add_file_monitor(srv->fc->fd,srv->fc->name);
+	old_scratch();
 	return retval;
 }
 
 void
-unload(Server srv, int fd, str filename)
+unload(int fd, str filename)
 {
+	server_scratch();
 	debug("Unloading %s\n",filename);
 	srv->fc = close_file(srv->fc,filename);
+	old_scratch();
 }
 
 void
-incoming(Server srv, int fd)
+incoming(int fd)
 {
 	Request req;
 	debug("INCOMING START");
 	Scratch scratch = new_scratch(NULL);
 	set_scratch(scratch);
-	srv->sc = accept_socket(srv->sc,fd,(srv->sock == fd ? NULL : srv->tls));
+	srv->sc = accept_socket(srv->sc,fd,(srv->http_sock == fd ? NULL : srv->tls));
 	req = open_request(srv->sc);
-	set_scratch(srv->scratch);
-	srv->ec = add_read_socket(srv->ec, srv->sc->fd,req);
-	srv->numevents++;
+	add_read_socket(srv->sc->fd,req);
 	notice("%i.%i.%i.%i:%i connected\n",
 		(0xff & srv->sc->peer),
 		(0xff00 & srv->sc->peer) >> 8,
@@ -69,140 +94,145 @@ incoming(Server srv, int fd)
 }
 
 void
-disconnect(Server srv, Socket sc)
+disconnect()
 {
 	Socket tmp,last;
 	last = NULL;
+	server_scratch();
 	debug("DISCONNECT START");
 	for (tmp = srv->sc; tmp; tmp = tmp->next) {
-		debug("disconnect  %p vs %p ", tmp,sc);
-		if (tmp == sc)  {
+		debug("disconnect  %p vs %p ", tmp,Sock);
+		if (tmp == Sock)  {
 			notice("%i.%i.%i.%i:%i disconnected\n",
-				(0xff & sc->peer),
-				(0xff00 & sc->peer) >> 8,
-				(0xff0000 & sc->peer) >> 16,
-				(0xff000000 & sc->peer) >> 24,
-		srv->sc->port);
-			if (last) last->next = close_socket(sc);
-			else srv->sc = close_socket(sc);
+				(0xff & Sock->peer),
+				(0xff00 & Sock->peer) >> 8,
+				(0xff0000 & Sock->peer) >> 16,
+				(0xff000000 & Sock->peer) >> 24,
+		Sock->port);
+			if (last) last->next = close_socket(Sock);
+			else srv->sc = close_socket(Sock);
 		}
-		last = sc;
+		last = tmp;
 	}
 	debug("DISCONNECT DONE");
 }
 
 void
-request(Server srv, Event ec)
+request()
 {
 	char* filename;
 	File fc;
-	Response resp;
+	client_scratch();
 	debug("REQUEST START");
-	Request req = (Request)ec->event.udata;
-	Socket sc = req->sc;;
-	set_scratch(sc->scratch);
-	if (!read_request(req)) {
+	if (!read_request(Req)) {
+		old_scratch();
 		error("Failed to read request\n");
-		close_request(req);
-		disconnect(srv,sc);
-		set_scratch(srv->scratch);
+		close_request(Req);
+		disconnect();
 		debug("REQUEST DONE");
 		return;
 	}
-	if (req->done) {
-		sc->buf = NULL;
-		resp = process_request(req);
-		parse_path(resp->req);	
-		if (! parse_host(resp->req)) 
-			resp->status = error_handler(srv,400,resp);
+	if (Req->done) {
+		Sock->buf = NULL;
+		Resp = process_request(Req);
+		parse_path(Req);	
+		if (! parse_host(Req)) 
+			Resp->status = error_handler(400);
 		else 
-			resp->status = dispatch_method(srv,parse_method(req),resp);
-		srv->ec = add_write_socket(srv->ec,sc->fd,resp);
-		srv->numevents++;
+			Resp->status = dispatch_method(parse_method(Req));
+		add_write_socket(Sock->fd,Resp);
 	}
-	set_scratch(srv->scratch);
 	debug("REQUEST DONE");
+	old_scratch();
 }
 
 void
-respond(Server srv, Event ec)
+respond()
 {
-	Request req;
 	debug("RESPOND START");
-	Response resp = (Response)ec->event.udata;
-	Socket sc = resp->sc;
-	set_scratch(sc->scratch);
-	connection(resp->headers,"close");
-	transfer_encoding(resp->headers,"identity");
-	if (send_response(resp)) {
-		srv->ec = add_write_socket(srv->ec,sc->fd,resp);
-		srv->numevents++;
-		set_scratch(srv->scratch);
+	client_scratch();
+	connection(Resp->headers,"close");
+	transfer_encoding(Resp->headers,"identity");
+	if (send_response(Resp)) {
+		old_scratch();
+		add_write_socket(Sock->fd,Resp);
 		debug("RESPOND CONTINUE");
 		return;
 	}
-	close_response(resp);
-	disconnect(srv,sc);
+	old_scratch();
+	close_response(Resp);
+	disconnect();
 	debug("RESPOND DONE");
 }
 
-Server
+void
 serve(int port, int tls_port)
 {
 	Scratch scratch = new_scratch(NULL);
-	Server srv = (Server)alloc_scratch(scratch,sizeof(struct server_struct));
+	srv = (Server)alloc_scratch(scratch,sizeof(struct server_struct));
 	srv->scratch = scratch;
-	set_scratch(srv->scratch);
+	server_scratch();
+	set_cwd();
+	open_log();
 	srv->kq = kqueue();
-	if (0 > srv->kq) return NULL;
-	if (0 > (srv->sock = open_socket(port))) return NULL;
-	if (0 > (srv->tls_sock = open_socket(tls_port))) return NULL;
+	srv->http_sock = open_socket(port);
+	srv->tls_sock = open_socket(tls_port);
 	srv->tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
 	srv->ec = NULL;
 	srv->fc = NULL;
 	srv->sc = NULL;
 	srv->numevents = 2;
-	srv->ec = monitor_socket(srv->ec,srv->sock);
-	if (tls_port) srv->ec = monitor_socket(srv->ec,srv->tls_sock);
+	monitor_socket(srv->http_sock);
+	monitor_socket(srv->tls_sock);
 	srv->done = 0;
 	socket_signal_handlers();
-	return srv;
-}
-
-Server
-run(Server srv)
-{
-	Event ec;
-
-	ec = poll_events(srv->ec,srv->kq,srv->numevents);
-	srv->numevents = 2;
-	for (srv->ec = NULL; ec; ec = ec->next) {
-		switch (ec->event.filter) {
-		case EVFILT_READ:
-			if (ec->event.flags == EV_EOF) break;
-			(ec->event.ident == srv->sock || ec->event.ident == srv->tls_sock)  ?
-				incoming(srv,ec->event.ident) :
-				request(srv,ec);
-			break;
-		case EVFILT_WRITE:
-			respond(srv,ec);
-			break;
-		case EVFILT_VNODE:
-			unload(srv,ec->event.ident,ec->event.udata);
-			break;
-		}
-	}
-	return srv;
 }
 
 void
-stop(Server srv)
+run()
+{
+	Event ec;
+	ec = poll_events(srv->ec,srv->kq,srv->numevents);
+	srv->numevents = 2;
+	for (srv->ec = NULL; ec; ec = ec->next) {
+		server_scratch();
+		Req = NULL;
+		Resp = NULL;
+		Sock = NULL;
+		switch (ec->event.filter) {
+		case EVFILT_READ:
+			if (ec->event.flags == EV_EOF) break;
+			if (ec->event.ident == srv->http_sock
+			|| ec->event.ident == srv->tls_sock) {
+				incoming(ec->event.ident);
+				break;
+			}
+			Req = (Request)ec->event.udata;
+			Sock= Req->sc;
+			request();
+			break;
+		case EVFILT_WRITE:
+			Resp = (Response)ec->event.udata;
+			Sock = Resp->sc;
+			Req = Resp->req;
+			respond();
+			break;
+		case EVFILT_VNODE:
+			unload(ec->event.ident,ec->event.udata);
+			break;
+		}
+	}
+}
+
+void
+stop()
 {
 	File fc;
 	Event ec;
 	Socket sc;
-
-	close(srv->sock);
+	server_scratch();
+	close(srv->http_sock);
+	close(srv->tls_sock);
 	srv->sock = 0;
 	close(srv->kq);
 	srv->kq = 0;

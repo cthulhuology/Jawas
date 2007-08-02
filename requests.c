@@ -57,7 +57,6 @@ parse_request_headers(Buffer buf, int* body)
 		if (c == '\r' || c == '\n') {
 			reset = 1;
 			++count;
-			debug("Count is %i",count);
 			if (count > 2) break;
 			continue;
 		}
@@ -67,14 +66,12 @@ parse_request_headers(Buffer buf, int* body)
 			headers[i].key = read_str(buf,o,l);
 			o += l-1;
 			c = fetch_buffer(buf,o);
-			debug("Headers [%s:]",headers[i].key);
 		} 
 		if (reset && c == ':') {
 			o += 1;
 			while(isspace(c = fetch_buffer(buf,o))) ++o;
 			for (l = 1; (o + l) < len && c != '\r' && c != '\n'; ++l) c = fetch_buffer(buf,o+l); 
 			headers[i].value = read_str(buf,o,l-1);
-			debug("Headers[%i] [%s:%s]",i,headers[i].key,headers[i].value);
 			reset = 0;
 			o += l-1;
 			++i;
@@ -94,7 +91,6 @@ read_request(Request req)
 		return NULL;
 	}
 	req->headers = parse_request_headers(req->contents,&req->body);
-	debug("Request body at offset %i",req->body);
 	if (!req->headers) {
 		error("No request headers on request %i\n",req);
 		return NULL;

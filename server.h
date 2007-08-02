@@ -16,7 +16,7 @@
 typedef struct server_struct* Server;
 struct server_struct {
 	int kq;
-	int sock;
+	int http_sock;
 	int tls_sock;
 	Event ec;
 	File fc;
@@ -25,18 +25,25 @@ struct server_struct {
 	Scratch scratch;
 	int numevents;
 	int done;
+	Event event;	// current event;
+	Socket sock;	// current socket;
+	Request req;	// current request
+	Response resp;	// current response
 };
 
-File load(Server srv, str filename);
+extern Server srv;
 
-void incoming(Server srv, int fd);
-void request(Server srv, Event ec);
-void respond(Server srv, Event ec);
-void unload(Server srv, int fd, str filename);
+File load(str filename);
+void unload(int fd, str filename);
 
-Server serve(int port, int tls_port);
-Server run(Server srv);
-void stop(Server srv);
+void serve(int port, int tls_port);
+void run();
+void incoming(int fd);
+void request();
+void respond();
+void stop();
 
+void server_scratch();
+void client_scratch();
 
 #endif

@@ -5,6 +5,7 @@
 //
 
 #include "include.h"
+#include "defines.h"
 #include "alloc.h"
 #include "uri.h"
 #include "status.h"
@@ -87,12 +88,12 @@ status_line(int code)
 }
 
 int
-error_handler(Server srv, int code, Response resp)
+error_handler(int code)
 {
 	int i = find_status_code(code);
 	if (! stati[i].filename) return code;
-	File fc = load(srv,file_path(char_str("errors",0),char_str(stati[i].filename,0)));
+	File fc = load(file_path(char_str("errors",0),char_str(stati[i].filename,0)));
 	if (! fc) return code;
-	resp->raw_contents = fc;
+	Resp->raw_contents = fc;
 	return code;				
 }

@@ -7,6 +7,6 @@
 #ifndef __HAVE_IMAGE_H__
 #define __HAVE_IMAGE_H__
 
-int img_handler(Server srv, File fc, Response resp);
+int img_handler(File fc);
 
 #endif

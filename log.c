@@ -9,6 +9,7 @@
 #include "uri.h"
 #include "index.h"
 #include "log.h"
+#include "alloc.h"
 
 int today;
 int log_fd = 2;
@@ -18,9 +19,26 @@ str log_path;
 str index_path = NULL;
 str localhost = NULL;
 
+Scratch log_scratch_pad = NULL;
+
+void
+log_scratch()
+{
+	log_scratch_pad = gscratch;	
+	set_scratch(new_scratch(NULL));
+}
+
+void
+old_log_scratch()
+{
+	free_scratch(gscratch);
+	set_scratch(log_scratch_pad);	
+}
+
 void
 open_log()
 {	
+	log_scratch();
 	struct stat st;
 	int ol = 0;
 	time_t now = time(NULL);
@@ -41,6 +59,7 @@ open_log()
 	log_fd = open(log_path->data,O_WRONLY|O_APPEND|O_CREAT,0600);
 	if (log_fd < 0) log_fd = 2;
 	if (ol) write(log_fd,"<ol>\n",5);
+	old_log_scratch();
 }
 
 time_t
@@ -64,37 +83,27 @@ close_log()
 }
 
 static int max_log_lvl = 2;
-cstr log_msgs[] =  {
-	{ 8, "[ERROR] " },
-	{ 9, "[NOTICE] " },
-	{ 8, "[DEBUG] " },
-	{ 0, NULL },
+char* log_msgs[] =  {
+	"[ERROR]",
+	"[NOTICE]",
+	"[DEBUG]",
+	NULL
 };
 
 void
 log_msg(int lvl, char* fmt,  ...)
 {
-	char* tmp;
 	va_list args;
 	time_t now = rotate_logs();
 	if (lvl < 0 || lvl > log_level || lvl > max_log_lvl) return;
-	write(log_fd,"<li>",4);
-	write(log_fd,log_msgs[lvl].data,log_msgs[lvl].len);
-	if (log_fd != 2) 
-		write(2,log_msgs[lvl].data,log_msgs[lvl].len);
-	tmp = ctime(&now);
-	write(log_fd,tmp,strlen(tmp)-1);
-	if (log_fd != 2) 
-		write(log_fd,tmp,strlen(tmp)-1);
-	write(log_fd,": ",2);
-	if (log_fd != 2) 
-		write(log_fd,": ",2);
+	log_scratch();
 	va_start(args,fmt);
 	str msg = new_str(fmt,args);
+	char* ctm = ctime(&now);
+	str tmp = char_str(ctm,strlen(ctm)-1);;
+	msg = Str("<li>%c [%s]: %s</li>\n",log_msgs[lvl],tmp,msg);
 	write(log_fd,msg->data,msg->len);
-	if (log_fd != 2) 
-		write(log_fd,msg->data,msg->len);
-	write(log_fd,"</li>\n",6);
 	fsync(log_fd);
+	old_log_scratch();
 }
 

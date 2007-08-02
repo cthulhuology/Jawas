@@ -11,16 +11,16 @@ typedef struct method_dispatch_struct  MethodDispatch;
 struct method_dispatch_struct {
 	int len;
 	char* name;
-	int (*handler)(Server,Response);
+	int (*handler)();
 };
 
-int get_method(Server srv, Response resp);
-int post_method(Server srv, Response resp);
-int head_method(Server srv, Response resp);
-int options_method(Server srv, Response resp);
-int put_method(Server srv, Response resp);
-int delete_method(Server srv, Response resp);
-int trace_method(Server srv, Response resp);
-int dispatch_method(Server srv, str method, Response resp);
+int get_method();
+int post_method();
+int head_method();
+int options_method();
+int put_method();
+int delete_method();
+int trace_method();
+int dispatch_method(str method);
 
 #endif

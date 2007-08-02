@@ -50,7 +50,6 @@ alloc_scratch(Scratch s, int size)
 	++gsi.allocs;
 	gsi.current += size;
 	gsi.max_memory = max(gsi.current,gsi.max_memory);
-//	debug("alloc %p[%i]", retval,size);
 	return retval;
 }
 
@@ -60,7 +59,6 @@ free_scratch(Scratch s)
 	Scratch tmp;
 	if (s->next) free_scratch(s->next);
 	gsi.current -= s->len;
-	debug("deallocing %p[%i]",s,s->len);
 	free_page((Page)s);
 	++gsi.frees;
 	--gsi.scratches;

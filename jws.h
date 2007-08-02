@@ -24,7 +24,7 @@ struct js_instance_struct {
 	PGconn* database;
 };
 
-int jws_handler(Server srv, File fc, Response resp);
+int jws_handler(File fc);
 
 #define HeaderSetter(func) \
 	func(ins.resp->headers,JS_GetStringBytes(JS_ValueToString(cx,argv[0])));\

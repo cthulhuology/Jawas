@@ -25,66 +25,62 @@ MethodDispatch gdispatch[] = {
 };
 
 int
-get_method(Server srv, Response resp)
+get_method()
 {
 	File fc;
 	str filename;
-	debug("GET METHOD");
-	filename = file_path(resp->req->host,resp->req->path);
-	debug("FILENAME is %s[%i]", filename,filename->len);
+	filename = file_path(Req->host,Req->path);
 	fc = is_directory(filename) ? 
-		load(srv,get_index(filename)) :
-		load(srv,filename);
-	debug("fc is %p",fc);
-	return mimetype_handler(srv,fc,resp);
+		load(get_index(filename)) :
+		load(filename);
+	return mimetype_handler(fc);
 }
 
 int
-head_method(Server srv, Response resp)
+head_method()
 {
-	return error_handler(srv,405,resp);
+	return error_handler(405);
 }
 
 int
-post_method(Server srv, Response resp)
+post_method()
 {
-	parse_post_request(resp->req);
-	return get_method(srv,resp);
+	parse_post_request(Req);
+	return get_method();
 }
 
 int
-put_method(Server srv, Response resp)
+put_method()
 {
-	return error_handler(srv,405,resp);
+	return error_handler(405);
 }
 
 int
-delete_method(Server srv, Response resp)
+delete_method()
 {
-	return error_handler(srv,405,resp);
+	return error_handler(405);
 }
 
 int
-options_method(Server srv, Response resp)
+options_method()
 {
-	return error_handler(srv,405,resp);
+	return error_handler(405);
 }
 
 int
-trace_method(Server srv, Response resp)
+trace_method()
 {
-	return error_handler(srv,405,resp);
+	return error_handler(405);
 }
 
 int
-dispatch_method(Server srv, str method, Response resp)
+dispatch_method(str method)
 {
 	int i;
-	debug("Dispatch method: %s",method);
 	for (i = 0; gdispatch[i].name; ++i ) 
 		if (! strncasecmp(gdispatch[i].name,method->data,gdispatch[i].len)) 
-			return gdispatch[i].handler(srv,resp);
+			return gdispatch[i].handler();
 	error("Bad request: %s",method);
-	return error_handler(srv,400,resp);
+	return error_handler(400);
 }
 

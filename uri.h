@@ -12,6 +12,8 @@
 
 extern str cwd;
 
+void set_cwd();
+
 str file_path(str host, str filename);
 
 char* uri_encode(char* str);

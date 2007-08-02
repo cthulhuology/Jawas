@@ -16,7 +16,7 @@
 #define TLS_PASSWORD "fullfathomfive"
 
 #define PAGE_GUARD 1
-#define CACHE_PAGES 125000
+#define CACHE_PAGES 100
 
 #define min(x,y) (x < y ? x : y)
 #define max(x,y) (x > y ? x : y)
@@ -30,4 +30,8 @@
 #define error(msg ...)	log_msg(0,msg)
 #define notice(msg ...)	log_msg(1,msg)
 #define debug(msg ...)	log_msg(2,msg)
+
+#define Sock	srv->sock
+#define Req	srv->req
+#define Resp	srv->resp
 

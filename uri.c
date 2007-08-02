@@ -95,11 +95,15 @@ parse_method(Request req)
 	return read_str(tmp,i,l);	
 }
 
+void
+set_cwd()
+{
+	cwd = char_str(getcwd(NULL,0),0);
+}
+
 str
 file_path(str host,str filename)
 {
-	if (!cwd)
-		cwd = char_str(getcwd(NULL,0),0);
 	return Str("%s/%s%s",cwd,host,filename);
 }
 
