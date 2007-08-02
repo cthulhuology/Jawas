@@ -46,12 +46,12 @@ static JSBool
 SendMessage(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	int i;
-	JSString* str;
+	JSString* s;
 	int sc = sms_connect();
 	write(sc,"SEND ",5);
 	for (i = 0; i < argc; ++i ) {
-		str = JS_ValueToString(cx,argv[i]);
-		write(sc,JS_GetStringBytes(str),JS_GetStringLength(str));
+		s = JS_ValueToString(cx,argv[i]);
+		write(sc,JS_GetStringBytes(s),JS_GetStringLength(s));
 		write(sc," ",1);
 	}
 	close(sc);
@@ -62,12 +62,12 @@ static JSBool
 AddUser(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	int i;
-	JSString* str;
+	JSString* s;
 	int sc = sms_connect();
 	write(sc,"ADD USER ",9);
 	for (i = 0; i < 3; ++i ) {
-		str = JS_ValueToString(cx,argv[i]);
-		write(sc,JS_GetStringBytes(str),JS_GetStringLength(str));
+		s = JS_ValueToString(cx,argv[i]);
+		write(sc,JS_GetStringBytes(s),JS_GetStringLength(s));
 		write(sc," ",1);
 	}
 	close(sc);
@@ -77,11 +77,11 @@ AddUser(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 AddChannel(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	JSString* str;
+	JSString* s;
 	int sc = sms_connect();
 	write(sc,"ADD CHANNEL ",12);
-	str = JS_ValueToString(cx,argv[0]);
-	write(sc,JS_GetStringBytes(str),JS_GetStringLength(str));
+	s = JS_ValueToString(cx,argv[0]);
+	write(sc,JS_GetStringBytes(s),JS_GetStringLength(s));
 	close(sc);
 	return JS_TRUE;	
 }
@@ -90,15 +90,15 @@ static JSBool
 Print(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	uintN i;
-	JSString *str;
-	char* cstr;
+	JSString *s;
+	char* c;
 
 	for (i = 0; i < argc; ++i) {
-		str = JS_ValueToString(cx, argv[i]);
-		if (!str) return JS_FALSE;
+		s = JS_ValueToString(cx, argv[i]);
+		if (!s) return JS_FALSE;
 		if (i) ins.buffer = write_buffer(ins.buffer," ",1);
-		cstr = JS_GetStringBytes(str);
-		ins.buffer = write_buffer(ins.buffer, cstr, strlen(cstr));
+		c = JS_GetStringBytes(s);
+		ins.buffer = write_buffer(ins.buffer, c, JS_GetStringLength(s));
 	}
 	ins.buffer = write_buffer(ins.buffer, "\n",1);
 	return JS_TRUE;
@@ -108,11 +108,11 @@ static JSBool
 Include(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	File fc;
-	JSString* str;
-	char* filename;
+	JSString* s;
+	str filename;
 	if (argc != 1) return JS_FALSE;
-	str = JS_ValueToString(cx,argv[0]);
-	filename = file_path(ins.resp->req->host->data,ins.resp->req->host->length,JS_GetStringBytes(str),JS_GetStringLength(str));
+	s = JS_ValueToString(cx,argv[0]);
+	filename = file_path(ins.resp->req->host,char_str(JS_GetStringBytes(s),JS_GetStringLength(s)));
 	fc = load(ins.srv,filename);
 	if (!fc) return JS_FALSE;
 	ProcessFile(fc->data);
@@ -122,25 +122,25 @@ Include(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 Header(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	JSString* str;
+	JSString* s;
 	if (argc != 1) return JS_FALSE;	
-	str = JS_ValueToString(cx,argv[0]);
-	Buffer head  = find_header(ins.resp->req->headers,JS_GetStringBytes(str));
-	str = JS_NewString(cx,head->data,head->length);
-	*rval = STRING_TO_JSVAL(str);
+	s = JS_ValueToString(cx,argv[0]);
+	str head  = find_header(ins.resp->req->headers,JS_GetStringBytes(s));
+	s = JS_NewString(cx,head->data,head->len);
+	*rval = STRING_TO_JSVAL(s);
 	return JS_TRUE;
 }
 
 static JSBool
 Param(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	JSString* str;
+	JSString* s;
 	if (argc != 1) return JS_FALSE;
-	str = JS_ValueToString(cx,argv[0]);
-	Buffer pram = find_header(ins.resp->req->query_vars,JS_GetStringBytes(str));
+	s = JS_ValueToString(cx,argv[0]);
+	str pram = find_header(ins.resp->req->query_vars,JS_GetStringBytes(s));
 	if (! pram) return JS_FALSE;
-	str = JS_NewString(cx,pram->data,pram->length);
-	*rval = STRING_TO_JSVAL(str);
+	s = JS_NewString(cx,pram->data,pram->len);
+	*rval = STRING_TO_JSVAL(s);
 	return JS_TRUE;
 }
 
@@ -165,20 +165,20 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		case PGRES_TUPLES_OK:
 			arr =  JS_NewArrayObject(cx,0,NULL);
 			if (! arr) {
-				error("Failed to initialize array for query : %s\n",JS_GetStringBytes(query));
+				error("Failed to initialize array for query : %c\n",JS_GetStringBytes(query));
 				return JS_FALSE;
 			}
 			for (i = 0; i < PQntuples(res); ++i) {
 				row = JS_NewObject(cx,NULL,NULL,arr);
 				if(!row || ! JS_DefineElement(cx,arr,i,OBJECT_TO_JSVAL(row),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
-					error("Failed to initialize object for row %i : %s\n",i,JS_GetStringBytes(query));
+					error("Failed to initialize object for row %i : %c\n",i,JS_GetStringBytes(query));
 					continue;
 				}
 				for (j = 0; j < PQnfields(res); ++j) {
 					value_cstr = PQgetvalue(res,i,j);
 					value = JS_NewString(cx,value_cstr,strlen(value_cstr));
 					if (!JS_DefineProperty(cx,row,PQfname(res,j),STRING_TO_JSVAL(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
-						error("Failed to apply column %s to row %i\n",PQfname(res,j),i);
+						error("Failed to apply column %c to row %i\n",PQfname(res,j),i);
 						continue;
 					}
 				}
@@ -199,13 +199,13 @@ static JSBool
 Encode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	char* data;
-	JSString* str;
+	JSString* s;
 	Buffer tmp,buf;
 	if (argc != 1) return JS_FALSE;
-	str = JS_ValueToString(cx,argv[0]);
-	data = uri_encode(JS_GetStringBytes(str));
-	str = JS_NewString(cx,data,strlen(data));
-	*rval = STRING_TO_JSVAL(str);
+	s = JS_ValueToString(cx,argv[0]);
+	data = uri_encode(JS_GetStringBytes(s));
+	s = JS_NewString(cx,data,strlen(data));
+	*rval = STRING_TO_JSVAL(s);
 	return JS_TRUE;	
 }
 
@@ -213,13 +213,13 @@ static JSBool
 Decode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	char* data;
-	JSString* str;
+	JSString* s;
 	Buffer tmp,buf;
 	if (argc != 1) return JS_FALSE;
-	str = JS_ValueToString(cx,argv[0]);
-	data = uri_decode(JS_GetStringBytes(str));
-	str = JS_NewString(cx,data,buf->length);
-	*rval = STRING_TO_JSVAL(str);
+	s = JS_ValueToString(cx,argv[0]);
+	data = uri_decode(JS_GetStringBytes(s));
+	s = JS_NewString(cx,data,buf->length);
+	*rval = STRING_TO_JSVAL(s);
 	return JS_TRUE;	
 }
 
@@ -306,7 +306,7 @@ FileInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	int total = 0;
 	ins.buffer = print_buffer(ins.buffer,"<table><tr><th>Name</th><th>Hits</th><th>Size</th></tr>");
 	for (fc = ins.srv->fc; fc; fc = fc->next)  {
-		ins.buffer = print_buffer(ins.buffer,"<tr><td>%s</td><td>%i</td><td>%i</td></tr>",&fc->name[cwdlen],fc->count,fc->st.st_size);
+		ins.buffer = print_buffer(ins.buffer,"<tr><td>%c</td><td>%i</td><td>%i</td></tr>",&fc->name[cwd->len],fc->count,fc->st.st_size);
 		total += fc->st.st_size;
 	}
 	ins.buffer = print_buffer(ins.buffer,"<tr><td colspan=2>Total:</td><td>%i</td></tr></table>",total);
@@ -373,33 +373,38 @@ DestroyJS(JSInstance* i)
 void
 ProcessFile(char* script)
 {
-	Buffer tmpbuffer;
+	str scratch;
 	JSBool ok;
 	jsval retval;
-	int tmp;
+	int o;
 	int len = 0;
-	for (tmp = 0; script[tmp]; ++tmp) {
-		if (!strncmp(&script[tmp],"<?js=",5)) {
-			if (len < tmp) ins.buffer = write_buffer(ins.buffer,&script[len],tmp-len);
+	for (o = 0; script[o]; ++o) {
+		if (!strncmp(&script[o],"<?js=",5)) {
+			if (len < o)
+				ins.buffer = write_buffer(ins.buffer,&script[len],o-len);
 			len = 0;
-			while (strncmp(&script[tmp+len+6],"=?>",3)) ++len;
-			tmpbuffer = write_buffer(NULL,"print(",6);
-			tmpbuffer = write_buffer(tmpbuffer,&script[tmp+6],len);
-			tmpbuffer = write_buffer(tmpbuffer,");",2);
-			ok = JS_EvaluateScript(ins.cx, ins.glob, tmpbuffer->data, tmpbuffer->length , "js.c", 1, &retval);
-			free_buffer(tmpbuffer);
-			tmp += len + 6;
-			len = tmp+3;
-		} else if (!strncmp(&script[tmp],"<?js",4)) {
-			if (len < tmp) ins.buffer = write_buffer(ins.buffer,&script[len],tmp-len);
+			while (strncmp(&script[o+len+6],"=?>",3)) ++len;
+			scratch = char_str(&script[o+6],len);	
+			scratch = Str("print(%s);",scratch);
+			debug("Evaluating [%s][%i]",scratch,scratch->len);
+			ok = JS_EvaluateScript(ins.cx, ins.glob, scratch->data, scratch->len, "js.c", 1, &retval);
+			notice("Evaluated [%s] %c", scratch, ( ok == JS_TRUE ? "ok" : "failed"));
+			o += len + 6;
+			len = o+3;
+		} else if (!strncmp(&script[o],"<?js",4)) {
+			if (len < o)
+				ins.buffer = write_buffer(ins.buffer,&script[len],o-len);
 			len = 0;
-			while (strncmp(&script[tmp+len+5],"?>",2)) ++len;
-			ok = JS_EvaluateScript(ins.cx, ins.glob, &script[tmp + 5], len-1 , "js.c", 1, &retval);
-			tmp += len + 5;
-			len = tmp+2;
+			while (strncmp(&script[o+len+5],"?>",2)) ++len;
+			scratch = char_str(&script[o+5],len-1);
+			ok = JS_EvaluateScript(ins.cx, ins.glob, scratch->data, scratch->len , "js.c", 1, &retval);
+			notice("Evaluated [%s] %c",scratch, ( ok == JS_TRUE ? "ok" : "failed"));
+			o += len + 5;
+			len = o+2;
 		}
 	}
-	ins.buffer = write_buffer(ins.buffer,&script[len],tmp-len);
+	debug("Writing [%s]",char_str(&script[len],o-len));
+	ins.buffer = write_buffer(ins.buffer,&script[len],o-len);
 }
 
 int

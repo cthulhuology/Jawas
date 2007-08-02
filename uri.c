@@ -11,59 +11,49 @@
 #include "buffers.h"
 #include "uri.h"
 
-char* cwd;
-int cwdlen;
+str cwd = NULL;
 
 Headers
 parse_query_string(Buffer buf)
 {
-	char c;
-	int i,l,len;
-	Headers retval = new_headers();
-	Buffer key, value;
+	return parse_uri_encoded(NULL,buf,1,length_buffer(buf));
+}
+
+Headers
+parse_post_request(Request req)
+{
+	return parse_uri_encoded(req->query_vars,req->contents,req->body,length_buffer(req->contents));
+}
+
+Headers
+parse_uri_encoded(Headers head, Buffer buf, int pos, int len)
+{
 	if (!buf) return NULL;
-	len = length_buffer(buf);
-	for (i = 0; i < len; ++i) {
-		c = fetch_buffer(buf,i);
-		if (c == '?' || c == '&') {
-			++i;
-			key = NULL;
-			for (l = 1; i+l < len; ++l) {
-				c = fetch_buffer(buf,i+l);
-				if ('=' == c) {
-					key = read_buffer(NULL,buf,i,l);
-					i += l;
-					break;
-				}
-			}
-		}
-		c = fetch_buffer(buf,i);
-		if (c == '=') {
-			++i;
-			value = NULL;
-			for (l = 1; i+l < len; ++l) {
-				c = fetch_buffer(buf,i+l);
-				if ('&' == c || (i+l+1 == len)) {
-					if ('&' != c) ++l;
-					value = read_buffer(NULL,buf,i,l);
-					i += l-1;
-					append_header(retval,key,value);
-					break;
-				}
-			}
-		}
+	int i,o;
+	str key = NULL, value = NULL;
+	Headers retval = (head ? head :  new_headers());
+	for (i = pos; isspace(fetch_buffer(buf,i)); ++i);
+	for (; i < len; ++i) {
+		o = find_buffer(buf,i,"=");
+		key = read_str(buf,i,o-i);
+		i = o+1;
+		o = find_buffer(buf,i,"&");
+		value = read_str(buf,i,o-i);
+		append_header(retval,key,value);
+		i = o;
+		key = NULL;
+		value = NULL;
 	}
 	return retval;
 }
 
-Buffer
+str
 parse_path(Request req)
 {
 	int i,l,end;
 	Buffer qs;
 	Buffer tmp = seek_buffer(req->contents,0);
 	if (! tmp) return NULL;
-	debug("REQUEST: %s",tmp->data);
 	for (;isspace(tmp->data[i]);++i);	// skip errorenous spaces
 	for (i = 0; tmp->data[i] && !isspace(tmp->data[i]); ++i);
 	for (;isspace(tmp->data[i]);++i);
@@ -75,25 +65,25 @@ parse_path(Request req)
 		req->query_vars = parse_query_string(qs);
 		free_buffer(qs);
 	}
-	return req->path = read_buffer(NULL,req->contents,i,end - i);
+	return req->path = read_str(req->contents,i,end - i);
 }
 
-Buffer
+str
 parse_host(Request req)
 {
-	Buffer host = find_header(req->headers,"Host");
+	str host = find_header(req->headers,"Host");
 	if (! host && req->sc->host) {
 		debug("USING SOCKET HOST");
-		host = write_buffer(NULL,req->sc->host,strlen(req->sc->host));
+		host = req->sc->host;
 	}
 	if (! host) return NULL;
-	if (! req->sc->host) set_host(req->sc,host);
+	if (! req->sc->host) req->sc->host = host;
 	req->host = host;
-	notice("Host is %i %s\n",req->host->length, req->host->data);
+	notice("Host is %i %s\n",req->host->len, req->host);
 	return req->host;
 }
 
-char*
+str
 parse_method(Request req)
 {
 	char* retval = NULL;
@@ -102,33 +92,15 @@ parse_method(Request req)
 	if (!tmp) return NULL;
 	for (i=0;isspace(tmp->data[i]);++i);	// skip errorenous spaces
 	for (l = 1; !isspace(tmp->data[i+l]); ++l);
-	retval = salloc(l+1);
-	memcpy(retval,&tmp->data[i],l);
-	retval[l] = '\0';
-	notice("Method is: %s",retval);
-	return retval;
+	return read_str(tmp,i,l);	
 }
 
-char*
-file_path(char* host,int hlen, char* filename,int flen)
+str
+file_path(str host,str filename)
 {
-	if (!cwd) {
-		cwd = getcwd(NULL,0);
-		cwdlen = strlen(cwd);
-	}
-	char* retval = (char*)salloc(cwdlen + hlen + flen + 3);
-	memset(retval,0,cwdlen + hlen + flen + 3);
-	memcpy(retval,cwd,cwdlen);
-	memcpy(retval + cwdlen,"/",1);
-	memcpy(retval + cwdlen + 1, host, hlen);
-	memcpy(retval + cwdlen + 1 + hlen, filename, flen);
-	return retval;	
-}
-
-char*
-request_path(Request req)
-{
-	return file_path(req->host->data,req->host->length,req->path->data,req->path->length);
+	if (!cwd)
+		cwd = char_str(getcwd(NULL,0),0);
+	return Str("%s/%s%s",cwd,host,filename);
 }
 
 int

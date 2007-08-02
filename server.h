@@ -7,6 +7,7 @@
 #define __SERVER_H__
 
 #include "alloc.h"
+#include "str.h"
 #include "events.h"
 #include "files.h"
 #include "tls.h"
@@ -26,12 +27,12 @@ struct server_struct {
 	int done;
 };
 
-File load(Server srv, char* filename);
+File load(Server srv, str filename);
 
 void incoming(Server srv, int fd);
 void request(Server srv, Event ec);
 void respond(Server srv, Event ec);
-void unload(Server srv, int fd, char* filename);
+void unload(Server srv, int fd, str filename);
 
 Server serve(int port, int tls_port);
 Server run(Server srv);

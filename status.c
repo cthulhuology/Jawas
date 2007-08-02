@@ -91,7 +91,7 @@ error_handler(Server srv, int code, Response resp)
 {
 	int i = find_status_code(code);
 	if (! stati[i].filename) return code;
-	File fc = load(srv,file_path("errors",6,stati[i].filename,strlen(stati[i].filename)));
+	File fc = load(srv,file_path(char_str("errors",0),char_str(stati[i].filename,0)));
 	if (! fc) return code;
 	resp->raw_contents = fc;
 	return code;				

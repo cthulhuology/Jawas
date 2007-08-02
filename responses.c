@@ -39,9 +39,9 @@ send_headers(Socket sc, Headers headers)
 	int total = 0;
 	if (!headers) return total;
 	for (i = 0; headers[i].key; ++i) {
-		total += write_socket(sc,headers[i].key->data,headers[i].key->length);
+		total += write_socket(sc,headers[i].key->data,headers[i].key->len);
 		total += write_socket(sc,":",1);
-		total += write_socket(sc,headers[i].value->data,headers[i].value->length);
+		total += write_socket(sc,headers[i].value->data,headers[i].value->len);
 		total += write_socket(sc,"\r\n",2);
 	}
 	total += write_socket(sc,"\r\n",2);
@@ -87,12 +87,10 @@ process_request(Request req)
 int
 send_response(Response resp)
 {
-	char* buffer;
 	if (resp->length < 0) {
 		resp->length = calculate_content_length(resp->contents,resp->raw_contents);
-		asprintf(&buffer,"%d",resp->length);
-		content_length(resp->headers,buffer);
-		free(buffer);
+		str len = Str("%i",resp->length);
+		content_length(resp->headers,len->data);
 		server(resp->headers,server_name);
 		send_status(resp->sc,resp->status);
 		send_headers(resp->sc,resp->headers);

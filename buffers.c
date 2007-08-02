@@ -6,6 +6,7 @@
 
 #include "include.h"
 #include "pages.h"
+#include "alloc.h"
 #include "buffers.h"
 
 Buffer
@@ -98,16 +99,17 @@ length_buffer(Buffer buf)
 }
 
 int
-find_buffer(Buffer buf, int pos, char* delim, int len)
+find_buffer(Buffer buf, int pos, char* delim)
 {
-	int i,j,delta;
+	int i,j,delta, len = length_buffer(buf);
 	Buffer tmp = seek_buffer(buf,pos);
-	while (tmp) {	
+	while (tmp) {
 		 delta = pos - buf->pos;
 		for (i = delta; i < buf->length; ++i)
-			for (j = 0; j < len; ++j ) 
+			for (j = 0; delim[j]; ++j ) 
 				if (delim[j] == buf->data[i]) 
 					return i + buf->pos;
+		if (i == len) return len;
 		tmp = seek_buffer(buf,pos+buf->length - delta);
 	}
 	return -1;
@@ -117,45 +119,34 @@ Buffer
 print_buffer(Buffer buf, char* fmt, ...)
 {
 	va_list args;
-	int i, tmpl, l;
-	char* tmp;
-	double dtmp;
-	int itmp;
- 	l = strlen(fmt);
 	va_start(args,fmt);
-	for (i = 0; i < l; ++i) {
-		if (fmt[i] == '%') {
-			switch(fmt[++i]) {
-			case 's':
-				tmp = va_arg(args,char*);
-				buf = write_buffer(buf,tmp,strlen(tmp));
-				break;	
-			case 'n':
-				dtmp = va_arg(args,double);
-				tmpl = asprintf(&tmp,"%g",dtmp);
-				buf = write_buffer(buf,tmp,tmpl);
-				free(tmp);	
-				break;
-			case 'i':
-				itmp = va_arg(args,int);
-				tmpl = asprintf(&tmp,"%d",itmp);
-				buf = write_buffer(buf,tmp,tmpl);
-				free(tmp);	
-				break;
-			case 'p':
-				itmp = va_arg(args,int);
-				tmpl = asprintf(&tmp,"%p",itmp);
-				buf = write_buffer(buf,tmp,tmpl);
-				free(tmp);	
-				break;
-			default:
-				buf = write_buffer(buf,&fmt[i],1);
-				break;
-			}
-		} else {
-			buf = write_buffer(buf,&fmt[i],1);
+	str s = new_str(fmt,args);
+	return write_buffer(buf,s->data,s->len);
+}
+
+Buffer
+write_str(Buffer dst, str src)
+{
+	return write_buffer(dst,src->data,src->len);
+}
+
+str
+read_str(Buffer src, int pos, int len)
+{
+	int o = 0;
+	int delta;
+	Buffer tmp;
+	str retval = (str)salloc(sizeof(struct str_struct) + len);
+	retval->len = len;
+	for ( tmp = seek_buffer(src,pos); tmp; tmp = seek_buffer(src,pos)) {
+		delta = pos - tmp->pos;
+		if (delta + (len-o) <= tmp->length) {
+			memcpy(&retval->data[o],&tmp->data[delta],len-o);
+			return retval;
 		}
+		memcpy(&retval->data[o],&tmp->data[delta],tmp->length - delta);
+		o += tmp->length - delta;
+		pos += tmp->length - delta;
 	}
-	va_end(args);
-	return buf;
+	return retval;
 }

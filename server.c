@@ -18,7 +18,7 @@
 #include "jws.h"
 
 File
-load(Server srv, char* filename)
+load(Server srv, str filename)
 {
 	File retval;
 	Scratch old = gscratch;
@@ -41,7 +41,7 @@ load(Server srv, char* filename)
 }
 
 void
-unload(Server srv, int fd, char* filename)
+unload(Server srv, int fd, str filename)
 {
 	debug("Unloading %s\n",filename);
 	srv->fc = close_file(srv->fc,filename);
@@ -132,7 +132,6 @@ respond(Server srv, Event ec)
 	Response resp = (Response)ec->event.udata;
 	Socket sc = resp->sc;
 	set_scratch(sc->scratch);
-//	connection(resp->headers,"keep-alive");
 	connection(resp->headers,"close");
 	transfer_encoding(resp->headers,"identity");
 	if (send_response(resp)) {
@@ -143,7 +142,6 @@ respond(Server srv, Event ec)
 		return;
 	}
 	close_response(resp);
-//	reset_socket(sc);
 	disconnect(srv,sc);
 	debug("RESPOND DONE");
 }
@@ -211,7 +209,7 @@ stop(Server srv)
 	free_events();
 	srv->ec = NULL;
 	srv->numevents = 0;
-	for (fc = srv->fc; fc; fc = close_file(fc,fc->name));
+	for (fc = srv->fc; fc; fc = close_file(fc,char_str(fc->name,0)));
 	srv->fc = NULL;
 	for (sc = srv->sc; sc; sc = close_socket(sc));
 	srv->sc = NULL;	

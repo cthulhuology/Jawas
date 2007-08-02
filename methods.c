@@ -28,11 +28,14 @@ int
 get_method(Server srv, Response resp)
 {
 	File fc;
-	char* filename;
-	filename = request_path(resp->req);
+	str filename;
+	debug("GET METHOD");
+	filename = file_path(resp->req->host,resp->req->path);
+	debug("FILENAME is %s[%i]", filename,filename->len);
 	fc = is_directory(filename) ? 
 		load(srv,get_index(filename)) :
 		load(srv,filename);
+	debug("fc is %p",fc);
 	return mimetype_handler(srv,fc,resp);
 }
 
@@ -74,12 +77,12 @@ trace_method(Server srv, Response resp)
 }
 
 int
-dispatch_method(Server srv, char* method, Response resp)
+dispatch_method(Server srv, str method, Response resp)
 {
 	int i;
 	debug("Dispatch method: %s",method);
 	for (i = 0; gdispatch[i].name; ++i ) 
-		if (! strncasecmp(gdispatch[i].name,method,gdispatch[i].len)) 
+		if (! strncasecmp(gdispatch[i].name,method->data,gdispatch[i].len)) 
 			return gdispatch[i].handler(srv,resp);
 	error("Bad request: %s",method);
 	return error_handler(srv,400,resp);

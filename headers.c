@@ -7,7 +7,7 @@
 #include "include.h"
 #include "defines.h"
 #include "pages.h"
-#include "buffers.h"
+#include "str.h"
 #include "headers.h"
 
 Headers
@@ -22,22 +22,22 @@ new_headers()
 void
 free_headers(Headers headers)
 {
-	int i;
 	if (! headers) return;
-	for (i=0; i < MAX_HEADERS && headers[i].key; ++i) {
-		free_buffer(headers[i].key);
-		free_buffer(headers[i].value);
-	}
 	free_page((Page)headers);
 }
 
-Buffer
+str
 find_header(Headers headers, char* key)
 {
 	int i;
 	if (! headers || ! key) return NULL;
+	int len = strlen(key);
+	debug("find_header %c[%i]",key,len);
 	for (i = 0; i < MAX_HEADERS && headers[i].key; ++i ) {
-		if (!strcasecmp(headers[i].key->data,key)) return headers[i].value;
+		debug("vs %s[%i] : %s[%i]",headers[i].key,headers[i].key->len,headers[i].value,headers[i].value->len);
+		if (len == headers[i].key->len 
+		&& !strncasecmp(headers[i].key->data,key,len)) 
+			return headers[i].value;
 	}
 	return NULL;
 }
@@ -51,7 +51,7 @@ free_header_slot(Headers headers)
 }
 
 Headers
-append_header(Headers headers, Buffer key, Buffer value)
+append_header(Headers headers, str key, str value)
 {
 	int i;
 	i = free_header_slot(headers);

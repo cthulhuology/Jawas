@@ -7,7 +7,7 @@
 #ifndef __HAVE_INDEX_H__
 #define __HAVE_INDEX_H__
 
-int is_directory(char* filename);
-char* get_index(char* filename);
+int is_directory(str filename);
+str get_index(str filename);
 
 #endif

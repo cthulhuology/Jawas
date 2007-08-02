@@ -20,7 +20,7 @@ struct socket_cache_struct {
 	int fd;
 	unsigned int peer;
 	int port;
-	char* host;
+	str host;
 };
 
 typedef struct socket_info_struct SocketInfo;
@@ -36,8 +36,6 @@ void socket_signal_handlers();
 
 int open_socket(int port);
 Socket accept_socket(Socket sc, int fd, TLSInfo tls);
-
-char* set_host(Socket sc, Buffer buf);
 
 Buffer read_socket(Socket sc);
 int write_socket(Socket sc, char* src, int len);

@@ -42,6 +42,7 @@ lookup_mimetype(char* filename)
 	for (i = l - 1; i > 0; --i)
 		if (filename[i-1] == '.') break;
 	l -= i;
+	debug("File ending is %c",&filename[i]);
 	for (mt = mime_types; mt->ending.len; ++mt)
 		if (l == mt->ending.len && !strncmp(mt->ending.data,&filename[i],l))
 			return mt;

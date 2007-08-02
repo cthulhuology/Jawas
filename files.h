@@ -8,6 +8,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "str.h"
 
 typedef struct file_cache_struct* File;
 struct file_cache_struct {
@@ -19,8 +20,8 @@ struct file_cache_struct {
 	char name[0];
 };
 
-File open_file(File cache, char* filename);
-File query_cache(File* cache, char* filename);
-File close_file(File fc, char* filename);
+File open_file(File cache, str filename);
+File query_cache(File* cache, str filename);
+File close_file(File fc, str filename);
 
 #endif

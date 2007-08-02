@@ -27,10 +27,9 @@ open_request(Socket sc)
 int
 request_content_length(Request req)
 {
-	Buffer value;
 	if (! req) return 0;
-	value = find_header(req->headers, Content_Length_MSG);
-	return value ? strtol(value->data,NULL,0) : 0;
+	str value = find_header(req->headers, Content_Length_MSG);
+	return str_int(value);
 }
 
 Headers
@@ -65,17 +64,17 @@ parse_request_headers(Buffer buf, int* body)
 		count = 0;
 		if (reset && ! headers[i].key) {
 			for (l = 1; (o + l) < len && fetch_buffer(buf,o+l) != ':'; ++l);
-			headers[i].key = read_buffer(NULL,buf,o,l);
+			headers[i].key = read_str(buf,o,l);
 			o += l-1;
 			c = fetch_buffer(buf,o);
-			debug("Headers [%s:]",headers[i].key->data);
+			debug("Headers [%s:]",headers[i].key);
 		} 
 		if (reset && c == ':') {
 			o += 1;
 			while(isspace(c = fetch_buffer(buf,o))) ++o;
 			for (l = 1; (o + l) < len && c != '\r' && c != '\n'; ++l) c = fetch_buffer(buf,o+l); 
-			headers[i].value = read_buffer(NULL,buf,o,l-1);
-			debug("Headers [%s:%s]",headers[i].key->data,headers[i].value->data);
+			headers[i].value = read_str(buf,o,l-1);
+			debug("Headers[%i] [%s:%s]",i,headers[i].key,headers[i].value);
 			reset = 0;
 			o += l-1;
 			++i;
@@ -83,37 +82,6 @@ parse_request_headers(Buffer buf, int* body)
 	}
 	*body = o;
 	return headers;
-}
-
-Headers
-parse_post_request(Request req)
-{
-	Buffer key = NULL, value;
-	char c;
-	int i,o,l,len = length_buffer(req->contents);
-	if (!req->query_vars) 
-		req->query_vars = new_headers();
-	debug("PARSE_POST_REQUEST %i through %i", req->body,len);
-	for (o = req->body; isspace(fetch_buffer(req->contents,o)); ++o);	
-	for (; o < len; ++o) {
-		c = fetch_buffer(req->contents,o); 
-		if (key == NULL) {
-			for (l = 1; o+l < len && '=' != fetch_buffer(req->contents,o+l); ++l);
-			key = read_buffer(NULL,req->contents,o,l);	
-			o += l - 1;
-		}
-		if (c == '=' ) {
-			++o;
-			for (l = 1; o+l < len && '&' != fetch_buffer(req->contents,o+l); ++l);
-			value = read_buffer(NULL,req->contents,o,l);	
-			debug("POST: %s = %s",key->data,value->data);
-			append_header(req->query_vars,key,value);
-			key = NULL;
-			o += l;
-		}
-	}
-	debug("PARSE_POST_DONE");
-	return req->headers;
 }
 
 Request 
@@ -140,8 +108,6 @@ close_request(Request req)
 {
 	Buffer buf;
 	if (!req) return;
-	free_buffer(req->path);
-	// NB: don't free_buffer(req->host) because it is freed below as part of headers
 	for (buf = req->contents; buf; buf = free_buffer(buf));
 	if (req->query_vars) free_headers(req->query_vars);
 	free_headers(req->headers);

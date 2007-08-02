@@ -29,6 +29,7 @@ responses.c \
 server.c \
 sockets.c \
 status.c  \
+str.c \
 tls.c \
 uri.c
 

@@ -26,4 +26,6 @@ Event add_read_socket(Event ec, int fd, Request req);
 Event add_write_socket(Event ec, int fd, Response resp);
 Event add_file_monitor(Event ec, int fd, char* filename);
 
+#define NODE_FLAGS NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_RENAME | NOTE_REVOKE
+
 #endif

@@ -7,20 +7,20 @@
 #ifndef __HEADERS_H__
 #define __HEADERS_H__
 
-#include "buffers.h"
+#include "str.h"
 
 typedef struct headers_struct*  Headers;
 struct headers_struct {
-	Buffer key;
-	Buffer value;
+	str key;
+	str value;
 };
 
 Headers new_headers();
 void free_headers(Headers headers);
 
-Buffer find_header(Headers headers, char* key);
+str find_header(Headers headers, char* key);
 
-Headers append_header(Headers headers, Buffer key, Buffer value);
+Headers append_header(Headers headers, str key, str value);
 void dump_headers(Headers headers);
 
 Headers cache_control(Headers headers, char* value);
@@ -42,5 +42,16 @@ static char* Content_Type_MSG = "Content-Type";
 static char* Expires_MSG = "Expires";
 static char* Location_MSG = "Location";
 static char* Server_MSG = "Server";
+
+#define HEADER_FUNC(f,k) \
+Headers \
+f (Headers headers, char* value) {\
+	int i = free_header_slot(headers);\
+	 headers[i].key = char_str(k,0);\
+	 headers[i].value = char_str(value,0);\
+	 return headers;\
+}
+
+#define MAX_HEADERS (getpagesize() / sizeof(struct headers_struct))
 
 #endif

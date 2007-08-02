@@ -21,5 +21,6 @@ int options_method(Server srv, Response resp);
 int put_method(Server srv, Response resp);
 int delete_method(Server srv, Response resp);
 int trace_method(Server srv, Response resp);
+int dispatch_method(Server srv, str method, Response resp);
 
 #endif

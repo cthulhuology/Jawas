@@ -37,6 +37,7 @@ alloc_scratch(Scratch s, int size)
 	if (size > MAX_ALLOC_SIZE) {
 		error("alloc_scratch %i exceeds MAX_ALLOC_SIZE",size);
 		dump_scratch_info();
+		for (;;) {}
 		return NULL;
 	}
 	if (size > MAX_ALLOC_SIZE - s->len) {

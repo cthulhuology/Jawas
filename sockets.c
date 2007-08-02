@@ -140,12 +140,3 @@ write_socket(Socket sc, char* src, int len)
 	if (! sc) return 0;
 	return (sc->tls ? write_tls(sc->tls,src,len) :write(sc->fd,src,len));
 }
-
-char*
-set_host(Socket sc, Buffer buf)
-{
-	sc->host = salloc(buf->length + 1);
-	memcpy(sc->host,buf->data,buf->length);		
-	sc->host[buf->length] = '\0';
-	return sc->host;
-}

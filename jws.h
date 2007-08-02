@@ -25,3 +25,8 @@ struct js_instance_struct {
 };
 
 int jws_handler(Server srv, File fc, Response resp);
+
+#define HeaderSetter(func) \
+	func(ins.resp->headers,JS_GetStringBytes(JS_ValueToString(cx,argv[0])));\
+	return JS_TRUE; 
+

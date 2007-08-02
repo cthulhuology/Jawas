@@ -7,37 +7,36 @@
 #include "include.h"
 #include "defines.h"
 #include "alloc.h"
+#include "str.h"
 #include "log.h"
 #include "index.h"
 
 int
-is_directory(char* filename)
+is_directory(str filename)
 {
 	struct stat st;
-	stat(filename,&st);
+	if (stat(filename->data,&st))
+		error("Failed to stat file %s",filename);
+	debug("IS_DIRECTORY Filename %s[%i] is dir ? %c",filename,filename->len, (st.st_mode&S_IFDIR ? "true" : "false"));
 	return st.st_mode & S_IFDIR;
 }
 
-
-const str indexes[] = {
-	{ 11, "/index.html" },
-	{ 10, "/index.jws" },
-	{ 10, "/index.xml" },
+const cstr indexes[] = {
+	{ 10, "index.html" },
+	{ 9, "index.jws" },
+	{ 9, "index.xml" },
 	{ 0, NULL },
 };
 
-char*
-get_index(char* filename)
+str
+get_index(str filename)
 {
 	struct stat st;
 	int i;
-	int l = strlen(filename);
-	char* buffer = (char*)salloc(l + MAX_INDEX_LEN);
-	memcpy(buffer,filename,l);
 	for (i = 0; indexes[i].data; ++i) {
-		memcpy(buffer+l, indexes[i].data, indexes[i].len);
-		buffer[l+indexes[i].len] = '\0';
-		if (!stat(buffer,&st)) return buffer;
+		str index_path = Str("%s%c",filename,indexes[i].data);
+		if (!stat(index_path->data,&st)) 
+			return index_path;
 	}
 	return NULL;
 }
