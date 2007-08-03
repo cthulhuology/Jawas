@@ -31,7 +31,7 @@ Event queue_event(Event ec, int id, short filter, u_short flags, u_int fflags, i
 	srv->numevents++;
 
 #define add_read_socket(f,r) \
-	srv->ec = queue_event(srv->ec,fd, EVFILT_READ, EV_ADD|EV_ONESHOT, 0, 0, r); \
+	srv->ec = queue_event(srv->ec,f, EVFILT_READ, EV_ADD|EV_ONESHOT, 0, 0, r); \
 	srv->numevents++;
 
 #define add_write_socket(f,r) \
@@ -39,7 +39,7 @@ Event queue_event(Event ec, int id, short filter, u_short flags, u_int fflags, i
 	srv->numevents++; 
 
 #define add_file_monitor(f,r) \
-	srv->ec = queue_event(srv->ec,srv->fc->fd, EVFILT_VNODE, EV_ADD|EV_ONESHOT, NODE_FLAGS, 0,r);\
+	srv->ec = queue_event(srv->ec,f, EVFILT_VNODE, EV_ADD|EV_ONESHOT, NODE_FLAGS, 0,r);\
 	srv->numevents++;
 
 #endif
