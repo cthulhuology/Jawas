@@ -172,7 +172,7 @@ serve(int port, int tls_port)
 	srv = (Server)alloc_scratch(scratch,sizeof(struct server_struct));
 	srv->scratch = scratch;
 	server_scratch();
-	set_cwd();
+	cwd = char_str(getcwd(NULL,0),0);
 	open_log();
 	srv->kq = kqueue();
 	srv->http_sock = open_socket(port);
@@ -246,4 +246,5 @@ stop()
 	srv->kq = 0;
 	srv->done = 0;
 }
+
 

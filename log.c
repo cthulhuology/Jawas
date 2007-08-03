@@ -6,10 +6,10 @@
 
 #include "include.h"
 #include "defines.h"
-#include "uri.h"
+#include "alloc.h"
+#include "server.h"
 #include "index.h"
 #include "log.h"
-#include "alloc.h"
 
 int today;
 int log_fd = 2;

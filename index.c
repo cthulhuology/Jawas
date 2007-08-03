@@ -21,20 +21,13 @@ is_directory(str filename)
 	return st.st_mode & S_IFDIR;
 }
 
-const cstr indexes[] = {
-	{ 10, "index.html" },
-	{ 9, "index.jws" },
-	{ 9, "index.xml" },
-	{ 0, NULL },
-};
-
 str
 get_index(str filename)
 {
 	struct stat st;
 	int i;
-	for (i = 0; indexes[i].data; ++i) {
-		str index_path = Str("%s%c",filename,indexes[i].data);
+	for (i = 0; indexes[i]; ++i) {
+		str index_path = Str("%s%c",filename,indexes[i]);
 		if (!stat(index_path->data,&st)) 
 			return index_path;
 	}

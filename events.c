@@ -58,32 +58,3 @@ poll_events(Event ec, int kq, int numevents)
 	free_scratch(scratch);
 	return retval;
 }
-
-void
-monitor_socket(int fd)
-{
-	srv->ec = queue_event(srv->ec,fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
-	srv->numevents++;
-}
-
-void
-add_read_socket(int fd, Request req)
-{
-	srv->ec = queue_event(srv->ec,fd, EVFILT_READ, EV_ADD|EV_ONESHOT, 0, 0, req);
-	srv->numevents++;
-}
-
-void
-add_write_socket(int fd, Response resp)
-{
-	srv->ec = queue_event(srv->ec,fd, EVFILT_WRITE, EV_ADD|EV_ONESHOT, 0, 0, resp);
-	srv->numevents++;
-}
-
-void
-add_file_monitor(int fd, char* filename)
-{
-	srv->ec = queue_event(srv->ec,fd, EVFILT_VNODE, EV_ADD|EV_ONESHOT, NODE_FLAGS, 0, filename);
-	srv->numevents++;
-}
-

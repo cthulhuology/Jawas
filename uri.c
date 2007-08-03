@@ -10,20 +10,7 @@
 #include "log.h"
 #include "buffers.h"
 #include "uri.h"
-
-str cwd = NULL;
-
-Headers
-parse_query_string(Buffer buf)
-{
-	return parse_uri_encoded(NULL,buf,1,length_buffer(buf));
-}
-
-Headers
-parse_post_request(Request req)
-{
-	return parse_uri_encoded(req->query_vars,req->contents,req->body,length_buffer(req->contents));
-}
+#include "server.h"
 
 Headers
 parse_uri_encoded(Headers head, Buffer buf, int pos, int len)
@@ -41,70 +28,8 @@ parse_uri_encoded(Headers head, Buffer buf, int pos, int len)
 		value = read_str(buf,i,o-i);
 		append_header(retval,key,value);
 		i = o;
-		key = NULL;
-		value = NULL;
 	}
 	return retval;
-}
-
-str
-parse_path(Request req)
-{
-	int i,l,end;
-	Buffer qs;
-	Buffer tmp = seek_buffer(req->contents,0);
-	if (! tmp) return NULL;
-	for (;isspace(tmp->data[i]);++i);	// skip errorenous spaces
-	for (i = 0; tmp->data[i] && !isspace(tmp->data[i]); ++i);
-	for (;isspace(tmp->data[i]);++i);
-	for (end = i; tmp->data[end] && !isspace(tmp->data[end]) && tmp->data[end] != '?'; ++end);
-	req->query_vars = NULL;
-	if (tmp->data[end] == '?') {
-		for (l = 1; !isspace(fetch_buffer(req->contents,end + l)); ++l);
-		qs = read_buffer(NULL,req->contents,end,l);
-		req->query_vars = parse_query_string(qs);
-		free_buffer(qs);
-	}
-	return req->path = read_str(req->contents,i,end - i);
-}
-
-str
-parse_host(Request req)
-{
-	str host = find_header(req->headers,"Host");
-	if (! host && req->sc->host) {
-		debug("USING SOCKET HOST");
-		host = req->sc->host;
-	}
-	if (! host) return NULL;
-	if (! req->sc->host) req->sc->host = host;
-	req->host = host;
-	notice("Host is %i %s\n",req->host->len, req->host);
-	return req->host;
-}
-
-str
-parse_method(Request req)
-{
-	char* retval = NULL;
-	int i,l;
-	Buffer tmp = seek_buffer(req->contents,0);
-	if (!tmp) return NULL;
-	for (i=0;isspace(tmp->data[i]);++i);	// skip errorenous spaces
-	for (l = 1; !isspace(tmp->data[i+l]); ++l);
-	return read_str(tmp,i,l);	
-}
-
-void
-set_cwd()
-{
-	cwd = char_str(getcwd(NULL,0),0);
-}
-
-str
-file_path(str host,str filename)
-{
-	return Str("%s/%s%s",cwd,host,filename);
 }
 
 int
@@ -167,13 +92,12 @@ uri_decode(char* str)
 {
 	int i, j = 0, len = strlen(str);
 	char* retval = salloc(len);
-	for(i = 0; i < len; ++i) {
+	for(i = 0; i < len; ++i)
 		if (str[i] == '%') {
 			retval[j++] = from_hex(str[i+1],str[i+2]);
 			i += 2;
 		} else {
 			retval[j++] = str[i];
 		}
-	}
 	return retval;
 }

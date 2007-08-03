@@ -112,7 +112,7 @@ Include(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	str filename;
 	if (argc != 1) return JS_FALSE;
 	s = JS_ValueToString(cx,argv[0]);
-	filename = file_path(ins.resp->req->host,char_str(JS_GetStringBytes(s),JS_GetStringLength(s)));
+	filename = file_path(Req->host,char_str(JS_GetStringBytes(s),JS_GetStringLength(s)));
 	fc = load(filename);
 	if (!fc) return JS_FALSE;
 	ProcessFile(fc->data);

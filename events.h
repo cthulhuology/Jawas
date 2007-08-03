@@ -22,11 +22,24 @@ struct event_cache_struct {
 Event poll_events(Event ec, int kq, int numevents);
 void free_events();
 
-void monitor_socket(int fd);
-void add_read_socket(int fd, Request req);
-void add_write_socket(int fd, Response resp);
-void add_file_monitor(int fd, char* filename);
+Event queue_event(Event ec, int id, short filter, u_short flags, u_int fflags, intptr_t data, void* udata);
 
 #define NODE_FLAGS NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_RENAME | NOTE_REVOKE
+
+#define monitor_socket(f) \
+	srv->ec = queue_event(srv->ec,f, EVFILT_READ, EV_ADD, 0, 0, NULL); \
+	srv->numevents++;
+
+#define add_read_socket(f,r) \
+	srv->ec = queue_event(srv->ec,fd, EVFILT_READ, EV_ADD|EV_ONESHOT, 0, 0, r); \
+	srv->numevents++;
+
+#define add_write_socket(f,r) \
+	srv->ec = queue_event(srv->ec,f, EVFILT_WRITE, EV_ADD|EV_ONESHOT, 0, 0, r); \
+	srv->numevents++; 
+
+#define add_file_monitor(f,r) \
+	srv->ec = queue_event(srv->ec,srv->fc->fd, EVFILT_VNODE, EV_ADD|EV_ONESHOT, NODE_FLAGS, 0,r);\
+	srv->numevents++;
 
 #endif

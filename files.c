@@ -4,8 +4,12 @@
 //
 
 #include "include.h"
+#include "defines.h"
 #include "alloc.h"
+#include "str.h"
 #include "files.h"
+
+str cwd = NULL;
 
 File
 open_file(File cache, str filename)
@@ -13,10 +17,14 @@ open_file(File cache, str filename)
 	File fc = (File)salloc(sizeof(struct file_cache_struct) + filename->len + 1);
 	memcpy(fc->name,filename->data,filename->len+1);
 	fc->fd = open(filename->data,O_RDONLY,0400);
-	if (fc->fd < 0 || fstat(fc->fd,&fc->st)) return NULL;
+	if (fc->fd < 0 || fstat(fc->fd,&fc->st)) {
+		error("Failed to open file %s",filename);
+		return cache;
+	}
 	if (!(fc->data = mmap(NULL,fc->st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fc->fd,0))) {
+		error("Failed to memory map file %s",filename);
 		close(fc->fd);
-		return NULL;
+		return cache;
 	}
 	fc->next = cache;
 	fc->count = 0;
@@ -69,4 +77,3 @@ query_cache(File* cache, str filename)
 	}
 	return NULL;
 }
-

@@ -11,6 +11,7 @@
 #include "headers.h"
 #include "events.h"
 #include "requests.h"
+#include "uri.h"
 #include "server.h"
 
 Request
@@ -107,5 +108,51 @@ close_request(Request req)
 	for (buf = req->contents; buf; buf = free_buffer(buf));
 	if (req->query_vars) free_headers(req->query_vars);
 	free_headers(req->headers);
+}
+
+str
+parse_host()
+{
+	str host = find_header(Req->headers,"Host");
+	if (! host && Sock->host) {
+		debug("USING SOCKET HOST");
+		host = Sock->host;
+	}
+	if (! host) return NULL;
+	if (! Sock->host) Sock->host = host;
+	return Req->host = host;
+}
+
+str
+parse_method()
+{
+	char* retval = NULL;
+	int i,l;
+	Buffer tmp = seek_buffer(Req->contents,0);
+	if (!tmp) return NULL;
+	for (i=0;isspace(tmp->data[i]);++i);	// skip errorenous spaces
+	for (l = 1; !isspace(tmp->data[i+l]); ++l);
+	return read_str(tmp,i,l);	
+}
+
+str
+parse_path()
+{
+	int i,l,end;
+	Buffer qs;
+	Buffer tmp = seek_buffer(Req->contents,0);
+	if (! tmp) return NULL;
+	for (;isspace(tmp->data[i]);++i);	// skip errorenous spaces
+	for (i = 0; tmp->data[i] && !isspace(tmp->data[i]); ++i);
+	for (;isspace(tmp->data[i]);++i);
+	for (end = i; tmp->data[end] && !isspace(tmp->data[end]) && tmp->data[end] != '?'; ++end);
+	Req->query_vars = NULL;
+	if (tmp->data[end] == '?') {
+		for (l = 1; !isspace(fetch_buffer(Req->contents,end + l)); ++l);
+		qs = read_buffer(NULL,Req->contents,end,l);
+		Req->query_vars = parse_uri_encoded(NULL,qs,1,length_buffer(qs));
+		free_buffer(qs);
+	}
+	return Req->path = read_str(Req->contents,i,end - i);
 }
 

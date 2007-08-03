@@ -37,41 +37,17 @@ get_method()
 }
 
 int
-head_method()
-{
-	return error_handler(405);
-}
-
-int
 post_method()
 {
-	parse_post_request(Req);
+	parse_uri_encoded(Req->query_vars,Req->contents,Req->body,length_buffer(Req->contents));
 	return get_method();
 }
 
-int
-put_method()
-{
-	return error_handler(405);
-}
-
-int
-delete_method()
-{
-	return error_handler(405);
-}
-
-int
-options_method()
-{
-	return error_handler(405);
-}
-
-int
-trace_method()
-{
-	return error_handler(405);
-}
+NOT_IMPLEMENTED(head_method)
+NOT_IMPLEMENTED(put_method)
+NOT_IMPLEMENTED(delete_method)
+NOT_IMPLEMENTED(options_method)
+NOT_IMPLEMENTED(trace_method)
 
 int
 dispatch_method(str method)
@@ -83,4 +59,3 @@ dispatch_method(str method)
 	error("Bad request: %s",method);
 	return error_handler(400);
 }
-

@@ -28,4 +28,8 @@ Request read_request(Request req);
 int request_content_length(Request req);
 void close_request(Request req);
 
+str parse_method();
+str parse_host();
+str parse_path();
+
 #endif

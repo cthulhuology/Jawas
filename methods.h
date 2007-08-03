@@ -23,4 +23,7 @@ int delete_method();
 int trace_method();
 int dispatch_method(str method);
 
+#define NOT_IMPLEMENTED(x) \
+	int x() { return error_handler(405); }
+
 #endif

@@ -48,6 +48,7 @@ free_page(Page p)
 	for (tmp = gpi.free; PAGE_GUARD && tmp; tmp = tmp->next) {
 		if (tmp == p) {
 			error("Double free on page %i\n",p);
+			dump_page_info();
 			for(;;) {}
 		}		
 	}
