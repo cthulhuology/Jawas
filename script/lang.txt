@@ -1,0 +1,133 @@
+JawaScript language specification:
+--------------------------------------------------------------------------------
+JawaScript is inspired by ECMAScript 3rd Edition, and corresponds to the following
+grammar.  Where this grammar diverges from the E262-3 grammar, this document 
+should be considered authoritative, as it is what is implemented by Jawas.
+
+The following grammar description uses the following conventions:
+
+term		: ( alternative | group | optional | symbol | literal ) { term }
+alternative	: term | term
+group		: ( term )
+optional	: { term }
+literal		: " term "
+definition	: symbol ":" term
+symbol		: symbol
+
+
+JawaScript Grammar
+--------------------------------------------------------------------------------
+program		: element { program }
+element		: statement | function | comment
+
+statement 	: block | variable | empty | exp | if 
+		| iteration | continue | break | return 
+		| with | label | switch | throw | try
+
+statements	: statement { ";" statements }
+
+block		: "{" statements "}"
+
+variable	: "var" vars
+vars		: ident { "=" exp }
+
+empty 		: ";"
+
+if		: "if" "(" exp ")" statement { "else" statement }
+
+iteration	: "do" statement "while" "(" exp ")"
+		| "while" "(" exp ")" statement
+		| "for" "(" { exp } ";" { exp } ";" { expresion } ")" statement
+		| "for" "(" exp "in" exp ")" statement
+
+continue	: "continue" { ident } ";"
+
+break		: "break" { ident } ";"
+
+return		: "return" { exp } ";"
+
+with		: "with" "(" exp ")" statement
+
+switch		: "switch" "(" exp ")" cases
+cases		: case | default ";" cases
+case		: "case" exp ":" statements
+default		: "default" ":" statements
+
+label		: ident ":" statement
+
+throw		: "throw" exp ";"
+
+try		: "try" block { "catch" "(" ident ")" block } { "finally" block }
+
+function	: "function" { ident } "(" parameters ")" block
+parameters	: param { "," parameters }
+param		: ident { "=" exp }
+
+exp		: "null" | "this" | ident | literal | array | object 
+		| "(" exp ")" | index | call | new  
+		| "++" exp | "--" exp | exp "--" | exp "++" | "+" exp 
+		| "-" exp | "~" exp | "!" exp | "void" exp | "typeof" exp 
+		| "delete" exp | exp "*" exp | exp "/" exp 
+		| exp "%" exp | exp "+" exp | exp "-" exp 
+		| exp "<<" exp | exp ">>" exp | exp ">>>" exp 
+		| exp < exp | exp > exp | exp <= exp | exp >= exp | exp "instanceof" exp
+		| exp "in" exp | exp "==" exp | exp "===" exp | exp "!=" exp | exp "!==" exp
+		| exp "&" exp | exp "^" exp | exp "|" exp 
+		| exp "&&" exp | exp "||" exp | exp "?" exp ":" exp
+		| exp "=" exp | exp "*=" exp | exp "/=" exp | exp "%=" exp 
+		| exp "+=" exp | exp "-=" exp
+		| exp "<<=" exp | exp ">>=" exp | exp ">>>=" exp 
+		| exp "&=" exp | exp "^=" exp | exp "|=" exp
+		| exp { "," exp } | exp "=" exp
+
+array		: "[" exp "]"
+
+object		: "{" { props } "}"
+props		: prop { "," props }
+prop		: ident ":" exp
+
+index		: exp "[" exp "]"
+		| exp "." ident
+
+call		: exp "(" args ")"
+args		: exp { "," args }
+
+new		: "new" call
+
+literal		: number | string | boolean
+
+number		: digits { "." } digits { ( "e" | "E" ) { "+" | "-" } } digits
+		| "0x" hexdigits
+
+digits		: digit { digits }
+digit		: "0" ... "9"
+
+hexdigits	: hexdigit { hexdigits }
+hexdigit	: ( digit | "a" ... "f" | "A" ... "F" )
+
+ident		: { start } word
+word		: letters | escapes | digits | "_" | word
+start		: letters | escapes | "$" | "_" 
+
+letters		: "a" ... "z" | "A" ... "Z"
+escapes		: "\" ( digit 	
+			| ( digit digit digit )
+			| ( "x" hexdigit hexdigit )
+			| ( "u" hexdigit hexdigit hexdigit hexdigit ) 
+			| "'" | """ | "\" | "b" | "f" | "n" | "r" | "t" | "v" )
+
+boolean		: "true" | "false"
+
+string		: """ doublestring """
+		| "'" singlestring "'"
+doublestring 	: ( marks | letters | digits | escapes | spaces | "'" ) { doublestring } 
+singlestring	: ( marks | letters | digits | escapes | spaces | """ ) { singlestring }
+
+spaces		: "	" | " " | eol
+marks		: "!" | "~" | "`" | "@" | "#" | "$" | "%" | "^" | "&" | "*" | "(" | ")" | "-" | "_"
+		| "+" | "=" | "{" | "}" | "|" | "[" | "]" | ":" | ";" | "/" | "?" | "<" | ">"
+		| "," | "." 
+
+comment		: "//" { ... } eol
+		| "/*" { ... } "*/"
+

@@ -8,6 +8,15 @@
 #include "alloc.h"
 #include "str.h"
 
+cstr
+Cstr(char* a, int l)
+{
+	cstr retval = (cstr)salloc(sizeof(struct cstr_struct));
+	retval->len = l;
+	retval->data = a;		
+	return retval;
+}
+
 str
 char_str(char* a, int l)
 {

@@ -19,6 +19,8 @@ struct str_struct {
 	char data[0];
 };
 
+cstr Cstr(char* a, int l);
+
 str Str(char* fmt, ...);
 str new_str(char* fmt, va_list args); 
 

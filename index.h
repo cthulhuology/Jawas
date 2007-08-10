@@ -8,9 +8,9 @@
 #define __HAVE_INDEX_H__
 
 static char* indexes[] = {
-	"index.html",
-	"index.jws",
-	"index.xml",
+	"/index.html",
+	"/index.jws",
+	"/index.xml",
 	NULL
 };
 
