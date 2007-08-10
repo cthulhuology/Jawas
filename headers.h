@@ -23,15 +23,15 @@ str find_header(Headers headers, char* key);
 Headers append_header(Headers headers, str key, str value);
 void dump_headers(Headers headers);
 
-Headers cache_control(Headers headers, char* value);
-Headers connection(Headers headers, char* value);
-Headers date_field(Headers headers, char* value);
-Headers transfer_encoding(Headers headers, char* value);
-Headers content_length(Headers headers, char* value);
-Headers content_type(Headers headers, char* value);
-Headers expires(Headers headers, char* value);
-Headers location(Headers headers, char* value);
-Headers server(Headers headers, char* value);
+Headers cache_control(Headers headers, const char* value);
+Headers connection(Headers headers, const char* value);
+Headers date_field(Headers headers, const char* value);
+Headers transfer_encoding(Headers headers, const char* value);
+Headers content_length(Headers headers, const char* value);
+Headers content_type(Headers headers, const char* value);
+Headers expires(Headers headers, const char* value);
+Headers location(Headers headers, const char* value);
+Headers server(Headers headers, const char* value);
 
 static char* Cache_Control_MSG = "Cache-Control";
 static char* Connection_MSG = "Connection";
@@ -45,7 +45,7 @@ static char* Server_MSG = "Server";
 
 #define HEADER_FUNC(f,k) \
 Headers \
-f (Headers headers, char* value) {\
+f (Headers headers, const char* value) {\
 	int i = free_header_slot(headers);\
 	 headers[i].key = char_str(k,0);\
 	 headers[i].value = char_str(value,0);\

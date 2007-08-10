@@ -9,7 +9,7 @@
 #include "str.h"
 
 cstr
-Cstr(char* a, int l)
+Cstr(const char* a, int l)
 {
 	cstr retval = (cstr)salloc(sizeof(struct cstr_struct));
 	retval->len = l;
@@ -18,7 +18,7 @@ Cstr(char* a, int l)
 }
 
 str
-char_str(char* a, int l)
+char_str(const char* a, int l)
 {
 	int len = l ? l :  strlen(a);
 	str retval = (str)salloc(1+len+sizeof(struct str_struct));
@@ -43,6 +43,7 @@ Str(char* fmt, ...)
 str
 new_str(char* fmt, va_list args)
 {
+	cstr x;
 	int i, o = 0, a = 0, ls = 0, la = 0;
 	for (i = 0; fmt[i]; ++i)
 		la += (fmt[i] == '%' ? 1 : 0);
@@ -51,6 +52,11 @@ new_str(char* fmt, va_list args)
 	for (i = 0; fmt[i]; ++i)
 		if (fmt[i] == '%')
 			switch (fmt[++i]) {
+			case 'x':
+				x = va_arg(args,cstr);
+				params[a] = char_str(x->data,x->len);
+				ls += params[a++]->len;
+				break;
 			case 'c':
 				params[a] = char_str(va_arg(args,char*),0);
 				ls += params[a++]->len;

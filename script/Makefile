@@ -4,12 +4,15 @@
 
 
 LIBRARY = libjawascript.dylib
-PROGRAM = jawascript
+PROGRAM = jws
 
-CFLAGS = 
-INCLUDES =
+CFLAGS =  -ggdb
+INCLUDES = -I../
+
+OTHER_OBJS = ../alloc.o ../str.o ../log.o ../pages.o ../files.o
 
 SOURCES = \
-	script.c
+	parser.c 
+#	script.c
 
 include ../rules.mk

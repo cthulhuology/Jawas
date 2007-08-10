@@ -7,98 +7,100 @@
 #ifndef __HAVE_PARSER_H__
 #define __HAVE_PARSER_H__
 
-#include "cstr.h"
+#include "str.h"
 
-#define typedefof(x) typedef cstruct x # _cstruct* x
-typedefof(exp);
-typedefof(blk);
-typedefof(try);
-typedefof(ctch);
-typedefof(ife);
-typedefof(swtch);
-typedefof(cse);
-typedefof(wth);
-typedefof(lbl);
-typedefof(itr);
-typedefof(obj);
-typedefof(func);
-typedefof(stmt);
+#define CONSTRUCTOR(x,y) x y() { return (x)salloc(sizeof(struct x ## _struct )); }
+#define typedefof(x,y) typedef struct x ## _struct* x; x y();
+
+typedefof(exp,Exp);
+typedefof(blk,Block);
+typedefof(try,Try);
+typedefof(ctch,Catch);
+typedefof(ife,IfElse);
+typedefof(swtch,Switch);
+typedefof(cse,Case);
+typedefof(wth,With);
+typedefof(lbl,Label);
+typedefof(itr,Iterator);
+typedefof(obj,Object);
+typedefof(func,Func);
+typedefof(stmt,Stmt);
 
 typedef stmt(*parse_t)(cstr);
 
-cstruct exp_cstruct {
+struct exp_struct {
 	cstr object;
 	int msg;
 	exp args;
 };
 
-cstruct wth_cstruct {
+struct wth_struct {
 	exp exp;
 	stmt state;	
 };
 
-cstruct swtch_cstruct {
+struct swtch_struct {
 	exp exp;
 	cse cases;
 };
 
 // default: exp == NULL
-cstruct cse_cstruct {
+struct cse_struct {
 	exp exp;
 	stmt state;
 };
 
-cstruct lbl_cstruct {
+struct lbl_struct {
 	cstr id;
 	stmt state;
 };
 
-cstruct try_cstruct {
+struct try_struct {
 	blk try;
 	ctch catch;
 };
 
 // finally ident == NULL
-cstruct ctch_cstruct {
+struct ctch_struct {
 	cstr id;
 	blk blk;
 	ctch tail;	
 };
 
-cstruct function_cstruct {
+struct func_struct {
 	cstr id;
 	exp params;
 	blk blk;
 };
 
-cstruct obj_cstruct {
+struct obj_struct {
 	cstr key;
 	exp value;	
 	obj tail;
 };
 
 // Else test == NULL
-cstruct ife_cstruct {
+struct ife_struct {
 	exp test;
 	stmt blk;
 	ife tail;
 };
 
-cstruct iter_cstruct {
+struct itr_struct {
 	stmt init_exp;
 	exp test_exp;
 	exp final_exp;
 	blk state;
 };
 
-cstruct blk_cstruct {
+struct blk_struct {
 	stmt state;
 	blk tail;
 };
 
 enum stmt_flags { UNKNOWN, BLK, VAR, NEW, EXP, IFE, ITR, CNT, BRK, RET, WTH, LBL, SWT, THR, TRY };
 
-cstruct stmt_cstruct {
+struct stmt_struct {
 	enum stmt_flags flag;
 	cstr rep;
 	union {
@@ -119,7 +121,7 @@ cstruct stmt_cstruct {
 	} val;
 };
 
-static char* reserved_words_list[] = {
+static char* reserved_word_list[] = {
 	"",				// Index starts at 1
 	"finally",  "catch", 
 	"instanceof", 
@@ -143,5 +145,7 @@ static char* reserved_words_list[] = {
 static char eol_chars[] = " ;\n\r";
 
 static char delim_chars[] = " \r\n\t .,!=;:?+-\"'(){}[]+-<>~*/%&|^\v";
+
+cstr parse_block(cstr buf, blk* b);
 
 #endif

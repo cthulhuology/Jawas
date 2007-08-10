@@ -7,10 +7,10 @@
 #ifndef __HAVE_STR_H__
 #define __HAVE_STR_H__
 
-typedef struct cstr_struct cstr;
+typedef struct cstr_struct* cstr;
 struct cstr_struct {
 	int len;
-	char* data;
+	const char* data;
 };
 
 typedef struct str_struct* str;
@@ -19,12 +19,12 @@ struct str_struct {
 	char data[0];
 };
 
-cstr Cstr(char* a, int l);
+cstr Cstr(const char* a, int l);
 
 str Str(char* fmt, ...);
 str new_str(char* fmt, va_list args); 
 
-str char_str(char* a, int l);
+str char_str(const char* a, int l);
 str int_str(int a);
 str obj_str(void* a);
 str num_str(double a);

@@ -11,8 +11,8 @@
 
 typedef struct mime_struct MimeTypes;
 struct mime_struct {
-	cstr ending;
-	cstr type;
+	struct cstr_struct ending;
+	struct cstr_struct type;
 	int (*handler)(File);
 };
 

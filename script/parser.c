@@ -4,14 +4,29 @@
 // All Rights Reserved
 //
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "include.h"
+#include "defines.h"
+#include "alloc.h"
+#include "log.h"
 #include "parser.h"
 
 int lineno = 0;
 str* reserved_words = NULL;
 int* delim_frequency = NULL;
+
+CONSTRUCTOR(exp,Exp);
+CONSTRUCTOR(blk,Block);
+CONSTRUCTOR(try,Try);
+CONSTRUCTOR(ctch,Catch);
+CONSTRUCTOR(ife,IfElse);
+CONSTRUCTOR(swtch,Switch);
+CONSTRUCTOR(cse,Case);
+CONSTRUCTOR(wth,With);
+CONSTRUCTOR(lbl,Label);
+CONSTRUCTOR(itr,Iterator);
+CONSTRUCTOR(obj,Object);
+CONSTRUCTOR(func,Func);
+CONSTRUCTOR(stmt,Stmt);
 
 void
 init_reserved()
@@ -27,7 +42,7 @@ init_reserved()
 void
 init_delim_frequency()
 {
-	delim_frequency = salloc(sizeof(int) * strlen(delim_chars));
+	delim_frequency = (int*)salloc(sizeof(int) * strlen(delim_chars));
 }
 
 int
@@ -35,7 +50,7 @@ reserved(cstr buf)
 {
 	int i;
 	for (i = 1; reserved_words[i]; ++i)
-		if (!cstr_cmp(buf,reserved_words[i]))
+		if (!cmp_str(buf,reserved_words[i]))
 			return i;
 	return 0;
 }
@@ -93,17 +108,17 @@ cstr
 parse_exp(cstr buf, exp* e)
 {
 	int l;
-	for (l = 0; !delim(buf[l]); ++l);
-	*e->object = NULL;
+	for (l = 0; !delim(buf->data[l]); ++l);
+	(*e)->object = NULL;
 	if (l > 0) 
-		*e->object = Cstr(buf,l);	
+		(*e)->object = Cstr(buf->data,l);	
 	cstr rem = skip(buf,l);
-	*e->msg = reserved(rem);
-	*e->args = NULL;
-	rem = skip(rem,reserved_words[*e->msg]->len);	
+	(*e)->msg = reserved(rem);
+	(*e)->args = NULL;
+	rem = skip(rem,reserved_words[(*e)->msg]->len);	
 	if (rem) {
-		*e->args = Exp();
-		return parse_exp(rem,&(*e->args));
+		(*e)->args = Exp();
+		return parse_exp(rem,&(*e)->args);
 	}
 	return NULL; 
 }
@@ -113,9 +128,9 @@ parse_stmt(cstr buf, stmt* s)
 {
 	int l;
 	for (l = 0; l < buf->len && !eol(buf->data[l]); ++l);
-	s->rep = Cstr(buf->data,l);
-	s->flag = UNKNOWN;
-	return skip(buf->data,l);
+	(*s)->rep = Cstr(buf->data,l);
+	(*s)->flag = UNKNOWN;
+	return skip(buf,l);
 }
 
 cstr
@@ -141,7 +156,8 @@ parse_block(cstr buf, blk* b)
 	cstr x,retval = NULL;
 	if (!buf) return NULL;
 	if (buf->data[0] == '{') {
-		x = prase_match(buf,'{','}');
+		x = parse_match(buf,'{','}');
+		debug("Block contents are %x",x);
 		retval = skip(buf,x->len+2);
 	} else x = buf;
 	for (tmp = *b; x; tmp = tmp->tail) { 	
@@ -169,22 +185,6 @@ parse_index(cstr buf, exp* e)
 	return skip(buf,x->len+2);
 }
 
-cstr 
-parse_try(cstr buf, try* t)
-{
-	cstr rem = NULL;
-	*t->try = NULL;
-	cstr x = skip(buf,start_block(buf,'{'));
-	if (x) {
-		*t->try = Block();
-		rem = parse_block(x,&(*t)->try);
-	}
-	if (rem)
-		return parse_catch(rem,&(*t)->catch)
-	debug("try without catch at %i",lineno);
-	return NULL;
-}
-
 cstr
 parse_catch(cstr buf, ctch* c)
 {
@@ -199,11 +199,28 @@ parse_catch(cstr buf, ctch* c)
 	x = parse_match(rem,'{','}');
 	parse_block(x, &(*c)->blk);	
 	rem = skip(rem,x->len+2);
-	*c->tail = NULL;
+	(*c)->tail = NULL;
 	if (rem)
 		return parse_catch(rem,&(*c)->tail);
 	return NULL;
 }
+
+cstr 
+parse_try(cstr buf, try* t)
+{
+	cstr rem = NULL;
+	(*t)->try = NULL;
+	cstr x = skip(buf,start_block(buf,'{'));
+	if (x) {
+		(*t)->try = Block();
+		rem = parse_block(x,&(*t)->try);
+	}
+	if (rem)
+		return parse_catch(rem,&(*t)->catch);
+	debug("try without catch at %i",lineno);
+	return NULL;
+}
+
 
 cstr
 parse_ife(cstr buf, ife* e)
