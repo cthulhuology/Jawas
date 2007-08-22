@@ -33,7 +33,7 @@ type_str_func(obj_str,void*,"%p");
 type_str_func(num_str,double,"%g");
 
 str
-Str(char* fmt, ...)
+Str(const char* fmt, ...)
 {
 	va_list args;
 	va_start(args,fmt);
@@ -41,7 +41,7 @@ Str(char* fmt, ...)
 }
 
 str
-new_str(char* fmt, va_list args)
+new_str(const char* fmt, va_list args)
 {
 	cstr x;
 	int i, o = 0, a = 0, ls = 0, la = 0;

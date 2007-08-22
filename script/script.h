@@ -7,10 +7,12 @@
 #ifndef __SCRIPT_H__
 #define __SCRIPT_H__
 
+#include "str.h"
+
 typedef struct jdata_struct JData;
 struct jdata_struct {
 	int len;
-	char data[0];
+	char data[];
 };
 
 typedef struct jslot_struct JSlot;
@@ -22,7 +24,7 @@ struct jslot_struct {
 typedef struct jobject_struct JObject;
 struct jobject_struct {
 	int len;
-	JSlot slots[0];
+	JSlot slots[];
 };
 
 JData new_jdata(char* data, int len);

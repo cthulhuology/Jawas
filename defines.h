@@ -3,20 +3,9 @@
 // Copyright (C) 2007 David J. Goehrig
 // All Rights Reserved
 
+#include "config.h"
+
 #define SERVER_VERSION "Jawas/1.0"
-
-#define DB_CONNECT_STRING "dbname=jawas user=jawas"
-
-#define LOG_LEVEL 2
-
-#define SERVER_PORT "80"
-#define TLS_SERVER_PORT "443"
-
-#define TLS_KEYFILE "/Users/dave/Desktop/Jawas/server.pem"
-#define TLS_PASSWORD "fullfathomfive"
-
-#define PAGE_GUARD 1
-#define CACHE_PAGES 100
 
 #define min(x,y) (x < y ? x : y)
 #define max(x,y) (x > y ? x : y)

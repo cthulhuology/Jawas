@@ -7,6 +7,8 @@
 #ifndef __HAVE_STR_H__
 #define __HAVE_STR_H__
 
+#include <stdarg.h>
+
 typedef struct cstr_struct* cstr;
 struct cstr_struct {
 	int len;
@@ -21,8 +23,8 @@ struct str_struct {
 
 cstr Cstr(const char* a, int l);
 
-str Str(char* fmt, ...);
-str new_str(char* fmt, va_list args); 
+str Str(const char* fmt, ...);
+str new_str(const char* fmt, va_list args); 
 
 str char_str(const char* a, int l);
 str int_str(int a);
