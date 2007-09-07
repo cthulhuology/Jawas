@@ -143,9 +143,9 @@ static char* reserved_word_list[] = {
 };
 
 static char eol_chars[] = " ;\n\r";
-
 static char delim_chars[] = " \r\n\t .,!=;:?+-\"'(){}[]+-<>~*/%&|^\v";
 
 cstr parse_block(cstr buf, blk* b);
+cstr parse_exp(cstr buf, exp* e);
 
 #endif

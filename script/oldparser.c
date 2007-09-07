@@ -49,9 +49,10 @@ int
 reserved(cstr buf)
 {
 	int i;
-	for (i = 1; reserved_words[i]; ++i)
-		if (!cmp_str(buf,reserved_words[i]))
+	for (i = 1; reserved_words[i]; ++i) {
+		if (cmp_str(buf,reserved_words[i]))
 			return i;
+	}
 	return 0;
 }
 
@@ -95,6 +96,22 @@ skip(cstr buf, int off)
 	return Cstr(buf->data + off + i, buf->len - (off+i));	
 }
 
+cstr
+parse_tok(cstr buf, cstr* tok)
+{
+	int l;
+	*tok = NULL;
+	if (delim(buf->data[0])) 
+		for (l = 0; l < buf->len && delim(buf->data[l]) > 4; ++l);
+	else
+		for (l = 0; l < buf->len && !delim(buf->data[l]); ++l);
+	if (l) {
+		*tok = Cstr(buf->data,l);
+		debug("Token is %x",*tok);
+	}
+	return skip(buf,l);
+}
+
 cstr 
 parse_ident(cstr buf, cstr* ident)
 {
@@ -108,17 +125,29 @@ cstr
 parse_exp(cstr buf, exp* e)
 {
 	int l;
+	if (!buf) return NULL;
+	debug("Parsing [%x]",buf);
 	for (l = 0; !delim(buf->data[l]); ++l);
 	(*e)->object = NULL;
 	if (l > 0) 
 		(*e)->object = Cstr(buf->data,l);	
+	debug("Object %x",(*e)->object);
 	cstr rem = skip(buf,l);
-	(*e)->msg = reserved(rem);
-	(*e)->args = NULL;
-	rem = skip(rem,reserved_words[(*e)->msg]->len);	
 	if (rem) {
-		(*e)->args = Exp();
-		return parse_exp(rem,&(*e)->args);
+		debug("Remainder %x", rem);
+		cstr tok;
+		rem = parse_tok(rem,&tok);
+		if (! tok)
+			error("Syntax error expected operator at %i",lineno);
+		(*e)->msg = reserved(tok);
+		debug("Message is %i", (*e)->msg);
+		if (rem) {
+			(*e)->args = NULL;
+			if (rem) {
+				(*e)->args = Exp();
+				return parse_exp(rem,&(*e)->args);
+			}
+		}
 	}
 	return NULL; 
 }
@@ -130,19 +159,25 @@ parse_stmt(cstr buf, stmt* s)
 	for (l = 0; l < buf->len && !eol(buf->data[l]); ++l);
 	(*s)->rep = Cstr(buf->data,l);
 	(*s)->flag = UNKNOWN;
-	return skip(buf,l);
+	(*s)->val.exp = Exp();
+	debug("Statement %x",(*s)->rep);
+	parse_exp((*s)->rep,&((*s)->val.exp));
+	return skip(buf,l+1);
 }
 
 cstr
 parse_match(cstr buf, char a, char b)
 {
-	int l, count = 0;
-	for (l = 0; buf->data[l]; ++l) {
-		if (buf->data[l] == a) ++count;
-		if (buf->data[l] == b) {
+	int o,l, count = 1;
+	for (o = 1; o < buf->len && isspace(buf->data[o]); ++o);
+	for (l = 0; l + o < buf->len; ++l) {
+		if (buf->data[o+l] == a) ++count;
+		if (buf->data[o+l] == b) {
 			--count;
-			if (!count) 
-				return Cstr(buf->data+1,l-1);
+			if (!count) {
+				debug("Match found at %x",Cstr(buf->data+o,l-1));
+				return Cstr(buf->data+o,l-1);
+			}
 		}
 	}
 	debug("No matching ) at %i", lineno);

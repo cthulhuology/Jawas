@@ -88,6 +88,7 @@ new_str(const char* fmt, va_list args)
 		if (fmt[i] == '%' 
 		&& (fmt[i+1] == 'c'
 		||  fmt[i+1] == 's'
+		||  fmt[i+1] == 'x'
 		||  fmt[i+1] == 'i'
 		||  fmt[i+1] == 'p'
 		||  fmt[i+1] == 'n')) {

@@ -312,6 +312,21 @@ FileInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	return JS_TRUE;
 }
 
+static JSBool
+GetGuid(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	PGresult* res = PQexec(ins.database,"SELECT nextval('guid_seq')");
+	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+		error("Result status not ok");	
+		return JS_FALSE;
+	}
+	char* guid = PQgetvalue(res,0,0);
+	debug("Guid is %c",guid);
+        *rval = STRING_TO_JSVAL(JS_NewString(cx,guid,strlen(guid)));
+	return JS_TRUE;
+}
+
+
 static JSClass global_class = {
 	"global", 0,
 	JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub,
@@ -338,8 +353,56 @@ static JSFunctionSpec my_functions[] = {
 	{"client_info", ClientInfo, 0},
 	{"mem_info", MemInfo, 0},
 	{"file_info", FileInfo, 0},
+	{"guid", GetGuid, 0 },
 	{0},
 };
+
+static int
+CreateDatabaseTableFunctions(JSInstance* in)
+{
+	int i;
+	PGresult* res;
+	const char* args[] = { "id","obj",NULL };
+	char query[] = "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tableowner = 'jawas'";
+	res = PQexec(in->database,query);	
+	if (PQresultStatus(res) != PGRES_TUPLES_OK) return 1;
+	for (i = 0; i < PQntuples(res); ++i) {
+		char* table = PQgetvalue(res,i,0);
+		str s = Str(
+"	if (id) {													" 
+"		if (obj) {  												"
+"			var kv = [];											"
+"			for (var k in obj) {										"
+"				if (k != 'id') kv.push(k + \"= '\" + obj[k] + \"'\");					"
+"			}												"
+"			query(\"UPDATE %c SET \" + kv.join(\", \") + \" WHERE id = \" + id);				"
+"			return id;											"
+"		} else {												" 
+"			var res = query(\"SELECT * FROM %c WHERE id = '\" + id + \"'\"); 				"
+"			return res[0]; 											"
+"		} 													"
+"	} else {													"
+"		var gid = guid();											"
+"		var keys = [];												"
+"		var values = [];											"
+"		for (var k in obj) {											"
+"			if (k != 'id') {										"
+"				keys.push(k);										"
+"				values.push(obj[k]);									"
+"			}												"
+"		}													"
+"		keys.push('id');											"
+"		values.push(gid);											"
+"		query(\"INSERT INTO %c (\" + keys.join(\", \") + \") VALUES ('\" + values.join(\"', '\") + \"')\");	"
+"		return gid; 												"
+"	}														",
+		table,table,table,table,table,table);
+		if (NULL == JS_CompileFunction(in->cx,in->glob,table,2,args,s->data,s->len,"jws.c",0)) 
+			debug("Failed to compile script %s",s);
+	}
+	return 0;
+}
+
 
 int
 InitJS(JSInstance* i, Server srv, Response resp)
@@ -356,7 +419,7 @@ InitJS(JSInstance* i, Server srv, Response resp)
 	if (!JS_DefineFunctions(i->cx, i->glob, my_functions)) return 1;
 	i->database = PQconnectdb(DB_CONNECT_STRING);
 	if (!i->database) return 1;
-	return 0;
+	return CreateDatabaseTableFunctions(i);
 }
 
 int 

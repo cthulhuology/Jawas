@@ -77,3 +77,9 @@ query_cache(File* cache, str filename)
 	}
 	return NULL;
 }
+
+void
+set_cwd()
+{
+	cwd = char_str(getcwd(NULL,0),0);
+}

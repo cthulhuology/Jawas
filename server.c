@@ -60,7 +60,7 @@ load(str filename)
 		return NULL;
 	}
 	srv->fc = retval;
-	add_file_monitor(srv->fc->fd,srv->fc->name);
+	add_file_monitor(srv->fc->fd,srv->fc);
 	old_scratch();
 	return retval;
 }
@@ -172,7 +172,7 @@ serve(int port, int tls_port)
 	srv = (Server)alloc_scratch(scratch,sizeof(struct server_struct));
 	srv->scratch = scratch;
 	server_scratch();
-	cwd = char_str(getcwd(NULL,0),0);
+	set_cwd();
 	open_log();
 	srv->kq = kqueue();
 	srv->http_sock = open_socket(port);
@@ -191,6 +191,7 @@ serve(int port, int tls_port)
 void
 run()
 {
+	File fc;
 	Event ec;
 	ec = poll_events(srv->ec,srv->kq,srv->numevents);
 	srv->numevents = 2;
@@ -208,7 +209,7 @@ run()
 				break;
 			}
 			Req = (Request)ec->event.udata;
-			Sock= Req->sc;
+			Sock = Req->sc;
 			request();
 			break;
 		case EVFILT_WRITE:
@@ -218,7 +219,8 @@ run()
 			respond();
 			break;
 		case EVFILT_VNODE:
-			unload(ec->event.ident,ec->event.udata);
+			fc = (File)ec->event.udata;
+			unload(ec->event.ident,char_str(fc->name,0));
 			break;
 		}
 	}
