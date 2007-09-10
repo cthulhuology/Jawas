@@ -17,6 +17,7 @@
 #include "files.h"
 #include "server.h"
 #include "jsapi.h"
+#include "jsstr.h"
 #include "jws.h"
 
 // Javascript Functions
@@ -403,6 +404,25 @@ CreateDatabaseTableFunctions(JSInstance* in)
 	return 0;
 }
 
+int
+InitParams(JSInstance* in)
+{
+	str x;
+	Headers headers = in->resp->req->query_vars;
+	JSString* s;
+	JSObject* o;
+	int i;
+	if (! headers) return 0;
+	for (i = 0; i < MAX_HEADERS && headers[i].key; ++i) {
+		x = Str("$%s",headers[i].key);
+		debug("Initializing %s = %s",x,headers[i].value);
+		s = JS_NewString(in->cx,headers[i].value->data,headers[i].value->len);
+		if (JS_FALSE == JS_DefineProperty(in->cx,in->glob,x->data,STRING_TO_JSVAL(s),NULL, NULL,JSPROP_READONLY))
+			debug("Failed to set property %s",x);
+	}
+        return 0;
+}
+
 
 int
 InitJS(JSInstance* i, Server srv, Response resp)
@@ -419,6 +439,7 @@ InitJS(JSInstance* i, Server srv, Response resp)
 	if (!JS_DefineFunctions(i->cx, i->glob, my_functions)) return 1;
 	i->database = PQconnectdb(DB_CONNECT_STRING);
 	if (!i->database) return 1;
+	InitParams(i);
 	return CreateDatabaseTableFunctions(i);
 }
 

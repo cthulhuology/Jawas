@@ -39,7 +39,7 @@ get_method()
 int
 post_method()
 {
-	parse_uri_encoded(Req->query_vars,Req->contents,Req->body,length_buffer(Req->contents));
+	Req->query_vars = parse_uri_encoded(Req->query_vars,Req->contents,Req->body,length_buffer(Req->contents)-1);
 	return get_method();
 }
 
