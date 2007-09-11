@@ -106,6 +106,13 @@ Print(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 }
 
 static JSBool
+CWD(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	JSString* s = JS_NewString(cx,Req->path->data,Req->path->len);
+	*rval = STRING_TO_JSVAL(s);
+}
+
+static JSBool
 Include(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	File fc;
@@ -113,10 +120,28 @@ Include(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	str filename;
 	if (argc != 1) return JS_FALSE;
 	s = JS_ValueToString(cx,argv[0]);
-	filename = file_path(Req->host,char_str(JS_GetStringBytes(s),JS_GetStringLength(s)));
+	filename = file_path(Req->host,Str("/%s",char_str(JS_GetStringBytes(s),JS_GetStringLength(s))));
 	fc = load(filename);
 	if (!fc) return JS_FALSE;
 	ProcessFile(fc->data);
+	return JS_TRUE;
+}
+
+static JSBool
+Use(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	File fc;
+	JSString* s;
+	str filename;
+	if (argc != 1) return JS_FALSE;
+	s = JS_ValueToString(cx,argv[0]);
+	filename = file_path(Req->host,Str("/%s",char_str(JS_GetStringBytes(s),JS_GetStringLength(s))));
+	fc = load(filename);
+	if (!fc) return JS_FALSE;
+	if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, fc->data, fc->st.st_size, "js.c", 1, rval)) {
+		debug("Failed to evaluate script %s",filename);
+		return JS_FALSE;
+	}
 	return JS_TRUE;
 }
 
@@ -340,6 +365,8 @@ static JSFunctionSpec my_functions[] = {
 	{"add_channel",AddChannel,0},
 	{"print", Print, 0},
 	{"include", Include, 0},
+	{"use", Use, 0},
+	{"cwd", CWD, 0},
 	{"header", Header, 0 },
 	{"param", Param, 0 },
 	{"query", Query, 0 },
@@ -411,13 +438,33 @@ InitParams(JSInstance* in)
 	Headers headers = in->resp->req->query_vars;
 	JSString* s;
 	JSObject* o;
-	int i;
+	JSObject* arr = NULL;
+	int i,j, n;
 	if (! headers) return 0;
 	for (i = 0; i < MAX_HEADERS && headers[i].key; ++i) {
+		if (headers[i].key == (str)-1) continue;
 		x = Str("$%s",headers[i].key);
 		debug("Initializing %s = %s",x,headers[i].value);
+		n = 0;
+		arr = NULL;
 		s = JS_NewString(in->cx,headers[i].value->data,headers[i].value->len);
 		if (JS_FALSE == JS_DefineProperty(in->cx,in->glob,x->data,STRING_TO_JSVAL(s),NULL, NULL,JSPROP_READONLY))
+			debug("Failed to set property %s",x);
+		for (j = i+1; j < MAX_HEADERS && headers[j].key; ++j) {
+			if (headers[j].key == (str)-1) continue;
+			if (cmp_str(headers[i].key,headers[j].key)) {
+				if (! arr) {
+					arr =  JS_NewArrayObject(in->cx,0,NULL);
+					JS_DefineElement(in->cx,arr,n,STRING_TO_JSVAL(s),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
+					debug("Adding %s to array %s",headers[i].value,x);
+				}
+				s = JS_NewString(in->cx,headers[j].value->data,headers[j].value->len);
+				debug("Adding %s to array %s",headers[j].value,x);
+				JS_DefineElement(in->cx,arr,++n,STRING_TO_JSVAL(s),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
+				headers[j].key = (str)-1;
+			}
+		}
+		if (arr && JS_FALSE == JS_DefineProperty(in->cx,in->glob,x->data,OBJECT_TO_JSVAL(arr),NULL, NULL,JSPROP_READONLY))
 			debug("Failed to set property %s",x);
 	}
         return 0;
