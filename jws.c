@@ -4,8 +4,6 @@
 // All Rights Reserved
 //
 
-#include <sys/un.h>
-
 #include "include.h"
 #include "defines.h"
 #include "alloc.h"
@@ -23,6 +21,7 @@
 // Javascript Functions
 
 JSInstance ins;
+jmp_buf jmp;
 
 void ProcessFile(char* script);
 
@@ -41,6 +40,13 @@ sms_connect()
 		return 0;
 	}
 	return sock;
+}
+
+static JSBool
+ExitJS(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	longjmp(jmp,1);
+	return JS_TRUE;	// never get here
 }
 
 static JSBool
@@ -537,7 +543,9 @@ jws_handler(File fc)
 {
 	Buffer tmp;
 	if (InitJS(&ins,srv,Resp)) goto error;
-	ProcessFile(fc->data);
+	if (!setjmp(jmp)) {
+		ProcessFile(fc->data);
+	}
 	if (DestroyJS(&ins)) goto error;
 	Resp->contents = ins.buffer;
 	return Resp->status;

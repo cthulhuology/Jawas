@@ -11,12 +11,14 @@
 #include <sys/uio.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <setjmp.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
