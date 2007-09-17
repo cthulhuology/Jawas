@@ -29,12 +29,14 @@ int
 sms_connect() 
 {
 	struct sockaddr_un unsc;
+#ifndef LINUX
 	unsc.sun_len = sizeof(unsc);
+#endif
 	unsc.sun_family = AF_UNIX;
 	memcpy(unsc.sun_path,"/tmp/sms",9);
 
 	int sock = socket(AF_UNIX,SOCK_STREAM,0);
-	if (connect(sock,(struct sockaddr*)&unsc,unsc.sun_len)) {
+	if (connect(sock,(struct sockaddr*)&unsc,SUN_LEN(&unsc))) {
 		error("Failed to connect to /tmp/sms\n");
 		close(sock);
 		return 0;

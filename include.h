@@ -3,7 +3,12 @@
 // All Rights Reserved
 //
 
+#ifdef LINUX
+#include <sys/epoll.h>
+#include <linux/inotify.h>
+#else
 #include <sys/event.h>
+#endif
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/time.h>

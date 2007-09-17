@@ -14,16 +14,14 @@
 Scratch escratch = NULL;
 
 Event
-queue_event(Event ec, int id, short filter, u_short flags, u_int fflags, intptr_t data, void* udata)
+queue_event(Event ec, int fd, enum event_types type, enum event_flags flag, void* udata)
 {
 	if (escratch == NULL) escratch = new_scratch(NULL);
 	Event retval = (Event)alloc_scratch(escratch,sizeof(struct event_cache_struct));
-	retval->event.ident = id;
-	retval->event.filter  = filter;
-	retval->event.flags = flags;
-	retval->event.fflags = fflags;
-	retval->event.data = data;
-	retval->event.udata = udata;
+	retval->fd = fd;
+	retval->type = type;	
+	retval->flag = flag;
+	retval->data = udata;
 	retval->next = ec;
 	retval->pos = (ec ? ec->pos + 1 : 1);
 	return retval;
@@ -36,25 +34,3 @@ free_events()
 	escratch = NULL;
 }
 
-Event
-poll_events(Event ec, int kq, int numevents)
-{
-	int n;
-	Scratch scratch = new_scratch(NULL);
-	Event retval = NULL;
-	struct timespec ts = { 0, 0 };
-	struct kevent* cl = (struct kevent*)(ec ? alloc_scratch(scratch,sizeof(struct kevent)*ec->pos) : NULL);
-	struct kevent* el = (struct kevent*)alloc_scratch(scratch,sizeof(struct kevent)*numevents);
-
-	for (n = 0; ec; ++n) {
-		memcpy(&cl[n],&ec->event,sizeof(struct kevent));
-		ec = ec->next;
-	}
-	free_events();
-	n = kevent(kq,cl,n,el,numevents, NULL);
-	retval = NULL;	
-	while (n--) 
-		retval = queue_event(retval,el[n].ident,el[n].filter,el[n].flags,el[n].fflags,el[n].data,el[n].udata);
-	free_scratch(scratch);
-	return retval;
-}

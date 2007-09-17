@@ -174,7 +174,12 @@ serve(int port, int tls_port)
 	server_scratch();
 	set_cwd();
 	open_log();
+#ifdef LINUX
+	srv->inote = inotify_init();
+	srv->kq = epoll_create(1024);
+#else
 	srv->kq = kqueue();
+#endif
 	srv->http_sock = open_socket(port);
 	srv->tls_sock = open_socket(tls_port);
 	srv->tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
@@ -193,34 +198,38 @@ run()
 {
 	File fc;
 	Event ec;
-	ec = poll_events(srv->ec,srv->kq,srv->numevents);
+	ec = poll_events(srv->ec,srv->numevents);
 	srv->numevents = 2;
 	for (srv->ec = NULL; ec; ec = ec->next) {
 		server_scratch();
 		Req = NULL;
 		Resp = NULL;
 		Sock = NULL;
-		switch (ec->event.filter) {
-		case EVFILT_READ:
-			if (ec->event.flags == EV_EOF) break;
-			if (ec->event.ident == srv->http_sock
-			|| ec->event.ident == srv->tls_sock) {
-				incoming(ec->event.ident);
+		switch (ec->type) {
+		case READ:
+			if (ec->flag == SEOF) break;
+			if (ec->fd == srv->http_sock
+			|| ec->fd == srv->tls_sock) {
+				incoming(ec->fd);
 				break;
 			}
-			Req = (Request)ec->event.udata;
+			if (ec->fd == srv->inote) {
+				ec = file_monitor(ec);
+				break;
+			}
+			Req = (Request)ec->data;
 			Sock = Req->sc;
 			request();
 			break;
-		case EVFILT_WRITE:
-			Resp = (Response)ec->event.udata;
+		case WRITE:
+			Resp = (Response)ec->data;
 			Sock = Resp->sc;
 			Req = Resp->req;
 			respond();
 			break;
-		case EVFILT_VNODE:
-			fc = (File)ec->event.udata;
-			unload(ec->event.ident,char_str(fc->name,0));
+		case NODE:
+			fc = (File)ec->data;
+			unload(ec->fd,char_str(fc->name,0));
 			break;
 		}
 	}

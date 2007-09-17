@@ -44,7 +44,9 @@ open_socket(int  port)
 	if (0 > fd) return -1;
 	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&one,sizeof(one));
 	memset(&addr,0,sizeof(addr));
+#ifndef LINUX
 	addr.sin_len = sizeof(struct sockaddr_in);
+#endif
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = INADDR_ANY;

@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <dirent.h>
+#include <time.h>
 
 #define FILESEPARATOR        '/'
 #define FILESEPARATOR2       '\0'
@@ -2241,7 +2242,7 @@ file_getProperty(JSContext * cx, JSObject * obj, jsval id, jsval * vp)
 					     JSFILEMSG_CANNOT_ACCESS_FILE_STATUS, file->path);
 			goto out;
 	 	}
-		expandedTime = localtime(&info.st_mtimespec);
+		expandedTime = localtime(&info.st_mtime);
 		*vp = OBJECT_TO_JSVAL(js_NewDateObject(cx, expandedTime->tm_year,
 						       expandedTime->tm_mon,
 						       expandedTime->tm_mday,
@@ -2258,7 +2259,7 @@ file_getProperty(JSContext * cx, JSObject * obj, jsval id, jsval * vp)
 					     JSFILEMSG_CANNOT_ACCESS_FILE_STATUS, file->path);
 			goto out;
 		}
-		expandedTime = localtime(&info.st_ctimespec);
+		expandedTime = localtime(&info.st_ctime);
 		*vp = OBJECT_TO_JSVAL(js_NewDateObject(cx, expandedTime->tm_year,
 						       expandedTime->tm_mon,
 						       expandedTime->tm_mday,
