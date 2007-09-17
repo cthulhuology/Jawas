@@ -372,6 +372,7 @@ static JSFunctionSpec my_functions[] = {
 	{"add_user",AddUser,0},
 	{"add_channel",AddChannel,0},
 	{"print", Print, 0},
+	{"exit", ExitJS, 0},
 	{"include", Include, 0},
 	{"use", Use, 0},
 	{"cwd", CWD, 0},

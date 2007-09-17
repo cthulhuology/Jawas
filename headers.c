@@ -56,6 +56,7 @@ append_header(Headers headers, str key, str value)
 	if (i > MAX_HEADERS) return NULL;
 	headers[i].key = key;
 	headers[i].value = value;
+	debug("Appending headers: %s = %s",key,value);
 	return headers;
 }
 
