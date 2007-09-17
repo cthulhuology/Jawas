@@ -23,4 +23,4 @@
 #define Sock	srv->sock
 #define Req	srv->req
 #define Resp	srv->resp
-
+#define KQ	srv->kq

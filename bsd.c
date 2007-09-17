@@ -5,7 +5,9 @@
 //
 
 #include "include.h"
+#include "defines.h"
 #include "events.h"
+#include "server.h"
 
 #ifndef LINUX
 
@@ -24,17 +26,17 @@ poll_events(Event ec, int numevents)
 		cl[n].filter = (ec->type == READ ? EVFILT_READ :
 				ec->type == WRITE ? EVFILT_WRITE :
 				ec->type == NODE ? EVFILT_VNODE : 0);
-		cl[n].flags = EV_ADD | (ev->flag == ONESHOT ? EV_ONESHOT : 0);;
+		cl[n].flags = EV_ADD | (ec->flag == ONESHOT ? EV_ONESHOT : 0);;
 		cl[n].fflags = (ec->type == NODE ? NODE_FLAGS : 0);
 		cl[n].data = 0;
 		cl[n].udata = ec->data;
 		ec = ec->next;
 	}
 	free_events();
-	n = kevent(kq,cl,n,el,numevents, NULL);
+	n = kevent(KQ,cl,n,el,numevents, NULL);
 	retval = NULL;	
 	while (n--) 
-		retval = queue_event(retval,el[n].ident,el[n].filter == EV_READ ? READ : el[n].filter == EV_WRITE ? WRITE : NODE, el[n].flags == EV_EOF ? EOF : NONE,el[n].udata);
+		retval = queue_event(retval,el[n].ident,el[n].filter == EVFILT_READ ? READ : el[n].filter == EVFILT_WRITE ? WRITE : NODE, el[n].flags == EV_EOF ? EOF : NONE,el[n].udata);
 	free_scratch(scratch);
 	return retval;
 }

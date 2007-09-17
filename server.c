@@ -213,10 +213,12 @@ run()
 				incoming(ec->fd);
 				break;
 			}
+#ifdef LINUX
 			if (ec->fd == srv->inote) {
 				ec = file_monitor(ec);
 				break;
 			}
+#endif
 			Req = (Request)ec->data;
 			Sock = Req->sc;
 			request();

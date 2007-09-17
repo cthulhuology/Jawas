@@ -122,9 +122,8 @@
 #define Long int32
 #endif
 
-#ifndef ULLong
-#define ULLong uint32
-#define UL
+#ifndef ULong
+#define ULong uint32
 #endif
 
 #define Bug(errorMessageString) JS_ASSERT(!errorMessageString)
@@ -271,7 +270,7 @@ struct Bigint {
 	int32           maxwds;	/* Number of words allocated for x */
 	int32           sign;	/* Zero if positive, 1 if negative.  Ignored by most Bigint routines! */
 	int32           wds;	/* Actual number of words.  If value is nonzero, the most significant word must be nonzero. */
-	ULLong           x[1];	/* wds words of number in little endian order */
+	ULong           x[1];	/* wds words of number in little endian order */
 };
 
 #ifdef ENABLE_OOM_TESTING
@@ -349,7 +348,7 @@ Balloc(int32 k)
 	if (rv == NULL) {
 		x = 1 << k;
 #ifdef Omit_Private_Memory
-		rv = (Bigint *) MALLOC(sizeof(Bigint) + (x - 1) * sizeof(ULLong));
+		rv = (Bigint *) MALLOC(sizeof(Bigint) + (x - 1) * sizeof(ULong));
 #else
 		len = (sizeof(Bigint) + (x - 1) * sizeof(ULLong) + sizeof(double) - 1)
 			/ sizeof(double);
@@ -391,8 +390,8 @@ multadd(Bigint * b, int32 m, int32 a)
 	ULLong          *x;
 	ULLong          carry, y;
 #else
-	ULLong           carry, *x, y;
-	ULLong           xi, z;
+	ULong           carry, *x, y;
+	ULong           xi, z;
 #endif
 	Bigint         *b1;
 
@@ -436,14 +435,14 @@ multadd(Bigint * b, int32 m, int32 a)
 			Bfree(b);
 			b = b1;
 		}
-		b->x[wds++] = (ULLong) carry;
+		b->x[wds++] = (ULong) carry;
 		b->wds = wds;
 	}
 	return b;
 }
 
 static Bigint  *
-s2b(CONST char *s, int32 nd0, int32 nd, ULLong y9)
+s2b(CONST char *s, int32 nd0, int32 nd, ULong y9)
 {
 	Bigint         *b;
 	int32           i, k;
@@ -479,7 +478,7 @@ s2b(CONST char *s, int32 nd0, int32 nd, ULLong y9)
 
 /* Return the number (0 through 32) of most significant zero bits in x. */
 static          int32
-hi0bits(register ULLong x)
+hi0bits(register ULong x)
 {
 	register int32  k = 0;
 
@@ -512,10 +511,10 @@ hi0bits(register ULLong x)
  * Return the number (0 through 32) of least significant zero bits in y. Also shift y to the right past these 0 through 32 zeros so that y's least significant bit will be set unless y was originally zero.
  */
 static          int32
-lo0bits(ULLong * y)
+lo0bits(ULong * y)
 {
 	register int32  k;
-	register ULLong  x = *y;
+	register ULong  x = *y;
 
 	if (x & 7) {
 		if (x & 1)
@@ -575,14 +574,14 @@ mult(CONST Bigint * a, CONST Bigint * b)
 	CONST Bigint   *t;
 	Bigint         *c;
 	int32           k, wa, wb, wc;
-	ULLong           y;
-	ULLong          *xc, *xc0, *xce;
-	CONST ULLong    *x, *xa, *xae, *xb, *xbe;
+	ULong           y;
+	ULong          *xc, *xc0, *xce;
+	CONST ULong    *x, *xa, *xae, *xb, *xbe;
 #ifdef ULLong
 	ULLong          carry, z;
 #else
-	ULLong           carry, z;
-	ULLong           z2;
+	ULong           carry, z;
+	ULong           z2;
 #endif
 
 	if (a->wds < b->wds) {
@@ -781,7 +780,7 @@ lshift(Bigint * b, int32 k)
 {
 	int32           i, k1, n, n1;
 	Bigint         *b1;
-	ULLong          *x, *x1, *xe, z;
+	ULong          *x, *x1, *xe, z;
 
 	n = k >> 5;
 	k1 = b->k;
@@ -820,7 +819,7 @@ done:
 static          int32
 cmp(Bigint * a, Bigint * b)
 {
-	ULLong          *xa, *xa0, *xb, *xb0;
+	ULong          *xa, *xa0, *xb, *xb0;
 	int32           i, j;
 
 	i = a->wds;
@@ -845,12 +844,12 @@ diff(Bigint * a, Bigint * b)
 {
 	Bigint         *c;
 	int32           i, wa, wb;
-	ULLong          *xa, *xae, *xb, *xbe, *xc;
+	ULong          *xa, *xae, *xb, *xbe, *xc;
 #ifdef ULLong
 	ULLong          borrow, y;
 #else
-	ULLong           borrow, y;
-	ULLong           z;
+	ULong           borrow, y;
+	ULong           z;
 #endif
 
 	i = cmp(a, b);
@@ -949,7 +948,7 @@ ulp(double x)
 static double
 b2d(Bigint * a, int32 * e)
 {
-	ULLong          *xa, *xa0, w, y, z;
+	ULong          *xa, *xa0, w, y, z;
 	int32           k;
 	double          d = 0;
 #define d0 word0(d)
@@ -998,7 +997,7 @@ d2b(double d, int32 * e, int32 * bits)
 {
 	Bigint         *b;
 	int32           de, i, k;
-	ULLong          *x, y, z;
+	ULong          *x, y, z;
 #define d0 word0(d)
 #define d1 word1(d)
 #define set_d0(x) set_word0(d, x)
@@ -1175,7 +1174,7 @@ JS_strtod(CONST char *s00, char **se, int *err)
 	CONST char     *s, *s0, *s1;
 	double          aadj, aadj1, adj, rv, rv0;
 	Long            L;
-	ULLong           y, z;
+	ULong           y, z;
 	Bigint         *bb, *bb1, *bd, *bd0, *bs, *delta;
 
 	*err = 0;
@@ -1795,9 +1794,9 @@ nomem:
 static          uint32
 quorem2(Bigint * b, int32 k)
 {
-	ULLong           mask;
-	ULLong           result;
-	ULLong          *bx, *bxe;
+	ULong           mask;
+	ULong           result;
+	ULong          *bx, *bxe;
 	int32           w;
 	int32           n = k >> 5;
 	k &= 0x1F;
@@ -1833,12 +1832,12 @@ static          int32
 quorem(Bigint * b, Bigint * S)
 {
 	int32           n;
-	ULLong          *bx, *bxe, q, *sx, *sxe;
+	ULong          *bx, *bxe, q, *sx, *sxe;
 #ifdef ULLong
 	ULLong          borrow, carry, y, ys;
 #else
-	ULLong           borrow, carry, y, ys;
-	ULLong           si, z, zs;
+	ULong           borrow, carry, y, ys;
+	ULong           si, z, zs;
 #endif
 
 	n = S->wds;
@@ -1963,7 +1962,7 @@ js_dtoa(double d, int mode, JSBool biasUp, int ndigits,
 	Long            L;
 #ifndef Sudden_Underflow
 	int32           denorm;
-	ULLong           x;
+	ULong           x;
 #endif
 	Bigint         *b, *b1, *delta, *mlo, *mhi, *S;
 	double          d2, ds, eps;
@@ -2741,8 +2740,8 @@ divrem(Bigint * b, uint32 divisor)
 {
 	int32           n = b->wds;
 	uint32          remainder = 0;
-	ULLong          *bx;
-	ULLong          *bp;
+	ULong          *bx;
+	ULong          *bp;
 
 	JS_ASSERT(divisor > 0 && divisor <= 65536);
 
@@ -2751,10 +2750,10 @@ divrem(Bigint * b, uint32 divisor)
 	bx = b->x;
 	bp = bx + n;
 	do {
-		ULLong           a = *--bp;
-		ULLong           dividend = remainder << 16 | a >> 16;
-		ULLong           quotientHi = dividend / divisor;
-		ULLong           quotientLo;
+		ULong           a = *--bp;
+		ULong           dividend = remainder << 16 | a >> 16;
+		ULong           quotientHi = dividend / divisor;
+		ULong           quotientLo;
 
 		remainder = dividend - quotientHi * divisor;
 		JS_ASSERT(quotientHi <= 0xFFFF && remainder < divisor);
