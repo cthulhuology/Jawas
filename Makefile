@@ -5,7 +5,7 @@
 PROGRAM = jawasd
 LIBRARY =
 
-CFLAGS = -ggdb -DXP_UNIX 
+CFLAGS += -ggdb -DXP_UNIX 
 #CFLAGS = -ggdb -DXP_UNIX -DLINUX
 INCLUDES = -Ijs -Ijs/Darwin_DBG.OBJ -I/opt/local/include/postgresql82/
 #INCLUDES = -Ijs -Ijs/Linux_All_DBG.OBJ -I/usr/include/postgresql/

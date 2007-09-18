@@ -16,3 +16,7 @@ clean :
 
 all : $(PROGRAM) $(LIBRARY)
 
+.PHONY: prod
+prod :
+	$(MAKE) clean
+	CFLAGS=-DPROD $(MAKE)	
