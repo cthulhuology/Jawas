@@ -38,5 +38,6 @@ tls.c \
 uri.c
 
 include rules.mk
+include dist.mk
 
 

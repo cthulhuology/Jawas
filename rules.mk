@@ -20,3 +20,6 @@ all : $(PROGRAM) $(LIBRARY)
 prod :
 	$(MAKE) clean
 	CFLAGS=-DPROD $(MAKE)	
+
+commit :
+	git commit -a
