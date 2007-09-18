@@ -126,6 +126,10 @@
 #define ULong uint32
 #endif
 
+#ifndef UL
+#define UL
+#endif
+
 #define Bug(errorMessageString) JS_ASSERT(!errorMessageString)
 
 #include "stdlib.h"

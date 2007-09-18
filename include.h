@@ -5,7 +5,6 @@
 
 #ifdef LINUX
 #include <sys/epoll.h>
-#include <linux/inotify.h>
 #else
 #include <sys/event.h>
 #endif
@@ -20,10 +19,15 @@
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <errno.h>
+#ifdef LINUX
+#define __USE_GNU
+#endif
 #include <fcntl.h>
+#undef __USE_GNU
 #include <netdb.h>
 #include <netinet/in.h>
 #include <setjmp.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>

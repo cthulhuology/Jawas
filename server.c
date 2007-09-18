@@ -175,7 +175,6 @@ serve(int port, int tls_port)
 	set_cwd();
 	open_log();
 #ifdef LINUX
-	srv->inote = inotify_init();
 	srv->kq = epoll_create(1024);
 #else
 	srv->kq = kqueue();
@@ -191,6 +190,9 @@ serve(int port, int tls_port)
 	monitor_socket(srv->tls_sock);
 	srv->done = 0;
 	socket_signal_handlers();
+#ifdef LINUX
+	file_signal_handlers();
+#endif
 }
 
 void
@@ -213,12 +215,6 @@ run()
 				incoming(ec->fd);
 				break;
 			}
-#ifdef LINUX
-			if (ec->fd == srv->inote) {
-				ec = file_monitor(ec);
-				break;
-			}
-#endif
 			Req = (Request)ec->data;
 			Sock = Req->sc;
 			request();

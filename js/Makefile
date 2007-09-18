@@ -58,7 +58,6 @@ jsscript.h	\
 jsstr.h		\
 jsxdrapi.h	\
 jsxml.h		\
-jsfile.h	\
 $(NULL)
 
 API_HFILES =		\
@@ -119,7 +118,6 @@ jsstr.c		\
 jsutil.c        \
 jsxdrapi.c	\
 jsxml.c		\
-jsfile.c	\
 prmjtime.c	\
 $(NULL)
 

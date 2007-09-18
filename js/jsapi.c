@@ -37,7 +37,6 @@
 #include "jsscript.h"
 #include "jsstr.h"
 #include "prmjtime.h"
-#include "jsfile.h"
 
 #if JS_HAS_XML_SUPPORT
 #include "jsxml.h"
@@ -1132,7 +1131,6 @@ JS_InitStandardClasses(JSContext * cx, JSObject * obj)
 #if JS_HAS_XML_SUPPORT
 		js_InitXMLClasses(cx, obj) &&
 #endif
-		js_InitFileClass(cx, obj) &&
 		js_InitDateClass(cx, obj);
 }
 
@@ -1202,9 +1200,6 @@ static struct {
 		js_InitQNameClass, ATOM_OFFSET(QName)
 	},
 #endif
-	{
-		js_InitFileClass, ATOM_OFFSET(File)
-	},
 	{
 		NULL, 0
 	}

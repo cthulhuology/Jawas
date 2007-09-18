@@ -78,6 +78,16 @@ query_cache(File* cache, str filename)
 	return NULL;
 }
 
+File
+query_fd_cache(File cache, int fd)
+{
+	File tmp;
+	for (tmp = cache; tmp; tmp = tmp->next)
+		if (tmp->fd == fd)
+			return tmp;
+	return NULL;
+}
+
 void
 set_cwd()
 {
