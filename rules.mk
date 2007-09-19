@@ -28,5 +28,9 @@ prod :
 javascript:
 	cd js && $(MAKE) clean && $(MAKE)
 
+.PHONY: jsclean
+jsclean: 
+	cd js && $(MAKE) clean
+
 commit :
 	git commit -a
