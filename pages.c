@@ -17,7 +17,7 @@ new_page()
 	Page tmp;
 	int i;	
 	if (!gpi.free) {
-		gpi.baseaddr = mmap(NULL,getpagesize() * CACHE_PAGES,PROT_READ|PROT_WRITE,MAP_ANON,-1,0);
+		gpi.baseaddr = mmap(NULL,getpagesize() * CACHE_PAGES,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANON,-1,0);
 		if (gpi.baseaddr == (char*)-1) return NULL;
 		gpi.size = CACHE_PAGES * getpagesize();
 		gpi.allocated = 0;

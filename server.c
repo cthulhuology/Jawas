@@ -207,6 +207,7 @@ run()
 		Req = NULL;
 		Resp = NULL;
 		Sock = NULL;
+		if (ec->fd == 0) continue;
 		switch (ec->type) {
 		case READ:
 			if (ec->flag == SEOF) break;

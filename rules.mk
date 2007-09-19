@@ -21,7 +21,7 @@ all : $(PROGRAM) $(LIBRARY)
 .PHONY: prod
 prod :
 	$(MAKE) clean
-	$(MAKE) javascript
+#	$(MAKE) javascript
 	CFLAGS=-DPROD $(MAKE)	
 
 .PHONY: javascript
