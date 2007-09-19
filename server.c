@@ -12,6 +12,7 @@
 #include "events.h"
 #include "files.h"
 #include "sockets.h"
+#include "signals.h"
 #include "server.h"
 #include "uri.h"
 #include "methods.h"
@@ -189,6 +190,7 @@ serve(int port, int tls_port)
 	monitor_socket(srv->http_sock);
 	monitor_socket(srv->tls_sock);
 	srv->done = 0;
+	general_signal_handlers();
 	socket_signal_handlers();
 #ifdef LINUX
 	file_signal_handlers();
@@ -199,9 +201,11 @@ void
 run()
 {
 	File fc;
-	Event ec;
-	ec = poll_events(srv->ec,srv->numevents);
+	Event ec = srv->ec;
+	int events = srv->numevents;
+	srv->ec = NULL;
 	srv->numevents = 2;
+	ec = poll_events(ec,events);
 	for (srv->ec = NULL; ec; ec = ec->next) {
 		server_scratch();
 		Req = NULL;
@@ -231,6 +235,10 @@ run()
 			unload(ec->fd,char_str(fc->name,0));
 			break;
 		}
+	}
+	if (srv->done) {
+		stop();
+		exit(0);
 	}
 }
 

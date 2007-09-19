@@ -22,10 +22,6 @@ void
 socket_signal_handlers()
 {
 	signal(SIGPIPE,signal_handler);
-	signal(SIGTERM,signal_handler);
-	signal(SIGINT,signal_handler);
-	signal(SIGHUP,signal_handler);
-	
 }
 
 int

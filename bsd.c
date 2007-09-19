@@ -11,11 +11,15 @@
 
 #ifndef LINUX
 
+extern Scratch escratch;
+
 Event
 poll_events(Event ec, int numevents)
 {
 	int n;
 	Scratch scratch = new_scratch(NULL);
+	Scratch tmp = escratch;
+	escratch = NULL;
 	Event retval = NULL;
 	struct timespec ts = { 0, 0 };
 	struct kevent* cl = (struct kevent*)(ec ? alloc_scratch(scratch,sizeof(struct kevent)*ec->pos) : NULL);
@@ -32,12 +36,14 @@ poll_events(Event ec, int numevents)
 		cl[n].udata = ec->data;
 		ec = ec->next;
 	}
-	free_events();
 	n = kevent(KQ,cl,n,el,numevents, NULL);
-	retval = NULL;	
+	if (n < 0) goto done;
+	debug("Processing %i events",n);
 	while (n--) 
 		retval = queue_event(retval,el[n].ident,el[n].filter == EVFILT_READ ? READ : el[n].filter == EVFILT_WRITE ? WRITE : NODE, el[n].flags == EV_EOF ? EOF : NONE,el[n].udata);
+done:
 	free_scratch(scratch);
+	free_scratch(tmp);
 	return retval;
 }
 

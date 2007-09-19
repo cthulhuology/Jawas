@@ -37,6 +37,7 @@ pages.c \
 requests.c \
 responses.c \
 server.c \
+signals.c \
 sockets.c \
 status.c  \
 str.c \
