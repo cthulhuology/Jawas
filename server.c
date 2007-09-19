@@ -45,12 +45,13 @@ client_scratch()
 File
 load(str filename)
 {
-	File retval;
+	File retval = NULL;
 	if (!filename) return NULL;
 	server_scratch();	
 	debug("Opening %s\n",filename);
 	retval = query_cache(&srv->fc,filename);
 	if (retval) {
+		debug("Found file %s in cache",filename);
 		old_scratch();
 		return retval;
 	}
@@ -61,7 +62,9 @@ load(str filename)
 		return NULL;
 	}
 	srv->fc = retval;
+#ifndef LINUX
 	add_file_monitor(srv->fc->fd,srv->fc);
+#endif
 	old_scratch();
 	return retval;
 }

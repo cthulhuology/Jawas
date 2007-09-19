@@ -14,6 +14,7 @@ int
 find_status_code(int code)
 {
 	int i;
+	debug("finding status of code %i", code);
 	for (i = 0; stati[i].code; ++i) {
 		if (stati[i].code == code) return i;
 	}

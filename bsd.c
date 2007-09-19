@@ -11,6 +11,8 @@
 
 #ifndef LINUX
 
+#define NODE_FLAGS NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_RENAME | NOTE_REVOKE
+
 extern Scratch escratch;
 
 Event

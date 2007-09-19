@@ -402,7 +402,10 @@ CreateDatabaseTableFunctions(JSInstance* in)
 	const char* args[] = { "id","obj",NULL };
 	char query[] = "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tableowner = 'jawas'";
 	res = PQexec(in->database,query);	
-	if (PQresultStatus(res) != PGRES_TUPLES_OK) return 1;
+	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+		error("Failed to initialize database interface");
+		return 1;
+	}
 	for (i = 0; i < PQntuples(res); ++i) {
 		char* table = PQgetvalue(res,i,0);
 		str s = Str(
@@ -545,11 +548,17 @@ int
 jws_handler(File fc)
 {
 	Buffer tmp;
-	if (InitJS(&ins,srv,Resp)) goto error;
+	if (InitJS(&ins,srv,Resp)) {
+		debug("Failed to initialize Javascript");
+		goto error;
+	}
 	if (!setjmp(jmp)) {
 		ProcessFile(fc->data);
 	}
-	if (DestroyJS(&ins)) goto error;
+	if (DestroyJS(&ins)) {
+		debug("Failed to destroy Javascript");
+		goto error;
+	}
 	Resp->contents = ins.buffer;
 	return Resp->status;
 error:

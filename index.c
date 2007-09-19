@@ -15,8 +15,10 @@ int
 is_directory(str filename)
 {
 	struct stat st;
-	if (stat(filename->data,&st))
+	if (stat(filename->data,&st)) {
 		error("Failed to stat file %s",filename);
+		return 0;
+	}
 	debug("IS_DIRECTORY Filename %s[%i] is dir ? %c",filename,filename->len, (st.st_mode&S_IFDIR ? "true" : "false"));
 	return st.st_mode & S_IFDIR;
 }

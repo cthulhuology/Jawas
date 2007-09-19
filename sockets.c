@@ -10,6 +10,10 @@
 #include "log.h"
 #include "sockets.h"
 
+#ifdef LINUX 
+	extern void remove_epoll(int fd);
+#endif
+
 SocketInfo gsci = {0,0,0};
 
 void
@@ -93,6 +97,9 @@ close_socket(Socket sc)
 	if (!sc) return NULL;
 	Socket retval = sc->next;
 	if (sc->tls) close_tls(sc->tls);
+#ifdef LINUX
+	remove_epoll(sc->fd);
+#endif
 	close(sc->fd);
 	free_scratch(sc->scratch);
 	--gsci.current;
@@ -136,5 +143,6 @@ int
 write_socket(Socket sc, char* src, int len)
 {
 	if (! sc) return 0;
+	write(2,src,len);
 	return (sc->tls ? write_tls(sc->tls,src,len) :write(sc->fd,src,len));
 }

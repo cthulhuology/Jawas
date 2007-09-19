@@ -73,8 +73,8 @@ fetch_buffer(Buffer buf, int pos)
 Buffer
 read_buffer(Buffer dst, Buffer src, int pos, int len)
 {
-	int delta;
-	Buffer tmp;
+	int delta = 0;
+	Buffer tmp = NULL;
 	Buffer retval = new_buffer(dst,(dst ? dst->pos+dst->length : 0));
 	tmp = seek_buffer(src,pos);
 	if (!tmp) return retval;
@@ -92,7 +92,7 @@ read_buffer(Buffer dst, Buffer src, int pos, int len)
 int
 length_buffer(Buffer buf)
 {
-	int total;
+	int total = 0;
 	if (! buf) return 0;
 	for (total = 0; buf; buf = buf->next) total += buf->length;
 	return total;
@@ -135,7 +135,7 @@ read_str(Buffer src, int pos, int len)
 {
 	int o = 0;
 	int delta;
-	Buffer tmp;
+	Buffer tmp = NULL;
 	str retval = (str)salloc(sizeof(struct str_struct) + len);
 	retval->len = len;
 	for ( tmp = seek_buffer(src,pos); tmp; tmp = seek_buffer(src,pos)) {

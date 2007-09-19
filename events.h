@@ -30,12 +30,6 @@ Event queue_event(Event ec, int fd, enum event_types type, enum event_flags flag
 
 Event file_monitor(Event ec);
 
-#ifdef LINUX
-#define NODE_FLAGS DN_MODIFY | DN_CREATE | DN_DELETE | DN_RENAME | DN_ATTRIB
-#else
-#define NODE_FLAGS NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_RENAME | NOTE_REVOKE
-#endif
-
 #define monitor_socket(f) \
 	srv->ec = queue_event(srv->ec,f, READ, NONE, NULL); \
 	srv->numevents++;

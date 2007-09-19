@@ -143,7 +143,7 @@ parse_path()
 	Buffer qs;
 	Buffer tmp = seek_buffer(Req->contents,0);
 	if (! tmp) return NULL;
-	for (;isspace(tmp->data[i]);++i);	// skip errorenous spaces
+	for (i = 0;isspace(tmp->data[i]);++i);	// skip errorenous spaces
 	for (i = 0; tmp->data[i] && !isspace(tmp->data[i]); ++i);
 	for (;isspace(tmp->data[i]);++i);
 	for (end = i; tmp->data[end] && !isspace(tmp->data[end]) && tmp->data[end] != '?'; ++end);
