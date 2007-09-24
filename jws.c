@@ -160,6 +160,7 @@ Header(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	if (argc != 1) return JS_FALSE;	
 	s = JS_ValueToString(cx,argv[0]);
 	str head  = find_header(ins.resp->req->headers,JS_GetStringBytes(s));
+	if (!head) return JS_FALSE;
 	s = JS_NewString(cx,head->data,head->len);
 	*rval = STRING_TO_JSVAL(s);
 	return JS_TRUE;

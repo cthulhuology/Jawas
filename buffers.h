@@ -28,6 +28,7 @@ char fetch_buffer(Buffer buf, int pos);
 Buffer read_buffer(Buffer dst, Buffer src, int pos, int len);
 Buffer write_buffer(Buffer dst, char* src, int len);
 Buffer reverse_buffer(Buffer buf, Buffer last);
+int search_buffer(Buffer buf, int pos, str key, int off);
 Buffer print_buffer(Buffer buf, char* fmt, ...);
 Buffer write_str(Buffer dst, str src);
 str read_str(Buffer src, int pos, int len);

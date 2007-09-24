@@ -49,4 +49,7 @@ n (t a) { \
 #define icmp_str(a,b) \
 	(a->len == b->len ? !strncasecmp(a->data,b->data,a->len) : 0)
 
+#define ncmp_str(a,b,n) \
+	(a->len >= n && b->len >= n ? ! strncmp(a->data,b->data,n) : 0)
+
 #endif

@@ -104,15 +104,28 @@ find_buffer(Buffer buf, int pos, char* delim)
 	int i,j,delta, len = length_buffer(buf);
 	Buffer tmp = seek_buffer(buf,pos);
 	while (tmp) {
-		 delta = pos - buf->pos;
-		for (i = delta; i < buf->length; ++i)
+		delta = pos - tmp->pos;
+		for (i = delta; i < tmp->length; ++i)
 			for (j = 0; delim[j]; ++j ) 
-				if (delim[j] == buf->data[i]) 
-					return i + buf->pos;
+				if (delim[j] == tmp->data[i]) 
+					return i + tmp->pos;
 		if (i == len) return len;
-		tmp = seek_buffer(buf,pos+buf->length - delta);
+		tmp = seek_buffer(buf,pos+tmp->length - delta);
 	}
 	return -1;
+}
+
+int
+search_buffer(Buffer buf, int pos, str key, int off)
+{
+	Buffer tmp = seek_buffer(buf,pos);
+	int len = length_buffer(buf);
+	int delta = pos - tmp->pos;
+	if (off >= key->len) return pos - key->len;
+	if (pos >= len) return len;
+	if (key->data[off] == tmp->data[delta])
+		return search_buffer(buf,pos + 1, key, off + 1);
+	return search_buffer(buf,pos+1,key,0);	
 }
 
 Buffer

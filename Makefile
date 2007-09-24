@@ -21,10 +21,13 @@ endif
 
 SOURCES = \
 alloc.c \
+amazon.c \
 buffers.c \
 bsd.c \
+dates.c \
 events.c \
 files.c \
+forms.c \
 headers.c \
 image.c \
 index.c \

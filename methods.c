@@ -6,12 +6,14 @@
 
 #include "include.h"
 #include "defines.h"
+#include "str.h"
 #include "log.h"
 #include "status.h"
 #include "uri.h"
 #include "index.h"
 #include "server.h"
 #include "methods.h"
+#include "forms.h"
 
 MethodDispatch gdispatch[] = {
 	{ 3, "GET", get_method },
@@ -39,7 +41,12 @@ get_method()
 int
 post_method()
 {
-	Req->query_vars = parse_uri_encoded(Req->query_vars,Req->contents,Req->body,length_buffer(Req->contents)-1);
+	str enctype = find_header(Req->headers,"Content-Type");
+	debug("Enctype: %s (%p,%i)", enctype, enctype->data,enctype->len);
+	debug("multipart? %c", (ncmp_str(enctype,Str("multipart/form-data"),19) ? "yes" : "no"));
+	Req->query_vars = enctype && ncmp_str(enctype,Str("multipart/form-data"),19) ?
+		parse_multipart_body(Req->query_vars,enctype) :
+		parse_uri_encoded(Req->query_vars,Req->contents,Req->body,length_buffer(Req->contents)-1);
 	return get_method();
 }
 

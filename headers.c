@@ -52,6 +52,8 @@ Headers
 append_header(Headers headers, str key, str value)
 {
 	int i;
+	if (!headers)
+		headers = new_headers();
 	i = free_header_slot(headers);
 	if (i > MAX_HEADERS) return NULL;
 	headers[i].key = key;

@@ -23,7 +23,7 @@ char_str(const char* a, int l)
 	int len = l ? l :  strlen(a);
 	str retval = (str)salloc(1+len+sizeof(struct str_struct));
 	retval->len = len;
-	memcpy(retval->data,a,len);
+	if (a) memcpy(retval->data,a,len);
 	retval->data[len] = '\0';
 	return retval;
 }
