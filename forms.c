@@ -31,17 +31,14 @@ find_boundary(str enc)
 }
 
 str
-parse_filename(Buffer buf, int pos)
+parse_name(Buffer buf, int pos)
 {
 	str retval = NULL;
 	int len = length_buffer(buf);
-	int off = 10 + search_buffer(buf,pos,Str("filename=\""),0);
-	debug("filename offset %i, %i", off,len);
-	if (off >= len) {
-		off = 6 + search_buffer(buf,pos,Str("name=\""),0);
-		debug("name offset %i, %i",off,len);
-		if (off >= len) return NULL;
-	}
+	int off;
+	off = 6 + search_buffer(buf,pos,Str("name=\""),0);
+	debug("name offset %i, %i",off,len);
+	if (off >= len) return NULL;
 	debug("Working offset %i",off);
 	int end = find_buffer(buf,off+1,"\"");
 	debug("End working offset %i",end);
@@ -53,6 +50,14 @@ parse_filename(Buffer buf, int pos)
 	retval =  read_str(buf,off,end-off);
 	debug("Found file name: %s",retval);
 	return retval;
+}
+
+int
+is_file(Buffer buf, int pos, int end)
+{
+	int len = length_buffer(buf);
+	int off = 6 + search_buffer(buf,pos,Str("filename=\""),0);
+	return off < len && off < end;
 }
 
 int
@@ -91,10 +96,18 @@ save_contents(str fname, Buffer buf, int pos, int end)
 	return filename;		
 }
 
+str
+get_contents(Buffer buf, int pos, int end)
+{
+	return read_str(buf,pos,end-pos);
+}
+
 Headers
 parse_multipart_body(Headers headers, str enctype)
 {
-	int i, n, len = length_buffer(Req->contents);
+	str dstname;
+	int i, e, n, len = length_buffer(Req->contents);
+	dump_buffer(Req->contents);
 	str boundary = find_boundary(enctype);
 	debug("Boundary: %s", boundary);
 	if (!boundary) {
@@ -103,19 +116,24 @@ parse_multipart_body(Headers headers, str enctype)
 	}
 	for (i = search_buffer(Req->contents,Req->body,boundary,0); 
 		i < len;
-		i = n + boundary->len + 2) {
-		debug("Search buffer start offset %i",i);
-		n = search_buffer(Req->contents,Req->body + i + boundary->len,boundary,0);
-		debug("Search buffer end offset %i",n);
-		str srcname = parse_filename(Req->contents,i);
+		i = n + boundary->len) {
+		debug(">> %i",i);
+		n = search_buffer(Req->contents,i+1,boundary,0);
+		debug("<< %i",n);
+		debug("Contents [%s]",read_str(Req->contents,i,n-i));
+		str srcname = parse_name(Req->contents,i);
 		if (! srcname) {
 			i = skip_content_headers(Req->contents,i);
+			debug(">> %i",i);
 			continue;
 		}
 		debug("srcname = %s",srcname);
-		i = skip_content_headers(Req->contents,i);
-		debug("Offset of contents is %i",i);
-		str dstname = save_contents(srcname,Req->contents,i,n-2);
+		e = skip_content_headers(Req->contents,i);
+		debug(">>== %i",e);
+		if (is_file(Req->contents,i,e))
+			dstname = save_contents(srcname,Req->contents,i,n-2);
+		else
+			dstname = get_contents(Req->contents,e,n-2);
 		debug("dstname = %s",dstname);
 		headers = append_header(headers,srcname,dstname);
 	}

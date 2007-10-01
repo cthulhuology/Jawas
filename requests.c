@@ -86,18 +86,20 @@ parse_request_headers(Buffer buf, int* body)
 Request 
 read_request(Request req)
 {
-	int tmp,hdrs;
 	req->contents = read_socket(req->sc);
 	if (!req->contents) {
 		error("No request contents on request %i\n",req);
 		return NULL;
 	}
-	req->headers = parse_request_headers(req->contents,&req->body);
 	if (!req->headers) {
-		error("No request headers on request %i\n",req);
-		return NULL;
+		req->headers = parse_request_headers(req->contents,&req->body);
+		if (!req->headers) {
+			error("No request headers on request %i\n",req);
+			return NULL;
+		}
 	}
 	req->done = (length_buffer(req->contents) - req->body) >= request_content_length(req);
+	debug("Request done %c [%i of %i bytes]", req->done ? "yes" : "no", length_buffer(req->contents), request_content_length(req));
 	return req;
 }
 

@@ -33,9 +33,11 @@ struct socket_info_struct {
 extern SocketInfo gsci;
 
 void socket_signal_handlers();
+int nonblock(int fd);
 
 int open_socket(int port);
 Socket accept_socket(Socket sc, int fd, TLSInfo tls);
+Socket connect_socket(char* host, int port);
 
 Buffer read_socket(Socket sc);
 int write_socket(Socket sc, char* src, int len);

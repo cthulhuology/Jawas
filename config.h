@@ -18,3 +18,6 @@
 #define TLS_PASSWORD "fullfathomfive"
 #define PAGE_GUARD 1
 #define CACHE_PAGES 100
+
+#define AMAZON_KEY "/opt/Jawas/Code/Jawas/amazon.key"
+#define AMAZON_SECRET "/opt/Jawas/Code/Jawas/amazon.secret"

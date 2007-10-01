@@ -15,6 +15,7 @@
 #include "signals.h"
 #include "server.h"
 #include "uri.h"
+#include "usage.h"
 #include "methods.h"
 #include "jws.h"
 
@@ -145,6 +146,8 @@ request()
 		else 
 			Resp->status = dispatch_method(parse_method(Req));
 		add_write_socket(Sock->fd,Resp);
+	} else {
+		add_read_socket(Sock->fd,Req);
 	}
 	debug("REQUEST DONE");
 	old_scratch();
@@ -189,6 +192,14 @@ serve(int port, int tls_port)
 	srv->ec = NULL;
 	srv->fc = NULL;
 	srv->sc = NULL;
+	srv->fc = open_file(srv->fc,Str("%c",AMAZON_SECRET));
+	srv->s3secret = NULL;
+	if (srv->fc)
+		srv->s3secret = char_str(srv->fc->data,srv->fc->st.st_size -1);
+	srv->fc = open_file(srv->fc,Str("%c",AMAZON_KEY));
+	srv->s3key = NULL;
+	if (srv->fc)
+		srv->s3key = char_str(srv->fc->data,srv->fc->st.st_size -1);
 	srv->numevents = 2;
 	monitor_socket(srv->http_sock);
 	monitor_socket(srv->tls_sock);
@@ -210,6 +221,7 @@ run()
 	srv->numevents = 2;
 	ec = poll_events(ec,events);
 	for (srv->ec = NULL; ec; ec = ec->next) {
+		start_usage();
 		server_scratch();
 		Req = NULL;
 		Resp = NULL;
@@ -238,6 +250,8 @@ run()
 			unload(ec->fd,char_str(fc->name,0));
 			break;
 		}
+		stop_usage();
+		dump_usage();
 	}
 	if (srv->done) {
 		stop();

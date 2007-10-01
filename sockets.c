@@ -71,7 +71,7 @@ accept_socket(Socket sc, int fd, TLSInfo tls)
 	socklen_t slen = sizeof(struct sockaddr_in);
 	int sock = accept(fd,(struct sockaddr*)&saddr,&slen);
 	if (sock < 1) {
-		error("[JAWAS] failed to accept socket\n");
+		error("[JAWAS] failed to accept socket");
 		return NULL;
 	}
 	nonblock(sock);
@@ -88,6 +88,49 @@ accept_socket(Socket sc, int fd, TLSInfo tls)
 	++gsci.current;
 	++gsci.total;
 	gsci.max = max(gsci.current,gsci.max);
+	return retval;
+}
+
+Socket
+connect_socket(char* host, int port)
+{
+	Socket retval;
+	int i;
+	struct hostent* hst = gethostbyname(host);;
+	struct sockaddr_in saddr;
+	struct in_addr **list;
+	socklen_t slen = sizeof(struct sockaddr_in);
+	int sock = socket(AF_INET,SOCK_STREAM,0);
+	if (sock < 1) {	
+		error("[JAWAS] failed to create socket");
+		return NULL;
+	}
+	if (!hst) {
+		error("[JAWAS] failed to lookup %s",host);
+		return NULL;
+	}
+	list = (struct in_addr**)hst->h_addr_list;
+	for (i = 0; list[i]; ++i) {
+		saddr.sin_port = htons(port);
+		saddr.sin_addr = *list[i];
+		saddr.sin_family = AF_INET;
+		debug("Connecting to %c",inet_ntoa(*list[i]));
+		if (connect(sock,(struct sockaddr*)&saddr,slen)) {
+			perror("connect");
+			error("[JAWAS] failed to connect to %c:%i",host,port);
+			continue;
+		}
+		break;
+	}
+	retval = (Socket)salloc(sizeof(struct socket_cache_struct));
+	retval->next = NULL;
+	retval->fd = sock;
+	retval->scratch = NULL;
+	retval->buf = NULL;
+	retval->tls = NULL;
+	retval->port = port;
+	retval->host = Str("%c",host);
+	retval->peer = (int)saddr.sin_addr.s_addr;
 	return retval;
 }
 
@@ -143,6 +186,6 @@ int
 write_socket(Socket sc, char* src, int len)
 {
 	if (! sc) return 0;
-	write(2,src,len);
+//	write(2,src,len);
 	return (sc->tls ? write_tls(sc->tls,src,len) :write(sc->fd,src,len));
 }

@@ -60,6 +60,7 @@ int
 dispatch_method(str method)
 {
 	int i;
+	debug("Method is %s",method);
 	for (i = 0; gdispatch[i].name; ++i ) 
 		if (! strncasecmp(gdispatch[i].name,method->data,gdispatch[i].len)) 
 			return gdispatch[i].handler();

@@ -8,14 +8,19 @@ ARCH := $(shell uname)
 
 LIBS = -ljs -lpq -lssl -lcrypto
 
+CFLAGS += -O2 -pg `Wand-config --cppflags`
+#CFLAGS += -foptimize-sibling-calls -fomit-frame-pointer
+
+LDFLAGS  += `Wand-config --ldflags --libs`
+
 ifeq ($(ARCH),Darwin)
 	CFLAGS += -ggdb -DXP_UNIX 
 	INCLUDES = -Ijs -Ijs/Darwin_DBG.OBJ -I/opt/local/include/postgresql82/
-	LDFLAGS = -Ljs/Darwin_DBG.OBJ/ -L/opt/local/lib/postgresql82/
+	LDFLAGS += -Ljs/Darwin_DBG.OBJ/ -L/opt/local/lib/postgresql82/
 else	
 	CFLAGS += -ggdb -DXP_UNIX -DLINUX
 	INCLUDES = -Ijs -Ijs/Linux_All_DBG.OBJ -I/usr/include/postgresql/
-	LDFLAGS = -Ljs/Linux_All_DBG.OBJ/
+	LDFLAGS += -Ljs/Linux_All_DBG.OBJ/
 endif
 
 
@@ -45,7 +50,9 @@ sockets.c \
 status.c  \
 str.c \
 tls.c \
-uri.c
+uri.c \
+usage.c \
+wand.c
 
 include rules.mk
 include dist.mk

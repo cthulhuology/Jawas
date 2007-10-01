@@ -22,6 +22,8 @@ struct server_struct {
 	File fc;
 	Socket sc;
 	TLSInfo tls;
+	str s3secret;
+	str s3key;
 	Scratch scratch;
 	int numevents;
 	int done;

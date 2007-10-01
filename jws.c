@@ -6,6 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
+#include "config.h"
 #include "alloc.h"
 #include "pages.h"
 #include "log.h"
@@ -16,6 +17,8 @@
 #include "server.h"
 #include "jsapi.h"
 #include "jsstr.h"
+#include "amazon.h"
+#include "wand.h"
 #include "jws.h"
 
 // Javascript Functions
@@ -109,7 +112,7 @@ Print(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		c = JS_GetStringBytes(s);
 		ins.buffer = write_buffer(ins.buffer, c, JS_GetStringLength(s));
 	}
-	ins.buffer = write_buffer(ins.buffer, "\n",1);
+//	ins.buffer = write_buffer(ins.buffer, "\n",1);
 	return JS_TRUE;
 }
 
@@ -361,6 +364,65 @@ GetGuid(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	return JS_TRUE;
 }
 
+#define jsval2str(x) char_str(JS_GetStringBytes(JS_ValueToString(cx,x)),JS_GetStringLength(JS_ValueToString(cx,x)))
+#define str2jsval(x) STRING_TO_JSVAL(JS_NewString(cx,x->data,x->len))
+
+static JSBool
+S3PutJPEG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 2) return JS_FALSE;
+	str bucket = jsval2str(argv[0]);
+	str file = jsval2str(argv[1]);
+	
+	File f = load(file);
+
+	str cmd = s3_put_jpeg(bucket,file);
+	debug("CMD is %s",cmd);
+
+	cmd = s3_put_thumb(bucket,file);
+	debug("CMD is %s",cmd);
+
+	return JS_TRUE;
+}
+
+static JSBool
+S3GetJPEG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 2) return JS_FALSE;
+	str bucket = jsval2str(argv[0]);
+	str tmpfile = jsval2str(argv[1]);
+	str url = Str("http://%s.s3.amazonaws.com%x.jpg",bucket,Cstr(tmpfile->data + 4, tmpfile->len - 4));
+	*rval = str2jsval(url);
+	return JS_TRUE;
+}
+
+static JSBool
+S3GetThumb(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 2) return JS_FALSE;
+	str bucket = jsval2str(argv[0]);
+	str tmpfile = jsval2str(argv[1]);
+	str url = Str("http://%s.s3.amazonaws.com%x-thumb.jpg",bucket,Cstr(tmpfile->data + 4, tmpfile->len - 4));
+	*rval = str2jsval(url);
+	return JS_TRUE;
+}
+
+static JSBool
+ImageInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	int i;
+	JSString* value;
+	JSObject* o = JS_NewObject(cx,NULL,NULL,NULL);
+	if (argc != 1) return JS_FALSE;	
+	str filename = jsval2str(argv[0]);
+	char** props = get_image_properties(filename->data);
+	for (i = 0; props[i*2]; ++i) {
+		value = JS_NewString(cx,props[i*2+1],strlen(props[i*2+1]));
+		JS_DefineProperty(cx,o,props[i*2]+5,STRING_TO_JSVAL(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
+	}
+	*rval = o;
+	return JS_TRUE;
+}
 
 static JSClass global_class = {
 	"global", 0,
@@ -392,6 +454,10 @@ static JSFunctionSpec my_functions[] = {
 	{"mem_info", MemInfo, 0},
 	{"file_info", FileInfo, 0},
 	{"guid", GetGuid, 0 },
+	{"s3_put_jpeg",S3PutJPEG, 0},
+	{"s3_get_jpeg",S3GetJPEG, 0},
+	{"s3_get_thumb",S3GetThumb, 0},
+	{"image_info",ImageInfo, 0},
 	{0},
 };
 

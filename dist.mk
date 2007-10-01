@@ -3,8 +3,8 @@
 #
 
 USER = dave
-TARGETS = nexttolast.com
-	#kadath.nexttolast.com 
+#TARGETS +=  kadath.nexttolast.com
+TARGETS +=  nexttolast.com
 
 .PHONY: $(TARGETS)
 $(TARGETS):

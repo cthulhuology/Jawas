@@ -8,6 +8,7 @@
 #define __DATES__H__
 
 str Date();
+str Expires();
 
 #endif
 

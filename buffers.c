@@ -120,12 +120,21 @@ search_buffer(Buffer buf, int pos, str key, int off)
 {
 	Buffer tmp = seek_buffer(buf,pos);
 	int len = length_buffer(buf);
-	int delta = pos - tmp->pos;
+	int delta;
+seek_again:
+	if (pos >= tmp->pos + tmp->length)
+		tmp = seek_buffer(buf,pos);
+	delta = pos - tmp->pos;
 	if (off >= key->len) return pos - key->len;
 	if (pos >= len) return len;
-	if (key->data[off] == tmp->data[delta])
-		return search_buffer(buf,pos + 1, key, off + 1);
-	return search_buffer(buf,pos+1,key,0);	
+	if (key->data[off] == tmp->data[delta]) {
+		++pos;
+		++off;	
+		goto seek_again;
+	}
+	++pos;
+	off = 0;
+	goto seek_again;
 }
 
 Buffer
@@ -162,4 +171,13 @@ read_str(Buffer src, int pos, int len)
 		pos += tmp->length - delta;
 	}
 	return retval;
+}
+
+void
+dump_buffer(Buffer src)
+{
+	Buffer tmp;
+	for (tmp = src; tmp; tmp = tmp->next) {
+		write(2,tmp->data,tmp->length);
+	}
 }
