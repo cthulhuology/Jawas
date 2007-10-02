@@ -4,7 +4,7 @@ include config.mk
 
 OTHER_LIBS += -Lfdlibm/$(OBJDIR) -lfdm 
 INCLUDES += -I/usr/local/apache2/include/ -I/opt/local/include/apr-1
-OPTIMIZER = 
+OPTIMIZER =  -ggdb
 
 #
 # XCFLAGS may be set in the environment or on the gmake command line

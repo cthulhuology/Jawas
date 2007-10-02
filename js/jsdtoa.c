@@ -335,33 +335,18 @@ static Bigint  *
 Balloc(int32 k)
 {
 	int32           x;
-	Bigint         *rv;
-#ifndef Omit_Private_Memory
-	uint32          len;
-#endif
+	Bigint         *rv = NULL;
 
-#ifdef ENABLE_OOM_TESTING
-	if (++allocationNum == desiredFailure) {
-		printf("Forced Failing Allocation number %d\n", allocationNum);
-		return NULL;
+	if (k > Kmax) {
+		fprintf(stderr,"k exceeds Kmax");
+	} else {
+		if ((rv = freelist[k]) != NULL)
+			freelist[k] = rv->next;
 	}
-#endif
-
-	if ((rv = freelist[k]) != NULL)
-		freelist[k] = rv->next;
 	if (rv == NULL) {
 		x = 1 << k;
-#ifdef Omit_Private_Memory
-		rv = (Bigint *) MALLOC(sizeof(Bigint) + (x - 1) * sizeof(ULong));
-#else
-		len = (sizeof(Bigint) + (x - 1) * sizeof(ULLong) + sizeof(double) - 1)
-			/ sizeof(double);
-		if (pmem_next - private_mem + len <= PRIVATE_mem) {
-			rv = (Bigint *) pmem_next;
-			pmem_next += len;
-		} else
-			rv = (Bigint *) MALLOC(len * sizeof(double));
-#endif
+		rv = (Bigint *) malloc(sizeof(Bigint) + (x - 1) * sizeof(ULong));
+		memset(rv,0,sizeof(Bigint) + (x - 1) * sizeof(ULong));
 		if (!rv)
 			return NULL;
 		rv->k = k;
@@ -390,13 +375,8 @@ static Bigint  *
 multadd(Bigint * b, int32 m, int32 a)
 {
 	int32           i, wds;
-#ifdef ULLong
-	ULLong          *x;
-	ULLong          carry, y;
-#else
 	ULong           carry, *x, y;
 	ULong           xi, z;
-#endif
 	Bigint         *b1;
 
 #ifdef ENABLE_OOM_TESTING
@@ -415,17 +395,11 @@ multadd(Bigint * b, int32 m, int32 a)
 	i = 0;
 	carry = a;
 	do {
-#ifdef ULLong
-		y = *x * (ULLong) m + carry;
-		carry = y >> 32;
-		*x++ = (ULLong) (y & 0xffffffffUL);
-#else
 		xi = *x;
 		y = (xi & 0xffff) * m + carry;
 		z = (xi >> 16) * m + (y >> 16);
 		carry = z >> 16;
 		*x++ = (z << 16) + (y & 0xffff);
-#endif
 	}
 	while (++i < wds);
 	if (carry) {
@@ -581,12 +555,8 @@ mult(CONST Bigint * a, CONST Bigint * b)
 	ULong           y;
 	ULong          *xc, *xc0, *xce;
 	CONST ULong    *x, *xa, *xae, *xb, *xbe;
-#ifdef ULLong
-	ULLong          carry, z;
-#else
 	ULong           carry, z;
 	ULong           z2;
-#endif
 
 	if (a->wds < b->wds) {
 		t = a;
@@ -609,22 +579,6 @@ mult(CONST Bigint * a, CONST Bigint * b)
 	xb = b->x;
 	xbe = xb + wb;
 	xc0 = c->x;
-#ifdef ULLong
-	for (; xb < xbe; xc0++) {
-		if ((y = *xb++) != 0) {
-			x = xa;
-			xc = xc0;
-			carry = 0;
-			do {
-				z = *x++ * (ULLong) y + *xc + carry;
-				carry = z >> 32;
-				*xc++ = (ULLong) (z & 0xffffffff UL);
-			}
-			while (x < xae);
-			*xc = (ULLong) carry;
-		}
-	}
-#else
 	for (; xb < xbe; xb++, xc0++) {
 		if ((y = *xb & 0xffff) != 0) {
 			x = xa;
@@ -656,7 +610,6 @@ mult(CONST Bigint * a, CONST Bigint * b)
 			*xc = z2;
 		}
 	}
-#endif
 	for (xc0 = c->x, xc = xc0 + wc; wc > 0 && !*--xc; --wc);
 	c->wds = wc;
 	return c;
@@ -849,12 +802,8 @@ diff(Bigint * a, Bigint * b)
 	Bigint         *c;
 	int32           i, wa, wb;
 	ULong          *xa, *xae, *xb, *xbe, *xc;
-#ifdef ULLong
-	ULLong          borrow, y;
-#else
 	ULong           borrow, y;
 	ULong           z;
-#endif
 
 	i = cmp(a, b);
 	if (!i) {
@@ -884,19 +833,6 @@ diff(Bigint * a, Bigint * b)
 	xbe = xb + wb;
 	xc = c->x;
 	borrow = 0;
-#ifdef ULLong
-	do {
-		y = (ULLong) * xa++ - *xb++ - borrow;
-		borrow = y >> 32 & 1 UL;
-		*xc++ = (ULLong) (y & 0xffffffff UL);
-	}
-	while (xb < xbe);
-	while (xa < xae) {
-		y = *xa++ - borrow;
-		borrow = y >> 32 & 1 UL;
-		*xc++ = (ULLong) (y & 0xffffffff UL);
-	}
-#else
 	do {
 		y = (*xa & 0xffff) - (*xb & 0xffff) - borrow;
 		borrow = (y & 0x10000) >> 16;
@@ -912,7 +848,6 @@ diff(Bigint * a, Bigint * b)
 		borrow = (z & 0x10000) >> 16;
 		Storeinc(xc, z, y);
 	}
-#endif
 	while (!*--xc)
 		wa--;
 	c->wds = wa;
@@ -1837,12 +1772,8 @@ quorem(Bigint * b, Bigint * S)
 {
 	int32           n;
 	ULong          *bx, *bxe, q, *sx, *sxe;
-#ifdef ULLong
-	ULLong          borrow, carry, y, ys;
-#else
 	ULong           borrow, carry, y, ys;
 	ULong           si, z, zs;
-#endif
 
 	n = S->wds;
 	JS_ASSERT(b->wds <= n);
@@ -1859,13 +1790,6 @@ quorem(Bigint * b, Bigint * S)
 		borrow = 0;
 		carry = 0;
 		do {
-#ifdef ULLong
-			ys = *sx++ * (ULLong) q + carry;
-			carry = ys >> 32;
-			y = *bx - (ys & 0xffffffff UL) - borrow;
-			borrow = y >> 32 & 1 UL;
-			*bx++ = (ULLong) (y & 0xffffffff UL);
-#else
 			si = *sx++;
 			ys = (si & 0xffff) * q + carry;
 			zs = (si >> 16) * q + (ys >> 16);
@@ -1875,7 +1799,6 @@ quorem(Bigint * b, Bigint * S)
 			z = (*bx >> 16) - (zs & 0xffff) - borrow;
 			borrow = (z & 0x10000) >> 16;
 			Storeinc(bx, z, y);
-#endif
 		}
 		while (sx <= sxe);
 		if (!*bxe) {
@@ -1892,13 +1815,6 @@ quorem(Bigint * b, Bigint * S)
 		bx = b->x;
 		sx = S->x;
 		do {
-#ifdef ULLong
-			ys = *sx++ + carry;
-			carry = ys >> 32;
-			y = *bx - (ys & 0xffffffff UL) - borrow;
-			borrow = y >> 32 & 1 UL;
-			*bx++ = (ULLong) (y & 0xffffffff UL);
-#else
 			si = *sx++;
 			ys = (si & 0xffff) + carry;
 			zs = (si >> 16) + (ys >> 16);
@@ -1908,7 +1824,6 @@ quorem(Bigint * b, Bigint * S)
 			z = (*bx >> 16) - (zs & 0xffff) - borrow;
 			borrow = (z & 0x10000) >> 16;
 			Storeinc(bx, z, y);
-#endif
 		} while (sx <= sxe);
 		bx = b->x;
 		bxe = bx + n;
