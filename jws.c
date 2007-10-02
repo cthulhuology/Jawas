@@ -416,11 +416,15 @@ ImageInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	if (argc != 1) return JS_FALSE;	
 	str filename = jsval2str(argv[0]);
 	char** props = get_image_properties(filename->data);
+	if (! props) return JS_FALSE;
 	for (i = 0; props[i*2]; ++i) {
-		value = JS_NewString(cx,props[i*2+1],strlen(props[i*2+1]));
+		if (props[i*2+1])
+			value = JS_NewString(cx,props[i*2+1],strlen(props[i*2+1]));
+		else
+			value = NULL;
 		JS_DefineProperty(cx,o,props[i*2]+5,STRING_TO_JSVAL(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
 	}
-	*rval = o;
+	*rval = OBJECT_TO_JSVAL(o);
 	return JS_TRUE;
 }
 

@@ -32,6 +32,6 @@ int search_buffer(Buffer buf, int pos, str key, int off);
 Buffer print_buffer(Buffer buf, char* fmt, ...);
 Buffer write_str(Buffer dst, str src);
 str read_str(Buffer src, int pos, int len);
-void dump_buffer(Buffer src);
+void dump_buffer(Buffer src, int pos);
 
 #endif

@@ -174,10 +174,11 @@ read_str(Buffer src, int pos, int len)
 }
 
 void
-dump_buffer(Buffer src)
+dump_buffer(Buffer src, int pos)
 {
 	Buffer tmp;
-	for (tmp = src; tmp; tmp = tmp->next) {
-		write(2,tmp->data,tmp->length);
+	for (tmp = seek_buffer(src,pos); tmp; tmp = tmp->next) {
+		write(2,tmp->data + (pos - tmp->pos),tmp->length);
+		pos = 0;
 	}
 }

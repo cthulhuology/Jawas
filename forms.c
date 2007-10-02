@@ -107,7 +107,8 @@ parse_multipart_body(Headers headers, str enctype)
 {
 	str dstname;
 	int i, e, n, len = length_buffer(Req->contents);
-	dump_buffer(Req->contents);
+	debug("Body is ");
+	dump_buffer(Req->contents,Req->body);
 	str boundary = find_boundary(enctype);
 	debug("Boundary: %s", boundary);
 	if (!boundary) {
@@ -120,7 +121,8 @@ parse_multipart_body(Headers headers, str enctype)
 		debug(">> %i",i);
 		n = search_buffer(Req->contents,i+1,boundary,0);
 		debug("<< %i",n);
-		debug("Contents [%s]",read_str(Req->contents,i,n-i));
+		if (n-i < 4000) debug("Contents [%s]",read_str(Req->contents,i,n-i));
+		else debug("Contents exceed string size");
 		str srcname = parse_name(Req->contents,i);
 		if (! srcname) {
 			i = skip_content_headers(Req->contents,i);
@@ -131,7 +133,7 @@ parse_multipart_body(Headers headers, str enctype)
 		e = skip_content_headers(Req->contents,i);
 		debug(">>== %i",e);
 		if (is_file(Req->contents,i,e))
-			dstname = save_contents(srcname,Req->contents,i,n-2);
+			dstname = save_contents(srcname,Req->contents,e,n-2);
 		else
 			dstname = get_contents(Req->contents,e,n-2);
 		debug("dstname = %s",dstname);

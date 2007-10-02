@@ -9,12 +9,7 @@
 #include "str.h"
 #include "files.h"
 #include "server.h"
-
-#ifdef LINUX
-#include <wand/magick_wand.h>
-#else
 #include <wand/MagickWand.h>
-#endif
 
 int
 create_thumb(const char* src, const char* dst)

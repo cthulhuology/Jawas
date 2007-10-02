@@ -180,7 +180,6 @@ serve(int port, int tls_port)
 	srv->scratch = scratch;
 	server_scratch();
 	set_cwd();
-	open_log();
 #ifdef LINUX
 	srv->kq = epoll_create(1024);
 #else
@@ -251,7 +250,7 @@ run()
 			break;
 		}
 		stop_usage();
-		dump_usage();
+		// dump_usage();
 	}
 	if (srv->done) {
 		stop();

@@ -55,12 +55,21 @@ parse_request_headers(Buffer buf, int* body)
 	}
 	for (i = 0; i < MAX_HEADERS && o < len; ++o) {
 		c = fetch_buffer(buf,o);
+		debug("Count is %i",count);
 		if (c == '\r' || c == '\n') {
 			reset = 1;
 			++count;
-			if (count > 2) break;
+			if (count > 2) {
+				debug("***** Start of body is %i",o+1);
+				*body = o+1;
+				debug("=== BODY ===");
+				dump_buffer(buf,*body);
+				debug("=== DONE ===");
+				return headers;
+			}
 			continue;
 		}
+		debug("Count is reset");
 		count = 0;
 		if (reset && ! headers[i].key) {
 			for (l = 1; (o + l) < len && fetch_buffer(buf,o+l) != ':'; ++l);
@@ -79,7 +88,7 @@ parse_request_headers(Buffer buf, int* body)
 			++i;
 		}
 	}
-	*body = o;
+	debug("***** BODY NOT SET!!!");
 	return headers;
 }
 
@@ -91,15 +100,19 @@ read_request(Request req)
 		error("No request contents on request %i\n",req);
 		return NULL;
 	}
-	if (!req->headers) {
+	if (!req->body) {
 		req->headers = parse_request_headers(req->contents,&req->body);
 		if (!req->headers) {
 			error("No request headers on request %i\n",req);
 			return NULL;
 		}
 	}
-	req->done = (length_buffer(req->contents) - req->body) >= request_content_length(req);
-	debug("Request done %c [%i of %i bytes]", req->done ? "yes" : "no", length_buffer(req->contents), request_content_length(req));
+	if (req->body) {
+		req->done = (length_buffer(req->contents) - req->body) >= request_content_length(req);
+		debug("Request done %c [%i of %i bytes]", req->done ? "yes" : "no", length_buffer(req->contents), request_content_length(req));
+	}
+	debug("REQUEST CONTENTS >>");
+	dump_buffer(req->contents,0);
 	return req;
 }
 

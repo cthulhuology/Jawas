@@ -37,7 +37,6 @@ restart:
 		notice("[%i] Jawasd Running...",getpid());
 		while (! srv->done) run();	
 		stop();
-		close_log();
 	} else {
 		waitpid(child,&child_status,0);
 		goto restart;
