@@ -55,12 +55,10 @@ parse_request_headers(Buffer buf, int* body)
 	}
 	for (i = 0; i < MAX_HEADERS && o < len; ++o) {
 		c = fetch_buffer(buf,o);
-		debug("Count is %i",count);
 		if (c == '\r' || c == '\n') {
 			reset = 1;
 			++count;
 			if (count > 2) {
-				debug("***** Start of body is %i",o+1);
 				*body = o+1;
 				debug("=== BODY ===");
 				dump_buffer(buf,*body);
@@ -69,7 +67,6 @@ parse_request_headers(Buffer buf, int* body)
 			}
 			continue;
 		}
-		debug("Count is reset");
 		count = 0;
 		if (reset && ! headers[i].key) {
 			for (l = 1; (o + l) < len && fetch_buffer(buf,o+l) != ':'; ++l);

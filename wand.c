@@ -4,12 +4,16 @@
 // All Rights Reserved
 
 #include "include.h"
+#include "defines.h"
 #include "wand.h"
 #include "alloc.h"
 #include "str.h"
 #include "files.h"
 #include "server.h"
+#include "log.h"
 #include <wand/MagickWand.h>
+
+typedef char*(*image_method_t)(MagickWand*, char*, File);
 
 int
 create_thumb(const char* src, const char* dst)
@@ -17,12 +21,10 @@ create_thumb(const char* src, const char* dst)
 	MagickWand* mw;
 	int h,w,x,y;
 	
-#ifndef LINUX
 	MagickWandGenesis();
-#endif
 	mw = NewMagickWand();
 	if (MagickFalse == MagickReadImage(mw,src)) {
-		fprintf(stderr,"Failed to read %s\n",src);
+		error("Failed to read %c\n",src);
 		return 1;
 	}
 	MagickResetIterator(mw);
@@ -36,75 +38,78 @@ create_thumb(const char* src, const char* dst)
 			h = h * IMAGE_WIDTH / w;
 			w = IMAGE_WIDTH;
 		}
-		fprintf(stderr,"Scaling to %i x %i\n",w,h);
 		MagickScaleImage(mw,w,h);
 		x = (w - IMAGE_WIDTH) / 2;
 		y = (h - IMAGE_HEIGHT) / 2;
-		fprintf(stderr,"Cropping to %i x %i at %i,%i\n",IMAGE_WIDTH,IMAGE_HEIGHT,x,y);
 		MagickCropImage(mw,IMAGE_WIDTH,IMAGE_HEIGHT,x,y);
 		if (MagickFalse == MagickWriteImage(mw,dst)) {
-			fprintf(stderr, "Failed to write %s\n",dst);
+			error("Failed to write %c\n",dst);
 			return 1;
 		}
 	}
 	DestroyMagickWand(mw);
-#ifndef LINUX
 	MagickWandTerminus();
-#endif
 	return 0;
+}
+
+char*
+get_image_size(MagickWand* mw, char* field, File fc)
+{
+	str size = Str("%i",fc->st.st_size);
+	return size->data;
+}
+
+char*
+get_image_width(MagickWand* mw, char* field, File fc)
+{
+	str width = Str("%i",MagickGetImageWidth(mw));
+	return width->data;
+}
+
+char*
+get_image_height(MagickWand* mw, char* field, File fc)
+{
+	str height = Str("%i",MagickGetImageHeight(mw));
+	return height->data;
 }
 
 char**
 get_image_properties(const char* filename)
 {
 	MagickWand* mw;
-	
-	char** array = (char**)salloc(sizeof(char*)*16);
-	char* fields[] = {
-		"EXIF:Make",
-		"EXIF:Model",
-		"EXIF:Orientation",
-		"EXIF:DateTime",
-		NULL
-	};
 	int i;
-	str width;
-	str height;
-	str size;
+	struct image_fields {
+		char* name;
+		image_method_t method;
+	} fields[] = {
+		{ "EXIF:Make", (image_method_t)MagickGetImageProperty },
+		{ "EXIF:Model", (image_method_t)MagickGetImageProperty },
+		{ "EXIF:Orientation", (image_method_t)MagickGetImageProperty },
+		{ "EXIF:DateTime", (image_method_t)MagickGetImageProperty },
+		{ "xxxxxHeight", get_image_height },
+		{ "xxxxxWidth", get_image_width },
+		{ "xxxxxSize", get_image_size },
+		{ NULL, (image_method_t)NULL }
+	};
+	char** array = (char**)salloc(sizeof(char*)*16);
 	File fc = load(Str("%c",filename));
 
-#ifndef LINUX
 	MagickWandGenesis();
-#endif
 	mw = NewMagickWand();
 	if (MagickFalse == MagickReadImage(mw,filename)) {
-		fprintf(stderr,"Failed to read %s\n",filename);
+		error("Failed to read %c\n",filename);
 		return NULL;
 	}
 	MagickResetIterator(mw);
 	while (MagickNextImage(mw) != MagickFalse) {
-		for (i = 0; fields[i]; ++i) {
-			array[i*2] = fields[i];
-			array[i*2+1] = MagickGetImageProperty(mw,fields[i]);
+		for (i = 0; fields[i].name; ++i) {
+			array[i*2] = fields[i].name;
+			array[i*2+1] = fields[i].method(mw,fields[i].name,fc);
 		}
-		height = Str("%i",MagickGetImageHeight(mw));
-		array[i*2] = "xxxxxHeight";
-		array[i*2+1] =  height->data;
-		++i;
-		width = Str("%i",MagickGetImageWidth(mw));
-		array[i*2] = "xxxxxWidth";
-		array[i*2+1] = width->data;
-		++i;
-		size = Str("%i",fc->st.st_size);
-		array[i*2] = "xxxxxSize";
-		array[i*2+1] = size->data;
-		++i;
 		array[i*2] = NULL;
 		array[i*2+1] = NULL;
 	}
 	DestroyMagickWand(mw);
-#ifndef LINUX
 	MagickWandTerminus();
-#endif
 	return array;
 }

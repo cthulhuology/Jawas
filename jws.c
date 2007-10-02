@@ -21,6 +21,9 @@
 #include "wand.h"
 #include "jws.h"
 
+#define jsval2str(x) char_str(JS_GetStringBytes(JS_ValueToString(cx,x)),JS_GetStringLength(JS_ValueToString(cx,x)))
+#define str2jsval(x) STRING_TO_JSVAL(JS_NewString(cx,x->data,x->len))
+
 // Javascript Functions
 
 JSInstance ins;
@@ -107,20 +110,22 @@ Print(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 
 	for (i = 0; i < argc; ++i) {
 		s = JS_ValueToString(cx, argv[i]);
-		if (!s) return JS_FALSE;
+		if (!s) {
+			error("print() failed, invalid string parameter at %i",i);
+			return JS_FALSE;
+		}
 		if (i) ins.buffer = write_buffer(ins.buffer," ",1);
 		c = JS_GetStringBytes(s);
 		ins.buffer = write_buffer(ins.buffer, c, JS_GetStringLength(s));
 	}
-//	ins.buffer = write_buffer(ins.buffer, "\n",1);
 	return JS_TRUE;
 }
 
 static JSBool
 CWD(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	JSString* s = JS_NewString(cx,Req->path->data,Req->path->len);
-	*rval = STRING_TO_JSVAL(s);
+	*rval = str2jsval(Req->path);
+	return JS_TRUE;
 }
 
 static JSBool
@@ -129,11 +134,17 @@ Include(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	File fc;
 	JSString* s;
 	str filename;
-	if (argc != 1) return JS_FALSE;
+	if (argc != 1) {
+		error("Usage: include(filename);");
+		return JS_FALSE;
+	}
 	s = JS_ValueToString(cx,argv[0]);
 	filename = file_path(Req->host,Str("/%s",char_str(JS_GetStringBytes(s),JS_GetStringLength(s))));
 	fc = load(filename);
-	if (!fc) return JS_FALSE;
+	if (!fc) {
+		error("Failed to open file %s",filename);
+		return JS_FALSE;
+	}
 	ProcessFile(fc->data);
 	return JS_TRUE;
 }
@@ -144,11 +155,17 @@ Use(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	File fc;
 	JSString* s;
 	str filename;
-	if (argc != 1) return JS_FALSE;
+	if (argc != 1) {
+		error("Usage: use(filename);");
+		return JS_FALSE;
+	}
 	s = JS_ValueToString(cx,argv[0]);
 	filename = file_path(Req->host,Str("/%s",char_str(JS_GetStringBytes(s),JS_GetStringLength(s))));
 	fc = load(filename);
-	if (!fc) return JS_FALSE;
+	if (!fc) {
+		error("Failed to open file %s",filename);
+		return JS_FALSE;
+	}
 	if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, fc->data, fc->st.st_size, "js.c", 1, rval)) {
 		debug("Failed to evaluate script %s",filename);
 		return JS_FALSE;
@@ -160,10 +177,16 @@ static JSBool
 Header(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	JSString* s;
-	if (argc != 1) return JS_FALSE;	
+	if (argc != 1) {
+		error("Usage: header(fieldname)");
+		return JS_FALSE;	
+	}
 	s = JS_ValueToString(cx,argv[0]);
 	str head  = find_header(ins.resp->req->headers,JS_GetStringBytes(s));
-	if (!head) return JS_FALSE;
+	if (!head) {
+		*rval = STRING_TO_JSVAL(NULL);
+		return JS_TRUE;
+	}
 	s = JS_NewString(cx,head->data,head->len);
 	*rval = STRING_TO_JSVAL(s);
 	return JS_TRUE;
@@ -173,10 +196,16 @@ static JSBool
 Param(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	JSString* s;
-	if (argc != 1) return JS_FALSE;
+	if (argc != 1) {
+		error("Usage: param(variable)");
+		return JS_FALSE;
+	}
 	s = JS_ValueToString(cx,argv[0]);
 	str pram = find_header(ins.resp->req->query_vars,JS_GetStringBytes(s));
-	if (! pram) return JS_FALSE;
+	if (! pram) {
+		*rval = STRING_TO_JSVAL(NULL);
+		return JS_TRUE;
+	}
 	s = JS_NewString(cx,pram->data,pram->len);
 	*rval = STRING_TO_JSVAL(s);
 	return JS_TRUE;
@@ -192,7 +221,10 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	JSString* value;
 	JSString* query;
 	PGresult* res;
-	if (argc != 1) return JS_FALSE;
+	if (argc != 1) {
+		error("Usage: query(querystring)");
+		return JS_FALSE;
+	}
 	query  = JS_ValueToString(cx,argv[0]);
 	res  = PQexec(ins.database,JS_GetStringBytes(query));
 	switch(PQresultStatus(res)) {
@@ -228,6 +260,7 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		case PGRES_NONFATAL_ERROR:
 		case PGRES_FATAL_ERROR:
 		default:
+			error("query(%s) failed %c", query,PQresultErrorMessage(res));
 			PQclear(res);
 			return JS_FALSE;
 	}
@@ -239,7 +272,10 @@ Encode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	char* data;
 	JSString* s;
 	Buffer tmp,buf;
-	if (argc != 1) return JS_FALSE;
+	if (argc != 1) {
+		error("Usage: encode(string)");	
+		return JS_FALSE;
+	}
 	s = JS_ValueToString(cx,argv[0]);
 	data = uri_encode(JS_GetStringBytes(s));
 	s = JS_NewString(cx,data,strlen(data));
@@ -253,7 +289,10 @@ Decode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	char* data;
 	JSString* s;
 	Buffer tmp,buf;
-	if (argc != 1) return JS_FALSE;
+	if (argc != 1) {
+		error("Usage: encode(string)");	
+		return JS_FALSE;
+	}
 	s = JS_ValueToString(cx,argv[0]);
 	data = uri_decode(JS_GetStringBytes(s));
 	s = JS_NewString(cx,data,buf->length);
@@ -355,22 +394,25 @@ GetGuid(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	PGresult* res = PQexec(ins.database,"SELECT nextval('guid_seq')");
 	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-		error("Result status not ok");	
+		error("Get next guid_seq value failed %s",PQresultErrorMessage(res));	
+		PQclear(res);
 		return JS_FALSE;
 	}
 	char* guid = PQgetvalue(res,0,0);
 	debug("Guid is %c",guid);
         *rval = STRING_TO_JSVAL(JS_NewString(cx,guid,strlen(guid)));
+	PQclear(res);
 	return JS_TRUE;
 }
 
-#define jsval2str(x) char_str(JS_GetStringBytes(JS_ValueToString(cx,x)),JS_GetStringLength(JS_ValueToString(cx,x)))
-#define str2jsval(x) STRING_TO_JSVAL(JS_NewString(cx,x->data,x->len))
 
 static JSBool
 S3PutJPEG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	if (argc != 2) return JS_FALSE;
+	if (argc != 2) {
+		error("Usage: s3_put_jpeg(bucket,filename)");
+		return JS_FALSE;
+	}
 	str bucket = jsval2str(argv[0]);
 	str file = jsval2str(argv[1]);
 	
@@ -388,7 +430,10 @@ S3PutJPEG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 S3GetJPEG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	if (argc != 2) return JS_FALSE;
+	if (argc != 2) {
+		error("Usage: s3_get_jpeg(bucket,filename)");
+		return JS_FALSE;
+	}
 	str bucket = jsval2str(argv[0]);
 	str tmpfile = jsval2str(argv[1]);
 	str url = Str("http://%s.s3.amazonaws.com%x.jpg",bucket,Cstr(tmpfile->data + 4, tmpfile->len - 4));
@@ -399,7 +444,10 @@ S3GetJPEG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 S3GetThumb(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	if (argc != 2) return JS_FALSE;
+	if (argc != 2) {
+		error("Usage: s3_get_thumb(bucket,filename)");
+		return JS_FALSE;
+	}
 	str bucket = jsval2str(argv[0]);
 	str tmpfile = jsval2str(argv[1]);
 	str url = Str("http://%s.s3.amazonaws.com%x-thumb.jpg",bucket,Cstr(tmpfile->data + 4, tmpfile->len - 4));
@@ -413,10 +461,16 @@ ImageInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	int i;
 	JSString* value;
 	JSObject* o = JS_NewObject(cx,NULL,NULL,NULL);
-	if (argc != 1) return JS_FALSE;	
+	if (argc != 1) {
+		error("Usage: image_info(filename)");
+		return JS_FALSE;	
+	}
 	str filename = jsval2str(argv[0]);
 	char** props = get_image_properties(filename->data);
-	if (! props) return JS_FALSE;
+	if (! props) {
+		error("image_info failed to read image properties");
+		return JS_FALSE;
+	}
 	for (i = 0; props[i*2]; ++i) {
 		if (props[i*2+1])
 			value = JS_NewString(cx,props[i*2+1],strlen(props[i*2+1]));
@@ -609,7 +663,7 @@ ProcessFile(char* script)
 				len = o+2;
 			}
 			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, scratch->data, scratch->len, "js.c", 1, &retval))
-				notice("Failed to evaluate [%s]", scratch);
+				error("Failed to evaluate [%s]", scratch);
 		}
 	}
 	ins.buffer = write_buffer(ins.buffer,&script[len],o-len);
