@@ -12,15 +12,18 @@
 #include "log.h"
 #include "dates.h"
 
-int today;
+Scratch log_scratch_pad = NULL;
+
 int log_fd = 2;
 int log_level = LOG_LEVEL;
 
-str log_path;
-str index_path = NULL;
-str localhost = NULL;
-
-Scratch log_scratch_pad = NULL;
+const int max_log_lvl = 2;
+char* log_msgs[] =  {
+	"[ERROR]",
+	"[NOTICE]",
+	"[DEBUG]",
+	NULL
+};
 
 void
 log_scratch()
@@ -35,14 +38,6 @@ old_log_scratch()
 	free_scratch(gscratch);
 	set_scratch(log_scratch_pad);	
 }
-
-static int max_log_lvl = 2;
-char* log_msgs[] =  {
-	"[ERROR]",
-	"[NOTICE]",
-	"[DEBUG]",
-	NULL
-};
 
 void
 log_msg(int lvl, char* fmt,  ...)
