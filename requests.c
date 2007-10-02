@@ -60,9 +60,9 @@ parse_request_headers(Buffer buf, int* body)
 			++count;
 			if (count > 2) {
 				*body = o+1;
-				debug("=== BODY ===");
-				dump_buffer(buf,*body);
-				debug("=== DONE ===");
+			//	debug("=== BODY ===");
+			//	dump_buffer(buf,*body);
+			//	debug("=== DONE ===");
 				return headers;
 			}
 			continue;
@@ -79,7 +79,7 @@ parse_request_headers(Buffer buf, int* body)
 			while(isspace(c = fetch_buffer(buf,o))) ++o;
 			for (l = 1; (o + l) < len && c != '\r' && c != '\n'; ++l) c = fetch_buffer(buf,o+l); 
 			headers[i].value = read_str(buf,o,l-1);
-			debug("Settings headers %s = %s", headers[i].key, headers[i].value);
+		//	debug("Settings headers %s = %s", headers[i].key, headers[i].value);
 			reset = 0;
 			o += l-1;
 			++i;

@@ -10,8 +10,8 @@
 #include "str.h"
 #include "requests.h"
 
-char* uri_encode(char* str);
-char* uri_decode(char* str);
+str uri_encode(str s);
+str uri_decode(str s);
 
 Headers parse_uri_encoded(Headers head, Buffer buf, int pos, int len);
 

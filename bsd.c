@@ -40,7 +40,7 @@ poll_events(Event ec, int numevents)
 	}
 	n = kevent(KQ,cl,n,el,numevents, NULL);
 	if (n < 0) goto done;
-	debug("Processing %i events",n);
+//	debug("Processing %i events",n);
 	while (n--) 
 		retval = queue_event(retval,el[n].ident,el[n].filter == EVFILT_READ ? READ : el[n].filter == EVFILT_WRITE ? WRITE : NODE, el[n].flags == EV_EOF ? EOF : NONE,el[n].udata);
 done:

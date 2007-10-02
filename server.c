@@ -83,7 +83,7 @@ void
 incoming(int fd)
 {
 	Request req;
-	debug("INCOMING START");
+//	debug("INCOMING START");
 	Scratch scratch = new_scratch(NULL);
 	set_scratch(scratch);
 	srv->sc = accept_socket(srv->sc,fd,(srv->http_sock == fd ? NULL : srv->tls));
@@ -95,7 +95,7 @@ incoming(int fd)
 		(0xff0000 & srv->sc->peer) >> 16,
 		(0xff000000 & srv->sc->peer) >> 24,
 		srv->sc->port);
-	debug("INCOMING DONE");
+	//debug("INCOMING DONE");
 }
 
 void
@@ -104,7 +104,7 @@ disconnect()
 	Socket tmp,last;
 	last = NULL;
 	server_scratch();
-	debug("DISCONNECT START");
+//	debug("DISCONNECT START");
 	for (tmp = srv->sc; tmp; tmp = tmp->next) {
 		debug("disconnect  %p vs %p ", tmp,Sock);
 		if (tmp == Sock)  {
@@ -119,7 +119,7 @@ disconnect()
 		}
 		last = tmp;
 	}
-	debug("DISCONNECT DONE");
+	//debug("DISCONNECT DONE");
 }
 
 void
@@ -128,7 +128,7 @@ request()
 	char* filename;
 	File fc;
 	client_scratch();
-	debug("REQUEST START");
+//	debug("REQUEST START");
 	if (!read_request(Req)) {
 		old_scratch();
 		error("Failed to read request\n");
@@ -149,27 +149,27 @@ request()
 	} else {
 		add_read_socket(Sock->fd,Req);
 	}
-	debug("REQUEST DONE");
+//	debug("REQUEST DONE");
 	old_scratch();
 }
 
 void
 respond()
 {
-	debug("RESPOND START");
+	//debug("RESPOND START");
 	client_scratch();
 	connection(Resp->headers,"close");
 	transfer_encoding(Resp->headers,"identity");
 	if (send_response(Resp)) {
 		old_scratch();
 		add_write_socket(Sock->fd,Resp);
-		debug("RESPOND CONTINUE");
+	//	debug("RESPOND CONTINUE");
 		return;
 	}
 	old_scratch();
 	close_response(Resp);
 	disconnect();
-	debug("RESPOND DONE");
+//	debug("RESPOND DONE");
 }
 
 void

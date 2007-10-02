@@ -22,7 +22,7 @@
 #include "jws.h"
 
 #define jsval2str(x) char_str(JS_GetStringBytes(JS_ValueToString(cx,x)),JS_GetStringLength(JS_ValueToString(cx,x)))
-#define str2jsval(x) STRING_TO_JSVAL(JS_NewString(cx,x->data,x->len))
+#define str2jsval(x) STRING_TO_JSVAL(JS_NewString(cx,memcpy(JS_malloc(cx,x->len),x->data,x->len),x->len))
 
 #define EMPTY OBJECT_TO_JSVAL(NULL)
 #define SUCCESS DOUBLE_TO_JSVAL(0)
@@ -201,8 +201,7 @@ Header(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
-	s = JS_NewString(cx,head->data,head->len);
-	*rval = STRING_TO_JSVAL(s);
+	*rval = str2jsval(head);
 	return JS_TRUE;
 }
 
@@ -221,8 +220,7 @@ Param(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
-	s = JS_NewString(cx,pram->data,pram->len);
-	*rval = STRING_TO_JSVAL(s);
+	*rval = str2jsval(pram);
 	return JS_TRUE;
 }
 
@@ -232,17 +230,16 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	int i,j;
 	JSObject* arr;
 	JSObject* row;
-	char* value_cstr;
-	JSString* value;
-	JSString* query;
+	str value;
+	str query;
 	PGresult* res;
 	if (argc != 1) {
 		error("Usage: query(querystring)");
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
-	query  = JS_ValueToString(cx,argv[0]);
-	res  = PQexec(ins.database,JS_GetStringBytes(query));
+	query  = jsval2str(argv[0]);
+	res  = PQexec(ins.database,query->data);
 	switch(PQresultStatus(res)) {
 		case PGRES_EMPTY_QUERY:
 		case PGRES_COMMAND_OK:
@@ -252,20 +249,19 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		case PGRES_TUPLES_OK:
 			arr =  JS_NewArrayObject(cx,0,NULL);
 			if (! arr) {
-				error("Failed to initialize array for query : %c\n",JS_GetStringBytes(query));
+				error("Failed to initialize array for query : %s\n",query);
 				*rval = EMPTY;
 				return JS_TRUE;
 			}
 			for (i = 0; i < PQntuples(res); ++i) {
 				row = JS_NewObject(cx,NULL,NULL,arr);
 				if(!row || ! JS_DefineElement(cx,arr,i,OBJECT_TO_JSVAL(row),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
-					error("Failed to initialize object for row %i : %c\n",i,JS_GetStringBytes(query));
+					error("Failed to initialize object for row %i : %s\n",i,query);
 					continue;
 				}
 				for (j = 0; j < PQnfields(res); ++j) {
-					value_cstr = PQgetvalue(res,i,j);
-					value = JS_NewString(cx,value_cstr,strlen(value_cstr));
-					if (!JS_DefineProperty(cx,row,PQfname(res,j),STRING_TO_JSVAL(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
+					value = Str("%c", PQgetvalue(res,i,j));
+					if (!JS_DefineProperty(cx,row,PQfname(res,j),str2jsval(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
 						error("Failed to apply column %c to row %i\n",PQfname(res,j),i);
 						continue;
 					}
@@ -278,7 +274,7 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		case PGRES_NONFATAL_ERROR:
 		case PGRES_FATAL_ERROR:
 		default:
-			error("query(%c) failed %c", JS_GetStringBytes(query),PQresultErrorMessage(res));
+			error("query(%s) failed %c", query, PQresultErrorMessage(res));
 			PQclear(res);
 			*rval = EMPTY;
 			return JS_TRUE;
@@ -289,17 +285,16 @@ static JSBool
 Encode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	char* data;
-	JSString* s;
+	str s;
 	Buffer tmp,buf;
 	if (argc != 1) {
 		error("Usage: encode(string)");	
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
-	s = JS_ValueToString(cx,argv[0]);
-	data = uri_encode(JS_GetStringBytes(s));
-	s = JS_NewString(cx,data,strlen(data));
-	*rval = STRING_TO_JSVAL(s);
+	s = jsval2str(argv[0]);
+	s = uri_encode(s);
+	*rval = str2jsval(s);
 	return JS_TRUE;	
 }
 
@@ -307,17 +302,16 @@ static JSBool
 Decode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	char* data;
-	JSString* s;
+	str s;
 	Buffer tmp,buf;
 	if (argc != 1) {
 		error("Usage: encode(string)");	
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
-	s = JS_ValueToString(cx,argv[0]);
-	data = uri_decode(JS_GetStringBytes(s));
-	s = JS_NewString(cx,data,buf->length);
-	*rval = STRING_TO_JSVAL(s);
+	s = jsval2str(argv[0]);
+	s = uri_decode(s);
+	*rval = str2jsval(s);
 	return JS_TRUE;	
 }
 
@@ -420,9 +414,9 @@ GetGuid(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
-	char* guid = PQgetvalue(res,0,0);
-	debug("Guid is %c",guid);
-        *rval = STRING_TO_JSVAL(JS_NewString(cx,guid,strlen(guid)));
+	str guid = Str("%c",PQgetvalue(res,0,0));
+	debug("Guid is %s",guid);
+        *rval = str2jsval(guid);
 	PQclear(res);
 	return JS_TRUE;
 }
@@ -485,7 +479,7 @@ static JSBool
 ImageInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	int i;
-	JSString* value;
+	str value;
 	JSObject* o = JS_NewObject(cx,NULL,NULL,NULL);
 	if (argc != 1) {
 		error("Usage: image_info(filename)");
@@ -501,10 +495,10 @@ ImageInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	}
 	for (i = 0; props[i*2]; ++i) {
 		if (props[i*2+1])
-			value = JS_NewString(cx,props[i*2+1],strlen(props[i*2+1]));
+			value = char_str(props[i*2+1],strlen(props[i*2+1]));
 		else
-			value = NULL;
-		JS_DefineProperty(cx,o,props[i*2]+5,STRING_TO_JSVAL(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
+			value = char_str(NULL,0);
+		JS_DefineProperty(cx,o,props[i*2]+5,str2jsval(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
 	}
 	*rval = OBJECT_TO_JSVAL(o);
 	return JS_TRUE;
@@ -601,7 +595,7 @@ InitParams(JSInstance* in)
 {
 	str x;
 	Headers headers = in->resp->req->query_vars;
-	JSString* s;
+	JSContext* cx = in->cx;
 	JSObject* o;
 	JSObject* arr = NULL;
 	int i,j, n;
@@ -612,20 +606,18 @@ InitParams(JSInstance* in)
 		debug("Initializing %s = %s",x,headers[i].value);
 		n = 0;
 		arr = NULL;
-		s = JS_NewString(in->cx,headers[i].value->data,headers[i].value->len);
-		if (JS_FALSE == JS_DefineProperty(in->cx,in->glob,x->data,STRING_TO_JSVAL(s),NULL, NULL,JSPROP_READONLY))
+		if (JS_FALSE == JS_DefineProperty(in->cx,in->glob,x->data,str2jsval(headers[i].value),NULL, NULL,JSPROP_READONLY))
 			debug("Failed to set property %s",x);
 		for (j = i+1; j < MAX_HEADERS && headers[j].key; ++j) {
 			if (headers[j].key == (str)-1) continue;
 			if (cmp_str(headers[i].key,headers[j].key)) {
 				if (! arr) {
 					arr =  JS_NewArrayObject(in->cx,0,NULL);
-					JS_DefineElement(in->cx,arr,n,STRING_TO_JSVAL(s),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
+					JS_DefineElement(in->cx,arr,n,str2jsval(headers[i].value),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
 					debug("Adding %s to array %s",headers[i].value,x);
 				}
-				s = JS_NewString(in->cx,headers[j].value->data,headers[j].value->len);
 				debug("Adding %s to array %s",headers[j].value,x);
-				JS_DefineElement(in->cx,arr,++n,STRING_TO_JSVAL(s),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
+				JS_DefineElement(in->cx,arr,++n,str2jsval(headers[j].value),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
 				headers[j].key = (str)-1;
 			}
 		}

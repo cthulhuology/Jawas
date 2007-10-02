@@ -16,7 +16,7 @@ Scratch escratch = NULL;
 Event
 queue_event(Event ec, int fd, enum event_types type, enum event_flags flag, void* udata)
 {
-	debug("Queued fd %i ev %i ptr %p",fd, type, udata);
+//	debug("Queued fd %i ev %i ptr %p",fd, type, udata);
 	if (escratch == NULL) escratch = new_scratch(NULL);
 	Event retval = (Event)alloc_scratch(escratch,sizeof(struct event_cache_struct));
 	retval->fd = fd;

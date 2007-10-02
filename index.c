@@ -19,7 +19,7 @@ is_directory(str filename)
 		error("Failed to stat file %s",filename);
 		return 0;
 	}
-	debug("IS_DIRECTORY Filename %s[%i] is dir ? %c",filename,filename->len, (st.st_mode&S_IFDIR ? "true" : "false"));
+//	debug("IS_DIRECTORY Filename %s[%i] is dir ? %c",filename,filename->len, (st.st_mode&S_IFDIR ? "true" : "false"));
 	return st.st_mode & S_IFDIR;
 }
 

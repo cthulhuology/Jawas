@@ -7,6 +7,7 @@
 #include "include.h"
 #include "defines.h"
 #include "alloc.h"
+#include "str.h"
 #include "log.h"
 #include "buffers.h"
 #include "uri.h"
@@ -53,23 +54,23 @@ is_clean_char(char c)
 		|| is_mark_char(c)); 
 }
 
-char*
-uri_encode(char* str)
+str
+uri_encode(str s)
 {
-	char* retval = NULL;
-	int i, j = 0, len = strlen(str);
+	str retval = NULL;
+	int i, j = 0, len = s->len;
 	for (i = 0; i < len; ++i)
-		j += is_clean_char(str[i]) ? 1 : 3;
-	retval = salloc(j);
+		j += is_clean_char(s->data[i]) ? 1 : 3;
+	retval = char_str(NULL,j);
 	j = 0;
 	for (i = 0; i < len; ++i) {
-		if (is_clean_char(str[i])) {
-			retval[j++] = str[i];
+		if (is_clean_char(s->data[i])) {
+			retval->data[j++] = s->data[i];
 			++j;
 		} else {
-			retval[j++] = '%';
-			retval[j++] = hex_chars[str[i]/16];
-			retval[j++] = hex_chars[str[i]%16];
+			retval->data[j++] = '%';
+			retval->data[j++] = hex_chars[s->data[i]/16];
+			retval->data[j++] = hex_chars[s->data[i]%16];
 		}
 	}
 	return retval;
@@ -89,17 +90,17 @@ from_hex(char a, char b)
 }
 
 
-char*
-uri_decode(char* str)
+str
+uri_decode(str s)
 {
-	int i, j = 0, len = strlen(str);
-	char* retval = salloc(len);
+	int i, j = 0, len = s->len;
+	str retval = char_str(NULL,len);
 	for(i = 0; i < len; ++i)
-		if (str[i] == '%') {
-			retval[j++] = from_hex(str[i+1],str[i+2]);
+		if (s->data[i] == '%') {
+			retval->data[j++] = from_hex(s->data[i+1],s->data[i+2]);
 			i += 2;
 		} else {
-			retval[j++] = str[i];
+			retval->data[j++] = s->data[i];
 		}
 	return retval;
 }
