@@ -32,14 +32,16 @@ poll_events(Event ec, int numevents)
 			ep.events = EPOLLIN | (ec->flag == ONESHOT ? EPOLLET | EPOLLONESHOT: 0);
 			ep.data.ptr = ec->fd == srv->http_sock ? &srv->http_sock : ec->fd == srv->tls_sock ? &srv->tls_sock : ec->data;
 			if (epoll_ctl(KQ,EPOLL_CTL_ADD,ec->fd,&ep))
-				debug("Failed to add event %i for fd %i", ec->type,ec->fd);
+				if (epoll_ctl(KQ,EPOLL_CTL_MOD,ec->fd,&ep))
+					debug("Failed to add event %i for fd %i", ec->type,ec->fd);
 			break;
 		case WRITE:
 			ep.events = EPOLLOUT | (ec->flag == ONESHOT ? EPOLLET| EPOLLONESHOT : 0);
 			ep.data.ptr = ec->data;
 			debug("Adding WRITE fd %i  data %p",ep.data.fd,ep.data.ptr);
-			if (epoll_ctl(KQ,EPOLL_CTL_MOD,ec->fd,&ep))
-				debug("Failed to add event %i for fd %i", ec->type,ec->fd);
+			if (epoll_ctl(KQ,EPOLL_CTL_ADD,ec->fd,&ep))
+				if (epoll_ctl(KQ,EPOLL_CTL_MOD,ec->fd,&ep))
+					debug("Failed to add event %i for fd %i", ec->type,ec->fd);
 			break;
 		case NODE:  // NB: Add node events here, not handled by epoll, but by dnotify and SIGIO
 			retval = queue_event(retval,ec->fd,ec->type,ec->flag,ec->data);

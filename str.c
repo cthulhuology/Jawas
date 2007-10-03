@@ -31,6 +31,7 @@ char_str(const char* a, int l)
 type_str_func(int_str,int,"%d");
 type_str_func(obj_str,void*,"%p");
 type_str_func(num_str,double,"%g");
+type_str_func(hex_str,int,"%x");
 
 str
 Str(const char* fmt, ...)
@@ -73,6 +74,10 @@ new_str(const char* fmt, va_list args)
 				params[a] = obj_str(va_arg(args,char*));
 				ls += params[a++]->len;
 				break;
+			case 'h':
+				params[a] = hex_str(va_arg(args,int));
+				ls += params[a++]->len;
+				break;
 			case 'n':
 				params[a] = num_str(va_arg(args,int));
 				ls += params[a++]->len;
@@ -91,6 +96,7 @@ new_str(const char* fmt, va_list args)
 		||  fmt[i+1] == 'x'
 		||  fmt[i+1] == 'i'
 		||  fmt[i+1] == 'p'
+		||  fmt[i+1] == 'h'
 		||  fmt[i+1] == 'n')) {
 			memcpy(&retval->data[o],params[a]->data,params[a]->len);
 			o += params[a++]->len;

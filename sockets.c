@@ -186,6 +186,32 @@ int
 write_socket(Socket sc, char* src, int len)
 {
 	if (! sc) return 0;
-//	write(2,src,len);
-	return (sc->tls ? write_tls(sc->tls,src,len) :write(sc->fd,src,len));
+	if (sc->tls) {
+		write(2,src,len);
+		return write_tls(sc->tls,src,len);
+	} else {
+		write(2,src,len);
+		return write(sc->fd,src,len);
+	}
+}
+
+int
+write_chunked_socket(Socket sc, char* src, int len)
+{
+	int total;
+	str header = Str("%h\r\n",len);
+	if (! sc) return 0;
+	if (sc->tls) {
+		write_tls(sc->tls,header->data,header->len);
+		if (src) total = write_tls(sc->tls,src,len);
+		write_tls(sc->tls,"\r\n",2);
+	} else {
+		write(2,header->data,header->len);
+		write(sc->fd,header->data,header->len);
+ 		if (src) total = write(2,src,len);
+ 		if (src) total = write(sc->fd,src,len);
+		write(2,"\r\n",2);
+		write(sc->fd,"\r\n",2);
+	}
+	return total;
 }

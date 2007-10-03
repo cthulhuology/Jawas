@@ -35,6 +35,7 @@ static MimeTypes mime_types[] = {
 	{ 3, "pdf" ,  15, "application/pdf"         , img_handler },
 	{ 2, "ps"  ,  22, "application/postscript"  , img_handler },
 	{ 3, "eps" ,  22, "application/postscript"  , img_handler },
+	{ 3, "swf" ,  29, "application/x-shockwave-flash", img_handler },
 	{ 0, NULL  ,  24, "application/octet-stream", img_handler },
 };
 

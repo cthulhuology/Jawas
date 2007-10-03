@@ -61,7 +61,7 @@ static struct status_struct stati[] = {
 	{ 0, 0, NULL, NULL }
 };
 
-static char* http_version = "HTTP/1.0 ";
+static char* http_version = "HTTP/1.1 ";
 
 
 char* status_line(int code);

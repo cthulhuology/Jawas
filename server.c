@@ -159,7 +159,7 @@ respond()
 	//debug("RESPOND START");
 	client_scratch();
 	connection(Resp->headers,"close");
-	transfer_encoding(Resp->headers,"identity");
+	transfer_encoding(Resp->headers,"chunked");
 	if (send_response(Resp)) {
 		old_scratch();
 		add_write_socket(Sock->fd,Resp);
