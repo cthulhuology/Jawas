@@ -49,4 +49,11 @@ done:
 	return retval;
 }
 
+void
+add_file_monitor(int f, void* r)
+{
+	srv->ec = queue_event(srv->ec,f, NODE, ONESHOT, r);
+	srv->numevents++;
+}
+
 #endif

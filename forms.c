@@ -107,8 +107,8 @@ parse_multipart_body(Headers headers, str enctype)
 {
 	str dstname;
 	int i, e, n, len = length_buffer(Req->contents);
-	debug("Body is ");
-	dump_buffer(Req->contents,Req->body);
+//	debug("Body is ");
+//	dump_buffer(Req->contents,Req->body);
 	str boundary = find_boundary(enctype);
 	debug("Boundary: %s", boundary);
 	if (!boundary) {

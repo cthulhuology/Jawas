@@ -42,8 +42,6 @@ Event file_monitor(Event ec);
 	srv->ec = queue_event(srv->ec,f, WRITE, ONESHOT, r); \
 	srv->numevents++; 
 
-#define add_file_monitor(f,r) \
-	srv->ec = queue_event(srv->ec,f, NODE, ONESHOT, r);\
-	srv->numevents++;
+void add_file_monitor(int f, void* r);
 
 #endif

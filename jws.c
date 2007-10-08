@@ -276,7 +276,7 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		default:
 			error("query(%s) failed %c", query, PQresultErrorMessage(res));
 			PQclear(res);
-			*rval = EMPTY;
+			*rval = str2jsval(Str("%c",PQresultErrorMessage(res)));
 			return JS_TRUE;
 	}
 }
@@ -497,8 +497,8 @@ ImageInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		if (props[i*2+1])
 			value = char_str(props[i*2+1],strlen(props[i*2+1]));
 		else
-			value = char_str(NULL,0);
-		JS_DefineProperty(cx,o,props[i*2]+5,str2jsval(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
+			value = NULL;
+		if (value) JS_DefineProperty(cx,o,props[i*2]+5,str2jsval(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
 	}
 	*rval = OBJECT_TO_JSVAL(o);
 	return JS_TRUE;
@@ -660,7 +660,7 @@ DestroyJS(JSInstance* i)
 void
 ProcessFile(char* script)
 {
-	str scratch;
+	cstr scratch;
 	JSBool ok;
 	jsval retval;
 	int o;
@@ -672,18 +672,24 @@ ProcessFile(char* script)
 			len = 0;
 			if (script[o+4] == '=') {
 				while (strncmp(&script[o+len+6],"=?>",3)) ++len;
-				scratch = char_str(&script[o+6],len);	
-				scratch = Str("print(%s);",scratch);
+				if (len > MAX_ALLOC_SIZE) {
+					error("Expression to large!");
+				
+				} else {
+					scratch = Cstr(&script[o+6],len);	
+					str tmp = Str("print(%x);",scratch);
+					scratch = Cstr(tmp->data,tmp->len);
+				}
 				o += len + 6;
 				len = o+3;
 			} else {
 				while (strncmp(&script[o+len+5],"?>",2)) ++len;
-				scratch = char_str(&script[o+5],len-1);
+				scratch = Cstr(&script[o+5],len-1);
 				o += len + 5;
 				len = o+2;
 			}
 			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, scratch->data, scratch->len, "js.c", 1, &retval))
-				error("Failed to evaluate [%s]", scratch);
+				error("Failed to evaluate [%x]", scratch);
 		}
 	}
 	ins.buffer = write_buffer(ins.buffer,&script[len],o-len);

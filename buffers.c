@@ -182,3 +182,10 @@ dump_buffer(Buffer src, int pos)
 		pos = 0;
 	}
 }
+
+str
+readline_buffer(Buffer src, int pos)
+{
+	int eol = find_buffer(src,pos,"\r\n");
+	return read_str(src,pos,eol-pos);
+}

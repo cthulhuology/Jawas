@@ -51,11 +51,17 @@ load(str filename)
 	server_scratch();	
 	debug("Opening %s\n",filename);
 	retval = query_cache(&srv->fc,filename);
+#ifdef LINUX
+	if (retval) {
+		unload(retval->fd,filename);
+	}
+#else
 	if (retval) {
 		debug("Found file %s in cache",filename);
 		old_scratch();
 		return retval;
 	}
+#endif
 	retval = open_file(srv->fc,filename);
 	if (!retval) {
 		error("Failed to open %s\n",filename);
@@ -63,9 +69,7 @@ load(str filename)
 		return NULL;
 	}
 	srv->fc = retval;
-#ifndef LINUX
 	add_file_monitor(srv->fc->fd,srv->fc);
-#endif
 	old_scratch();
 	return retval;
 }

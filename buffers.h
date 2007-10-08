@@ -33,5 +33,6 @@ Buffer print_buffer(Buffer buf, char* fmt, ...);
 Buffer write_str(Buffer dst, str src);
 str read_str(Buffer src, int pos, int len);
 void dump_buffer(Buffer src, int pos);
+str readline_buffer(Buffer buf, int pos);
 
 #endif

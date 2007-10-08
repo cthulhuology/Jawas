@@ -80,10 +80,10 @@ done:
 }
 
 void
-linux_file_monitor(int fd)
+add_file_monitor(int f,void* r)
 {
-	if(fcntl(fd,F_NOTIFY,NODE_FLAGS))
-		debug("Failed to monitor file %i",fd);
+	if(fcntl(f,F_NOTIFY,NODE_FLAGS))
+		debug("Failed to monitor file %i",f);
 }
 
 void

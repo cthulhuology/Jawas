@@ -17,8 +17,8 @@ Headers
 parse_uri_encoded(Headers head, Buffer buf, int pos, int len)
 {
 	if (!buf) return NULL;
-	debug("==== DUMPING BODY ====");
-	dump_buffer(buf,pos);
+//	debug("==== DUMPING BODY ====");
+//	dump_buffer(buf,pos);
 	int i,o;
 	str key = NULL, value = NULL;
 	Headers retval = (head ? head :  new_headers());
