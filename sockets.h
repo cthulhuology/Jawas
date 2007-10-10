@@ -40,6 +40,7 @@ Socket accept_socket(Socket sc, int fd, TLSInfo tls);
 Socket connect_socket(char* host, int port);
 
 Buffer read_socket(Socket sc);
+str readstr_socket(Socket sc);
 int write_socket(Socket sc, char* src, int len);
 Socket reset_socket(Socket sc);
 Socket close_socket(Socket sc);

@@ -8,6 +8,7 @@
 #define __HAVE_STR_H__
 
 #include <stdarg.h>
+#include "defines.h"
 
 typedef struct cstr_struct* cstr;
 struct cstr_struct {
@@ -51,5 +52,7 @@ n (t a) { \
 
 #define ncmp_str(a,b,n) \
 	(a->len >= n && b->len >= n ? ! strncmp(a->data,b->data,n) : 0)
+
+int lesser_str(str a, str b);
 
 #endif

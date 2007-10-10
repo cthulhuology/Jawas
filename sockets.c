@@ -215,3 +215,11 @@ write_chunked_socket(Socket sc, char* src, int len)
 	}
 	return total;
 }
+
+str
+readstr_socket(Socket sc)
+{
+	str retval = char_str(NULL,MAX_ALLOC_SIZE - sizeof(int) - 1);
+	retval->len = recv(sc->fd,retval->data,retval->len,0);
+	return retval;
+}

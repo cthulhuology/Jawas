@@ -23,6 +23,8 @@ str find_header(Headers headers, char* key);
 Headers append_header(Headers headers, str key, str value);
 void dump_headers(Headers headers);
 
+Headers sort_headers(Headers kv);
+
 Headers cache_control(Headers headers, const char* value);
 Headers connection(Headers headers, const char* value);
 Headers date_field(Headers headers, const char* value);

@@ -19,6 +19,7 @@
 #include "jsstr.h"
 #include "amazon.h"
 #include "wand.h"
+#include "facebook.h"
 #include "jws.h"
 
 #define jsval2str(x) char_str(JS_GetStringBytes(JS_ValueToString(cx,x)),JS_GetStringLength(JS_ValueToString(cx,x)))
@@ -316,6 +317,19 @@ Decode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 }
 
 static JSBool
+Status(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 1) {
+		error("Usage: status(302)");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	Resp->status = str_int(jsval2str(argv[0]));
+	longjmp(jmp,1);
+	return JS_TRUE; // never get here
+}
+
+static JSBool
 Location(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	HeaderSetter(location)
@@ -421,6 +435,20 @@ GetGuid(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	return JS_TRUE;
 }
 
+static JSBool
+S3Auth(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 2) {
+		error("Usage: s3_auth(key,secret)");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	str key = jsval2str(argv[0]);
+	str secret = jsval2str(argv[1]);
+	s3_auth(key,secret);
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
 
 static JSBool
 S3PutJPEG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
@@ -435,11 +463,15 @@ S3PutJPEG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	
 	File f = load(file);
 
-	str cmd = s3_put_jpeg(bucket,file);
+	str cmd = s3_put_orig(bucket,file);
 	debug("CMD is %s",cmd);
 
 	cmd = s3_put_thumb(bucket,file);
 	debug("CMD is %s",cmd);
+
+	cmd = s3_put_resized(bucket,file);
+	debug("CMD is %s",cmd);
+
 
 	*rval = SUCCESS;
 	return JS_TRUE;
@@ -455,7 +487,7 @@ S3GetJPEG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	}
 	str bucket = jsval2str(argv[0]);
 	str tmpfile = jsval2str(argv[1]);
-	str url = Str("http://%s.s3.amazonaws.com%x.jpg",bucket,Cstr(tmpfile->data + 4, tmpfile->len - 4));
+	str url = Str("http://%s.s3.amazonaws.com%x-resized.jpg",bucket,Cstr(tmpfile->data + 4, tmpfile->len - 4));
 	*rval = str2jsval(url);
 	return JS_TRUE;
 }
@@ -504,6 +536,51 @@ ImageInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	return JS_TRUE;
 }
 
+static JSBool
+FacebookAuth(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 2) {
+		error("Usage: facebook_auth(key,secret)");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	str key = jsval2str(argv[0]);
+	str secret = jsval2str(argv[1]);
+	facebook_auth(key,secret);
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+
+static JSBool
+FacebookLogin(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 0) {
+		error("Usage: facebook_login()");
+		*rval = EMPTY;
+		return JS_TRUE;
+	}
+	*rval = str2jsval(facebook_login());
+	return JS_TRUE;
+}
+
+static JSBool
+FacebookMethod(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	int i;
+	Headers kv = new_headers();	
+	if (argc < 3) {
+		*rval = FAILURE;
+		error("Usage: facebook_method(method,...)");
+		return JS_TRUE;
+	}
+	str method = jsval2str(argv[0]);
+	for (i = 1; i < argc; i += 2)
+		kv = append_header(kv,jsval2str(argv[i]),jsval2str(argv[i+1]));
+	str res = facebook_method(method,kv);
+	*rval = str2jsval(res);
+	return JS_TRUE;
+}
+
 static JSClass global_class = {
 	"global", 0,
 	JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub,
@@ -524,6 +601,7 @@ static JSFunctionSpec my_functions[] = {
 	{"query", Query, 0 },
 	{"encode", Encode, 0 },
 	{"decode", Decode, 0 },
+	{"status", Status, 0},
 	{"location", Location, 0},
 	{"expires", Expires, 0},
 	{"content_type", ContentType, 0},
@@ -534,10 +612,14 @@ static JSFunctionSpec my_functions[] = {
 	{"mem_info", MemInfo, 0},
 	{"file_info", FileInfo, 0},
 	{"guid", GetGuid, 0 },
+	{"s3_auth", S3Auth, 0 }, 
 	{"s3_put_jpeg",S3PutJPEG, 0},
 	{"s3_get_jpeg",S3GetJPEG, 0},
 	{"s3_get_thumb",S3GetThumb, 0},
 	{"image_info",ImageInfo, 0},
+	{"facebook_auth",FacebookAuth, 0},
+	{"facebook_login",FacebookLogin, 0},
+	{"facebook_method",FacebookMethod, 0},
 	{0},
 };
 

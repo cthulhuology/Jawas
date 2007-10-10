@@ -9,6 +9,7 @@
 
 str Date();
 str Expires();
+str MicroTime();
 
 #endif
 

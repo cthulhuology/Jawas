@@ -7,13 +7,11 @@
 #ifndef __AMAZON_H__
 #define __AMAZON_H__
 
-str md5sum(char* data, int len);
-str base64(str s);
-str hmac1(str secret, str data);
-
-str s3_put_auth_string(str verb, str mime, str date, str bucket, str filename);
+void s3_auth(str key, str secret);
 
 str s3_put_jpeg(str bucket, str filename);
 str s3_put_thumb(str bucket, str filename);
+str s3_put_orig(str bucket, str filename);
+str s3_put_resized(str bucket, str filename);
 
 #endif

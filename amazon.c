@@ -4,13 +4,6 @@
 // All Rights Reserved
 //
 
-#include <openssl/sha.h>
-#include <openssl/hmac.h>
-#include <openssl/md5.h>
-#include <openssl/evp.h>
-#include <openssl/bio.h>
-#include <openssl/buffer.h>
-
 #include "include.h"
 #include "defines.h"
 #include "alloc.h"
@@ -23,43 +16,17 @@
 #include "requests.h"
 #include "events.h"
 #include "wand.h"
+#include "auth.h"
 #include "amazon.h"
 
-str
-md5sum(char* data, int len)
-{
-	str retval = char_str(NULL,16);
-	MD5((unsigned char*)data,(unsigned long)len,(unsigned char*)retval->data);
-	return retval;
-}
+str s3_key;
+str s3_secret;
 
-str
-base64(str s)
+void
+s3_auth(str key, str secret)
 {
-	str retval;
-	BUF_MEM* ptr;
-	BIO* src;
-	BIO* dst;
-	dst = BIO_new(BIO_f_base64());
-	src = BIO_new(BIO_s_mem());
-	dst = BIO_push(dst,src);
-	BIO_write(dst,s->data,s->len);
-	BIO_flush(dst);
-	BIO_get_mem_ptr(dst,&ptr);
-	retval = char_str(ptr->data,ptr->length-1);
-	BIO_free_all(dst);
-	return retval;
-}	
-
-str
-hmac1(str secret, str data)
-{
-	str retval = char_str(NULL,20);
-	HMAC_CTX ctx;
-	HMAC_CTX_init(&ctx);
-	HMAC(EVP_sha1(),secret->data,secret->len,(unsigned char*)data->data,data->len,(unsigned char*)retval->data,(unsigned int*)&retval->len);
-	HMAC_CTX_cleanup(&ctx);	
-	return retval;
+	s3_key = key;
+	s3_secret = secret;
 }
 
 str 
@@ -67,7 +34,7 @@ s3_put_auth_string(str verb, str mime, str date, str bucket, str filename)
 {
 	str sts = Str("%s\n\n\%s\n%s\nx-amz-acl:public-read\n/%s%s",verb,mime,date,bucket,filename);
 	debug("STS is %s",sts);
-	return Str("AWS %s:%s",srv->s3key,base64(hmac1(srv->s3secret,sts)));
+	return Str("AWS %s:%s",s3_key,base64(hmac1(s3_secret,sts)));
 }
 
 str
@@ -96,8 +63,7 @@ s3_put_jpeg(str bucket, str filename)
 			debug("Writing %i of %i",off, fc->st.st_size);
 		}
 		debug("Wrote %i of %i",off,fc->st.st_size);
-		str output = char_str(NULL,4000);
-		output->len = recv(sc->fd,output->data,output->len,0);
+		str output = readstr_socket(sc);
 		debug("[AMAZON] %s",output);
 		close_socket(sc);
 		exit(0);
@@ -116,5 +82,26 @@ s3_put_thumb(str bucket, str filename)
 	return s3_put_jpeg(bucket,thumb);
 }
 
+str
+s3_put_resized(str bucket, str filename)
+{
+	str resized = Str("%s-resized",filename);
+	if (resize_image(filename->data,resized->data)) {
+		error("Failed to create resized %s",resized->data);
+		return NULL;
+	}
+	return s3_put_jpeg(bucket,resized);
+}
+
+str
+s3_put_orig(str bucket, str filename)
+{
+	str orig = Str("%s-orig",filename);
+	if (copy_image(filename->data,orig->data)) {
+		error("Failed to create original %s",orig);
+		return NULL;
+	}
+	return s3_put_jpeg(bucket,orig);
+}
 
 

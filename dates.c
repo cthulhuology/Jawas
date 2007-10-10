@@ -26,4 +26,12 @@ Expires()
 	return Str("%i",timegm(now_tm));	
 }
 
+str
+MicroTime()
+{
+	struct timeval tv;
+	if (gettimeofday(&tv,NULL))
+		return Expires();
+	return Str("%i", (tv.tv_sec << 20) + tv.tv_usec);
+}
 

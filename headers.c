@@ -62,6 +62,31 @@ append_header(Headers headers, str key, str value)
 	return headers;
 }
 
+Headers
+sort_headers(Headers kv)
+{
+	int i, j;
+	Headers retval = new_headers();
+	for (i = 0; i < MAX_HEADERS && kv[i].key; ++i) {
+		retval[i].key = kv[i].key;
+		retval[i].value = kv[i].value;
+	}
+	for (i = 0; i < MAX_HEADERS && retval[i].key; ++i) {
+		str pivot = retval[i].key;
+		for (j = i+1; j < MAX_HEADERS && retval[j].key; ++j) {
+			if (lesser_str(retval[j].key,retval[i].key)) {
+				str tmp_key = retval[i].key;
+				str tmp_value =  retval[i].value;
+				retval[i].key = retval[j].key;
+				retval[i].value = retval[j].value;
+				retval[j].key = tmp_key;
+				retval[j].value = tmp_value;
+			}
+		}
+	}
+	return retval;
+}
+
 HEADER_FUNC(cache_control,Cache_Control_MSG)
 HEADER_FUNC(connection,Connection_MSG)
 HEADER_FUNC(date_field,Date_MSG)

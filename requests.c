@@ -100,9 +100,9 @@ parse_request_headers(Buffer buf, int* body)
 			++count;
 			if (count > 2) {
 				*body = o+1;
-			//	debug("=== BODY ===");
-			//	dump_buffer(buf,*body);
-			//	debug("=== DONE ===");
+				debug("=== BODY ===");
+				dump_buffer(buf,*body);
+				debug("=== DONE ===");
 				return headers;
 			}
 			continue;
@@ -148,8 +148,8 @@ read_request(Request req)
 		req->done = (length_buffer(req->contents) - req->body) >= request_content_length(req);
 		debug("Request done %c [%i of %i bytes]", req->done ? "yes" : "no", length_buffer(req->contents), request_content_length(req));
 	}
-//	debug("REQUEST CONTENTS >>");
-//	dump_buffer(req->contents,0);
+	debug("REQUEST CONTENTS >>");
+	dump_buffer(req->contents,0);
 	return req;
 }
 

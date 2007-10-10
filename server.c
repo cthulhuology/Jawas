@@ -176,6 +176,17 @@ respond()
 //	debug("RESPOND DONE");
 }
 
+str
+load_config(char* filename)
+{
+	File conf = open_file(srv->fc,Str("%c",filename));
+	if (conf) {
+		srv->fc = conf;
+		return char_str(conf->data,conf->st.st_size-1);		
+	}
+	return NULL;
+}
+
 void
 serve(int port, int tls_port)
 {
@@ -195,14 +206,8 @@ serve(int port, int tls_port)
 	srv->ec = NULL;
 	srv->fc = NULL;
 	srv->sc = NULL;
-	srv->fc = open_file(srv->fc,Str("%c",AMAZON_SECRET));
-	srv->s3secret = NULL;
-	if (srv->fc)
-		srv->s3secret = char_str(srv->fc->data,srv->fc->st.st_size -1);
-	srv->fc = open_file(srv->fc,Str("%c",AMAZON_KEY));
-	srv->s3key = NULL;
-	if (srv->fc)
-		srv->s3key = char_str(srv->fc->data,srv->fc->st.st_size -1);
+	srv->s3secret = load_config(AMAZON_SECRET);
+	srv->s3key = load_config(AMAZON_KEY);;
 	srv->numevents = 2;
 	monitor_socket(srv->http_sock);
 	monitor_socket(srv->tls_sock);

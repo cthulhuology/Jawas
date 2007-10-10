@@ -109,10 +109,10 @@ find_buffer(Buffer buf, int pos, char* delim)
 			for (j = 0; delim[j]; ++j ) 
 				if (delim[j] == tmp->data[i]) 
 					return i + tmp->pos;
-		if (i == len) return len;
+		if (i + tmp->pos >= len) return len;
 		tmp = seek_buffer(buf,pos+tmp->length - delta);
 	}
-	return -1;
+	return len;
 }
 
 int
@@ -188,4 +188,37 @@ readline_buffer(Buffer src, int pos)
 {
 	int eol = find_buffer(src,pos,"\r\n");
 	return read_str(src,pos,eol-pos);
+}
+
+int
+skipheaders_buffer(Buffer src, int pos)
+{
+	Buffer tmp;
+	for (tmp = seek_buffer(src,pos); tmp; tmp = seek_buffer(src,pos)) {
+		str line = readline_buffer(src,pos);
+		pos += line->len + 2;
+		if (line->len == 0) break;
+	}
+	return pos;
+}
+
+Buffer
+dechunk_buffer(Buffer src)
+{
+	int delta = 0;
+	Buffer tmp, retval = NULL;
+	int pos = skipheaders_buffer(src,0);
+	for (tmp = seek_buffer(src,pos); tmp; tmp = seek_buffer(src,pos)) {
+		str line = readline_buffer(src,pos);	
+		debug("Line is %s",line);
+		delta = str_int(Str("0x%s",line));
+		debug("Delta is %i",delta);
+		retval = read_buffer(retval,src,pos+line->len+2,delta);
+		pos += delta + line->len + 4;
+		if (delta == 0) {
+			debug("Done reading");
+			return retval;
+		}
+	}
+	return retval;
 }

@@ -20,7 +20,7 @@ Cstr(const char* a, int l)
 str
 char_str(const char* a, int l)
 {
-	int len = l ? l :  strlen(a);
+	int len = l ? l : strlen(a);
 	str retval = (str)salloc(1+len+sizeof(struct str_struct));
 	retval->len = len;
 	if (a) memcpy(retval->data,a,len);
@@ -64,7 +64,9 @@ new_str(const char* fmt, va_list args)
 				break;
 			case 's':
 				params[a] = va_arg(args,str);
-				ls += params[a++]->len;
+				if (params[a])
+					ls += params[a]->len;
+				++a;
 				break;
 			case 'i':
 				params[a] = int_str(va_arg(args,int));
@@ -98,8 +100,10 @@ new_str(const char* fmt, va_list args)
 		||  fmt[i+1] == 'p'
 		||  fmt[i+1] == 'h'
 		||  fmt[i+1] == 'n')) {
-			memcpy(&retval->data[o],params[a]->data,params[a]->len);
-			o += params[a++]->len;
+			if (params[a]) {
+				memcpy(&retval->data[o],params[a]->data,params[a]->len);
+				o += params[a++]->len;
+			}
 			++i;
 		} else {
 			if (fmt[i] != '%') 
@@ -109,4 +113,11 @@ new_str(const char* fmt, va_list args)
 	va_end(args);
 	retval->data[retval->len] = '\0';
 	return retval;	
+}
+
+int
+lesser_str(str a, str b)
+{
+	int retval = strncmp(a->data,b->data,min(a->len,b->len));
+	return  retval < 0 ? 1 : retval > 0 ? 0 : a->len < b->len;
 }

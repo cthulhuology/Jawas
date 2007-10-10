@@ -17,8 +17,9 @@ Headers
 parse_uri_encoded(Headers head, Buffer buf, int pos, int len)
 {
 	if (!buf) return NULL;
-//	debug("==== DUMPING BODY ====");
-//	dump_buffer(buf,pos);
+	debug("==== DUMPING BODY ====");
+	dump_buffer(buf,pos);
+	debug("==== LEN %i ====",len);
 	int i,o;
 	str key = NULL, value = NULL;
 	Headers retval = (head ? head :  new_headers());
@@ -27,7 +28,7 @@ parse_uri_encoded(Headers head, Buffer buf, int pos, int len)
 		o = find_buffer(buf,i,"=");
 		key = read_str(buf,i,o-i);
 		i = o+1;
-		o = find_buffer(buf,i,"&");
+		o = find_buffer(buf,i,"&\r\n");
 		value = read_str(buf,i,o-i);
 		append_header(retval,key,value);
 		i = o;

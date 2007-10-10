@@ -16,6 +16,45 @@
 typedef char*(*image_method_t)(MagickWand*, char*, File);
 
 int
+copy_image(const char* src, const char* dst)
+{
+	return link(src,dst);
+}
+
+int
+resize_image(const char* src, const char* dst)
+{
+	MagickWand* mw;
+	int h,w,x,y;
+	MagickWandGenesis();
+	mw = NewMagickWand();
+	if (MagickFalse == MagickReadImage(mw,src)) {
+		error("Failed to read %c\n",src);
+		return 1;
+	}
+	MagickResetIterator(mw);
+	while (MagickNextImage(mw) != MagickFalse) {
+		h = MagickGetImageHeight(mw);
+		w = MagickGetImageWidth(mw);
+		if (w < h) {
+			w = w * IMAGE_HEIGHT / h;
+			h = IMAGE_HEIGHT;
+		} else {
+			h = h * IMAGE_WIDTH / w;
+			w = IMAGE_WIDTH;
+		}
+		MagickScaleImage(mw,w,h);
+		if (MagickFalse == MagickWriteImage(mw,dst)) {
+			error("Failed to write %c\n",dst);
+			return 1;
+		}
+	}
+	DestroyMagickWand(mw);
+	MagickWandTerminus();
+	return 0;
+}
+
+int
 create_thumb(const char* src, const char* dst)
 {
 	MagickWand* mw;
@@ -32,16 +71,16 @@ create_thumb(const char* src, const char* dst)
 		h = MagickGetImageHeight(mw);
 		w = MagickGetImageWidth(mw);
 		if (w > h) {
-			w = w * IMAGE_HEIGHT / h;
-			h = IMAGE_HEIGHT;
+			w = w * THUMB_HEIGHT / h;
+			h = THUMB_HEIGHT;
 		} else {
-			h = h * IMAGE_WIDTH / w;
-			w = IMAGE_WIDTH;
+			h = h * THUMB_WIDTH / w;
+			w = THUMB_WIDTH;
 		}
 		MagickScaleImage(mw,w,h);
-		x = (w - IMAGE_WIDTH) / 2;
-		y = (h - IMAGE_HEIGHT) / 2;
-		MagickCropImage(mw,IMAGE_WIDTH,IMAGE_HEIGHT,x,y);
+		x = (w - THUMB_WIDTH) / 2;
+		y = (h - THUMB_HEIGHT) / 2;
+		MagickCropImage(mw,THUMB_WIDTH,THUMB_HEIGHT,x,y);
 		if (MagickFalse == MagickWriteImage(mw,dst)) {
 			error("Failed to write %c\n",dst);
 			return 1;

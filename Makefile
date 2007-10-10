@@ -27,10 +27,12 @@ endif
 SOURCES = \
 alloc.c \
 amazon.c \
+auth.c \
 buffers.c \
 bsd.c \
 dates.c \
 events.c \
+facebook.c \
 files.c \
 forms.c \
 headers.c \
