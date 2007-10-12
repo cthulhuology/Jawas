@@ -17,6 +17,7 @@
 #include "server.h"
 #include "jsapi.h"
 #include "jsstr.h"
+#include "mail.h"
 #include "amazon.h"
 #include "wand.h"
 #include "facebook.h"
@@ -26,8 +27,8 @@
 #define str2jsval(x) STRING_TO_JSVAL(JS_NewString(cx,memcpy(JS_malloc(cx,x->len),x->data,x->len),x->len))
 
 #define EMPTY OBJECT_TO_JSVAL(NULL)
-#define SUCCESS DOUBLE_TO_JSVAL(0)
-#define FAILURE DOUBLE_TO_JSVAL(1)
+#define SUCCESS str2jsval(Str("0"))
+#define FAILURE str2jsval(Str("1"))
 
 // Javascript Functions
 
@@ -436,6 +437,28 @@ GetGuid(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 }
 
 static JSBool
+Mail(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 4) {
+		error("Usage: mail(to,from,subject,body)");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	str to = jsval2str(argv[0]);
+	str from = jsval2str(argv[1]);
+	str sub = jsval2str(argv[2]);
+	str body = jsval2str(argv[3]);
+	if (mail(to,from,sub,body)) {
+		error("Failed to send message to %s",to);
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+	
+
+static JSBool
 S3Auth(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	if (argc != 2) {
@@ -612,6 +635,7 @@ static JSFunctionSpec my_functions[] = {
 	{"mem_info", MemInfo, 0},
 	{"file_info", FileInfo, 0},
 	{"guid", GetGuid, 0 },
+	{"mail", Mail, 0 },
 	{"s3_auth", S3Auth, 0 }, 
 	{"s3_put_jpeg",S3PutJPEG, 0},
 	{"s3_get_jpeg",S3GetJPEG, 0},
@@ -629,7 +653,7 @@ CreateDatabaseTableFunctions(JSInstance* in)
 	int i;
 	PGresult* res;
 	const char* args[] = { "id","obj",NULL };
-	char query[] = "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tableowner = 'jawas'";
+	char query[] = "SELECT tablename FROM pg_tables WHERE schemaname = 'public'";
 	res = PQexec(in->database,query);	
 	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
 		error("Failed to initialize database interface");
@@ -666,6 +690,7 @@ CreateDatabaseTableFunctions(JSInstance* in)
 "		return gid; 												"
 "	}														",
 		table,table,table,table,table,table);
+		debug("Compiling script %c",table);
 		if (NULL == JS_CompileFunction(in->cx,in->glob,table,2,args,s->data,s->len,"jws.c",0)) 
 			debug("Failed to compile script %s",s);
 	}

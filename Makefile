@@ -41,6 +41,7 @@ index.c \
 jws.c \
 linux.c \
 log.c \
+mail.c \
 methods.c \
 mime.c \
 pages.c \

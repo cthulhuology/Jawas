@@ -97,11 +97,15 @@ uri_decode(str s)
 	int i, j = 0, len = s->len;
 	str retval = char_str(NULL,len);
 	for(i = 0; i < len; ++i)
-		if (s->data[i] == '%') {
+		if (s->data[i] == '+') {
+			retval->data[j++] = ' ';
+		} else if (s->data[i] == '%') {
 			retval->data[j++] = from_hex(s->data[i+1],s->data[i+2]);
 			i += 2;
 		} else {
 			retval->data[j++] = s->data[i];
 		}
+	retval->data[j] = '\0';
+	retval->len = j;
 	return retval;
 }

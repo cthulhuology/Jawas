@@ -14,6 +14,7 @@
 #define AMAZON_SECRET "/opt/Jawas/Code/Jawas/amazon.secret"
 #define FACEBOOK_KEY "/opt/Jawas/Code/Jawas/facebook.key"
 #define FACEBOOK_SECRET "/opt/Jawas/Code/Jawas/facebook.secret"
+#define MAILHOST "mail.nexttolast.com"
 #define PAGE_GUARD 1
 #define CACHE_PAGES 100
 #else 
@@ -27,6 +28,7 @@
 #define AMAZON_SECRET "/opt/Jawas/Code/Jawas/amazon.secret"
 #define FACEBOOK_KEY "/opt/Jawas/Code/Jawas/facebook.key"
 #define FACEBOOK_SECRET "/opt/Jawas/Code/Jawas/facebook.secret"
+#define MAILHOST "mail.nexttolast.com"
 #define PAGE_GUARD 0
 #define CACHE_PAGES 100
 #endif
