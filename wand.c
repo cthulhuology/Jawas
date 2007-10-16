@@ -15,80 +15,79 @@
 
 typedef char*(*image_method_t)(MagickWand*, char*, File);
 
-int
-copy_image(const char* src, const char* dst)
-{
-	return link(src,dst);
-}
-
-int
-resize_image(const char* src, const char* dst)
+str
+resize_image(str file, str width, str height)
 {
 	MagickWand* mw;
-	int h,w,x,y;
+	str retval = temp_file();
+	int max_height,max_width,h,w,x,y;
+	max_height = str_int(height);
+	max_width = str_int(width);
 	MagickWandGenesis();
 	mw = NewMagickWand();
-	if (MagickFalse == MagickReadImage(mw,src)) {
-		error("Failed to read %c\n",src);
-		return 1;
+	if (MagickFalse == MagickReadImage(mw,file->data)) {
+		error("Failed to read %s\n",file);
+		return NULL;
 	}
 	MagickResetIterator(mw);
 	while (MagickNextImage(mw) != MagickFalse) {
 		h = MagickGetImageHeight(mw);
 		w = MagickGetImageWidth(mw);
 		if (w < h) {
-			w = w * IMAGE_HEIGHT / h;
-			h = IMAGE_HEIGHT;
+			w = w * max_height / h;
+			h = max_height;
 		} else {
-			h = h * IMAGE_WIDTH / w;
-			w = IMAGE_WIDTH;
+			h = h * max_width / w;
+			w = max_width;
 		}
 		MagickScaleImage(mw,w,h);
-		if (MagickFalse == MagickWriteImage(mw,dst)) {
-			error("Failed to write %c\n",dst);
-			return 1;
+		if (MagickFalse == MagickWriteImage(mw,retval->data)) {
+			error("Failed to write %s\n",retval);
+			return NULL;
 		}
 	}
 	DestroyMagickWand(mw);
 	MagickWandTerminus();
-	return 0;
+	return retval;
 }
 
-int
-create_thumb(const char* src, const char* dst)
+str
+crop_image(str file, str width, str height)
 {
+	str retval = temp_file();
 	MagickWand* mw;
-	int h,w,x,y;
-	
+	int max_height,max_width,h,w,x,y;
+	max_height = str_int(height);
+	max_width = str_int(width);
 	MagickWandGenesis();
 	mw = NewMagickWand();
-	if (MagickFalse == MagickReadImage(mw,src)) {
-		error("Failed to read %c\n",src);
-		return 1;
+	if (MagickFalse == MagickReadImage(mw,file->data)) {
+		error("Failed to read %s\n",file);
+		return NULL;
 	}
 	MagickResetIterator(mw);
 	while (MagickNextImage(mw) != MagickFalse) {
 		h = MagickGetImageHeight(mw);
 		w = MagickGetImageWidth(mw);
 		if (w > h) {
-			w = w * THUMB_HEIGHT / h;
-			h = THUMB_HEIGHT;
+			w = w * max_height / h;
+			h = max_height;
 		} else {
-			h = h * THUMB_WIDTH / w;
-			w = THUMB_WIDTH;
+			h = h * max_width / w;
+			w = max_width;
 		}
 		MagickScaleImage(mw,w,h);
-		x = (w - THUMB_WIDTH) / 2;
-		y = (h - THUMB_HEIGHT) / 2;
-		MagickCropImage(mw,THUMB_WIDTH,THUMB_HEIGHT,x,y);
-		if (MagickFalse == MagickWriteImage(mw,dst)) {
-			error("Failed to write %c\n",dst);
-			return 1;
+		x = (w - max_width) / 2;
+		y = (h - max_height) / 2;
+		MagickCropImage(mw,max_width,max_height,x,y);
+		if (MagickFalse == MagickWriteImage(mw,retval->data)) {
+			error("Failed to write %s\n",retval);
+			return NULL;
 		}
 	}
 	DestroyMagickWand(mw);
 	MagickWandTerminus();
-	return 0;
+	return retval;
 }
 
 char*

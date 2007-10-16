@@ -92,6 +92,7 @@ incoming(int fd)
 	set_scratch(scratch);
 	srv->sc = accept_socket(srv->sc,fd,(srv->http_sock == fd ? NULL : srv->tls));
 	req = open_request(srv->sc);
+	srv->ri = start_request(srv->ri,req);
 	add_read_socket(srv->sc->fd,req);
 	notice("%i.%i.%i.%i:%i connected\n",
 		(0xff & srv->sc->peer),
@@ -171,6 +172,8 @@ respond()
 		return;
 	}
 	old_scratch();
+	srv->ri = end_request(srv->ri,Resp->req);
+//	dump_usage(Resp->req->usage);
 	close_response(Resp);
 	disconnect();
 //	debug("RESPOND DONE");
@@ -203,11 +206,10 @@ serve(int port, int tls_port)
 	srv->http_sock = open_socket(port);
 	srv->tls_sock = open_socket(tls_port);
 	srv->tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
+	srv->usage = new_usage(1);
 	srv->ec = NULL;
 	srv->fc = NULL;
 	srv->sc = NULL;
-	srv->s3secret = load_config(AMAZON_SECRET);
-	srv->s3key = load_config(AMAZON_KEY);;
 	srv->numevents = 2;
 	monitor_socket(srv->http_sock);
 	monitor_socket(srv->tls_sock);
@@ -229,7 +231,7 @@ run()
 	srv->numevents = 2;
 	ec = poll_events(ec,events);
 	for (srv->ec = NULL; ec; ec = ec->next) {
-		start_usage();
+		start_usage(srv->usage);
 		server_scratch();
 		Req = NULL;
 		Resp = NULL;
@@ -258,8 +260,8 @@ run()
 			unload(ec->fd,char_str(fc->name,0));
 			break;
 		}
-		stop_usage();
-		// dump_usage();
+		stop_usage(srv->usage);
+	//	dump_usage(srv->usage);
 	}
 	if (srv->done) {
 		stop();

@@ -21,6 +21,7 @@ open_request(Socket sc)
 	if (retval) {
 		memset(retval,0,sizeof(struct request_struct));
 		retval->sc = sc;
+		retval->usage = new_usage(0);
 	}
 	return retval;
 }
@@ -100,9 +101,9 @@ parse_request_headers(Buffer buf, int* body)
 			++count;
 			if (count > 2) {
 				*body = o+1;
-				debug("=== BODY ===");
-				dump_buffer(buf,*body);
-				debug("=== DONE ===");
+				//debug("=== BODY ===");
+				//dump_buffer(buf,*body);
+				//debug("=== DONE ===");
 				return headers;
 			}
 			continue;
@@ -148,8 +149,8 @@ read_request(Request req)
 		req->done = (length_buffer(req->contents) - req->body) >= request_content_length(req);
 		debug("Request done %c [%i of %i bytes]", req->done ? "yes" : "no", length_buffer(req->contents), request_content_length(req));
 	}
-	debug("REQUEST CONTENTS >>");
-	dump_buffer(req->contents,0);
+	//debug("REQUEST CONTENTS >>");
+//	dump_buffer(req->contents,0);
 	return req;
 }
 
@@ -209,3 +210,31 @@ parse_path()
 	return Req->path = read_str(Req->contents,i,end - i);
 }
 
+RequestInfo
+start_request(RequestInfo ri, Request req) {
+	start_usage(req->usage);
+	return ri;
+}
+
+RequestInfo
+end_request(RequestInfo ri, Request req) {
+	RequestInfo tmp;
+	stop_usage(req->usage);
+	for (tmp = ri; tmp; tmp = tmp->next) {
+		if(cmp_str(tmp->host,req->host))
+			if (cmp_str(tmp->path,req->path)) {
+				++tmp->hits;
+				tmp->time = (req->usage->time + (tmp->hits-1) * tmp->time) / tmp->hits;
+				return ri;
+			}
+	}
+	server_scratch();
+	tmp = (RequestInfo)salloc(sizeof(struct request_info_struct));	
+	tmp->next = ri;
+	tmp->host = Str("%s",req->host);
+	tmp->path = Str("%s",req->path);
+	tmp->time = req->usage->time;
+	tmp->hits = req->usage->hits;
+	old_scratch();
+	return tmp;
+}

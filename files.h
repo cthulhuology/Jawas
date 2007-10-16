@@ -29,6 +29,7 @@ File close_file(File fc, str filename);
 
 void set_cwd();
 str file_path(str host, str filename);
+str temp_file();
 
 #define file_path(h,f) \
 	Str("%s/%s%s",cwd,h,f)

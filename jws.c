@@ -11,6 +11,7 @@
 #include "pages.h"
 #include "log.h"
 #include "uri.h"
+#include "requests.h"
 #include "responses.h"
 #include "buffers.h"
 #include "files.h"
@@ -23,10 +24,11 @@
 #include "facebook.h"
 #include "jws.h"
 
-#define jsval2str(x) char_str(JS_GetStringBytes(JS_ValueToString(cx,x)),JS_GetStringLength(JS_ValueToString(cx,x)))
-#define str2jsval(x) STRING_TO_JSVAL(JS_NewString(cx,memcpy(JS_malloc(cx,x->len),x->data,x->len),x->len))
-
 #define EMPTY OBJECT_TO_JSVAL(NULL)
+
+#define jsval2str(x) char_str(JS_GetStringBytes(JS_ValueToString(cx,x)),JS_GetStringLength(JS_ValueToString(cx,x)))
+#define str2jsval(x) (x ? STRING_TO_JSVAL(JS_NewString(cx,memcpy(JS_malloc(cx,x->len),x->data,x->len),x->len)) : EMPTY)
+
 #define SUCCESS str2jsval(Str("0"))
 #define FAILURE str2jsval(Str("1"))
 
@@ -420,6 +422,18 @@ FileInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 }
 
 static JSBool
+RequestInfoTable(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	RequestInfo ri;
+	ins.buffer = print_buffer(ins.buffer,"<table><tr><th>Request</th><th># Hits</th><th>Avg Time</th><th>PPM</th></tr>");
+	for (ri  = ins.srv->ri; ri; ri = ri->next) {
+		ins.buffer = print_buffer(ins.buffer, "<tr><td>http://%s%s</td><td>%i</td><td>%i&mu;s</td><td>%i</td></tr>",ri->host,ri->path,ri->hits,ri->time, 1000000 / ri->time);
+	}
+	ins.buffer = print_buffer(ins.buffer,"</table>");
+	return JS_TRUE;
+}
+
+static JSBool
 GetGuid(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	PGresult* res = PQexec(ins.database,"SELECT nextval('guid_seq')");
@@ -476,57 +490,49 @@ S3Auth(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 S3PutJPEG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	if (argc != 2) {
-		error("Usage: s3_put_jpeg(bucket,filename)");
+	if (argc != 3) {
+		error("Usage: s3_put_jpeg(file,bucket,filename)");
 		*rval = FAILURE;
 		return JS_TRUE;
 	}
-	str bucket = jsval2str(argv[0]);
-	str file = jsval2str(argv[1]);
 	
-	File f = load(file);
-
-	str cmd = s3_put_orig(bucket,file);
-	debug("CMD is %s",cmd);
-
-	cmd = s3_put_thumb(bucket,file);
-	debug("CMD is %s",cmd);
-
-	cmd = s3_put_resized(bucket,file);
-	debug("CMD is %s",cmd);
-
-
+	str file = jsval2str(argv[0]);
+	str bucket = jsval2str(argv[1]); 
+	str filename = jsval2str(argv[2]);
+	s3_put_jpeg(file,bucket,filename);
 	*rval = SUCCESS;
 	return JS_TRUE;
 }
 
 static JSBool
-S3GetJPEG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+ResizeImage(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	if (argc != 2) {
-		error("Usage: s3_get_jpeg(bucket,filename)");
+	if (argc != 3) {
+		error("Usage: resize_image(filename,width,height)");
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
-	str bucket = jsval2str(argv[0]);
-	str tmpfile = jsval2str(argv[1]);
-	str url = Str("http://%s.s3.amazonaws.com%x-resized.jpg",bucket,Cstr(tmpfile->data + 4, tmpfile->len - 4));
-	*rval = str2jsval(url);
+	str file = jsval2str(argv[0]);
+	str width = jsval2str(argv[1]);
+	str height = jsval2str(argv[2]);
+	str retval = resize_image(file,width,height);
+	*rval = str2jsval(retval);
 	return JS_TRUE;
 }
 
 static JSBool
-S3GetThumb(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+CropImage(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	if (argc != 2) {
-		error("Usage: s3_get_thumb(bucket,filename)");
+	if (argc != 3) {
+		error("Usage: crop_image(filename,width,height)");
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
-	str bucket = jsval2str(argv[0]);
-	str tmpfile = jsval2str(argv[1]);
-	str url = Str("http://%s.s3.amazonaws.com%x-thumb.jpg",bucket,Cstr(tmpfile->data + 4, tmpfile->len - 4));
-	*rval = str2jsval(url);
+	str file = jsval2str(argv[0]);
+	str width = jsval2str(argv[1]);
+	str height = jsval2str(argv[2]);
+	str retval = crop_image(file,width,height);
+	*rval = str2jsval(retval);
 	return JS_TRUE;
 }
 
@@ -634,13 +640,14 @@ static JSFunctionSpec my_functions[] = {
 	{"client_info", ClientInfo, 0},
 	{"mem_info", MemInfo, 0},
 	{"file_info", FileInfo, 0},
+	{"request_info", RequestInfoTable, 0},
 	{"guid", GetGuid, 0 },
 	{"mail", Mail, 0 },
 	{"s3_auth", S3Auth, 0 }, 
 	{"s3_put_jpeg",S3PutJPEG, 0},
-	{"s3_get_jpeg",S3GetJPEG, 0},
-	{"s3_get_thumb",S3GetThumb, 0},
 	{"image_info",ImageInfo, 0},
+	{"resize_image",ResizeImage, 0},
+	{"crop_image",CropImage, 0},
 	{"facebook_auth",FacebookAuth, 0},
 	{"facebook_login",FacebookLogin, 0},
 	{"facebook_method",FacebookMethod, 0},

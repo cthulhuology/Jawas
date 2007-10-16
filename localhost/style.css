@@ -28,7 +28,7 @@ body {
 .stat_contents {
 	font-size: smaller;
 	overflow: auto;
-	width: 500px;
+	width: 1000px;
 	height: 300px;
 	border-width: thin;
 	border-style:dotted;
@@ -36,7 +36,7 @@ body {
 
 .title {
 	position: absolute;
-	width: 1124px;
+	width: 1048px;
 	text-align: center;
 	padding-top: 20px;
 	padding-bottom: 10px;
@@ -48,9 +48,11 @@ body {
 
 .footer {
 	position: absolute;
+	text-align: center;
+	padding-top: 1.5em;
 	left: 24px;
-	width: 1076;
-	height: 60px;
+	width: 1000px;
+	height: 4em;
 	top: 500px;
 	border-style: dotted;
 	border-width: thin;
@@ -98,6 +100,14 @@ body {
 	padding: 4px;
 	display: inline;
 	color: d8d8d8;
+}
+
+th {
+	padding-right: 2em;
+}
+
+td {
+	padding-right: 2em;
 }
 
 A {

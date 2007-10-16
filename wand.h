@@ -6,17 +6,11 @@
 #ifndef __HAVE_WAND_H__
 #define __HAVE_WAND_H__
 
-#define IMAGE_WIDTH 472
-#define IMAGE_HEIGHT 535
+#include "str.h"
 
-#define THUMB_WIDTH 256
-#define THUMB_HEIGHT 256
-
-int create_thumb(const char* src, const char* dst);
 char** get_image_properties(const char* filename);
 
-int resize_image(const char* src, const char* dst);
-
-int copy_image(const char* src, const char* dst);
+str resize_image(str file, str width, str height);
+str crop_image(str file, str width, str height);
 
 #endif

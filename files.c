@@ -93,3 +93,10 @@ set_cwd()
 {
 	cwd = char_str(getcwd(NULL,0),0);
 }
+
+str
+temp_file()
+{
+	return Str("/tmp/%i%i",random(),time(NULL));
+}
+

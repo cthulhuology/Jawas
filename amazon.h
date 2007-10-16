@@ -9,9 +9,6 @@
 
 void s3_auth(str key, str secret);
 
-str s3_put_jpeg(str bucket, str filename);
-str s3_put_thumb(str bucket, str filename);
-str s3_put_orig(str bucket, str filename);
-str s3_put_resized(str bucket, str filename);
+str s3_put_jpeg(str file, str bucket, str filename);
 
 #endif

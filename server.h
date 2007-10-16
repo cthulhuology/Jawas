@@ -22,11 +22,11 @@ struct server_struct {
 	File fc;
 	Socket sc;
 	TLSInfo tls;
-	str s3secret;
-	str s3key;
 	Scratch scratch;
 	int numevents;
 	int done;
+	RequestInfo ri;
+	Usage usage;
 	Event event;	// current event;
 	Socket sock;	// current socket;
 	Request req;	// current request

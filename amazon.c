@@ -32,29 +32,28 @@ s3_auth(str key, str secret)
 str 
 s3_put_auth_string(str verb, str mime, str date, str bucket, str filename)
 {
-	str sts = Str("%s\n\n\%s\n%s\nx-amz-acl:public-read\n/%s%s",verb,mime,date,bucket,filename);
+	str sts = Str("%s\n\n\%s\n%s\nx-amz-acl:public-read\n/%s/%s",verb,mime,date,bucket,filename);
 	debug("STS is %s",sts);
 	return Str("AWS %s:%s",s3_key,base64(hmac1(s3_secret,sts)));
 }
 
 str
-s3_put_jpeg(str bucket, str filename)
+s3_put_jpeg(str file, str bucket, str filename)
 {
 	int off;
-	File fc = load(filename);
+	File fc = load(file);
+	debug("Loaded file %s", file);
 	str date = Date();
 	debug("Date is %s",date);
 	str md5 = base64(md5sum(fc->data,fc->st.st_size));
 	debug("MD5 is %s",md5);
-	str file = Str("%c.jpg",filename->data+4);
-	debug("File is %s",file);
 	str mime = Str("image/jpeg");
 	debug("MIME is %s",mime);
-	str auth = s3_put_auth_string(Str("PUT"),mime,date,bucket,file);
+	str auth = s3_put_auth_string(Str("PUT"),mime,date,bucket,filename);
 	debug("AUTH is %s", auth);
 	str size = Str("%i",fc->st.st_size);
 	debug("Size is %s",size);
-	str cmd = Str("PUT %s HTTP/1.1\r\nx-amz-acl: public-read\r\nContent-Type: %s\r\nContent-Length: %s\r\nHost: %s.s3.amazonaws.com\r\nDate: %s\r\nAuthorization: %s\r\n\r\n", file, mime,size,bucket,date,auth);
+	str cmd = Str("PUT /%s HTTP/1.1\r\nx-amz-acl: public-read\r\nContent-Type: %s\r\nContent-Length: %s\r\nHost: %s.s3.amazonaws.com\r\nDate: %s\r\nAuthorization: %s\r\n\r\n", filename, mime,size,bucket,date,auth);
 	debug("CMD is %s",cmd);
 	if(!fork()) {
 		Socket sc = connect_socket("s3.amazonaws.com",80);
@@ -70,38 +69,3 @@ s3_put_jpeg(str bucket, str filename)
 	}
 	return cmd;
 }
-
-str
-s3_put_thumb(str bucket, str filename)
-{
-	str thumb = Str("%s-thumb",filename);
-	if (create_thumb(filename->data,thumb->data)) {
-		error("Failed to create thumbnail %s",thumb);
-		return NULL;
-	}
-	return s3_put_jpeg(bucket,thumb);
-}
-
-str
-s3_put_resized(str bucket, str filename)
-{
-	str resized = Str("%s-resized",filename);
-	if (resize_image(filename->data,resized->data)) {
-		error("Failed to create resized %s",resized->data);
-		return NULL;
-	}
-	return s3_put_jpeg(bucket,resized);
-}
-
-str
-s3_put_orig(str bucket, str filename)
-{
-	str orig = Str("%s-orig",filename);
-	if (copy_image(filename->data,orig->data)) {
-		error("Failed to create original %s",orig);
-		return NULL;
-	}
-	return s3_put_jpeg(bucket,orig);
-}
-
-

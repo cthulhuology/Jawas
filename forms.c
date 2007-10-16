@@ -67,11 +67,11 @@ skip_content_headers(Buffer buf, int pos)
 }
 
 str
-save_contents(str fname, Buffer buf, int pos, int end)
+save_contents(Buffer buf, int pos, int end)
 {
 	int delta;
 	Buffer tmp = NULL;
-	str filename = Str("/tmp/%i%i-%s",random(),time(NULL),fname);
+	str filename = temp_file();
 	debug("Save contents filename %s",filename);
 	int fd = open(filename->data,O_WRONLY|O_CREAT,0644);
 	if (fd < 0 ) {
@@ -133,7 +133,7 @@ parse_multipart_body(Headers headers, str enctype)
 		e = skip_content_headers(Req->contents,i);
 		debug(">>== %i",e);
 		if (is_file(Req->contents,i,e))
-			dstname = save_contents(srcname,Req->contents,e,n-2);
+			dstname = save_contents(Req->contents,e,n-2);
 		else
 			dstname = get_contents(Req->contents,e,n-2);
 		debug("dstname = %s",dstname);
