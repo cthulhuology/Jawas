@@ -22,6 +22,7 @@
 #include "amazon.h"
 #include "wand.h"
 #include "facebook.h"
+#include "timers.h"
 #include "jws.h"
 
 #define EMPTY OBJECT_TO_JSVAL(NULL)
@@ -127,6 +128,26 @@ Print(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		c = JS_GetStringBytes(s);
 		ins.buffer = write_buffer(ins.buffer, c, JS_GetStringLength(s));
 	}
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+
+static JSBool
+Debug(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	uintN i;
+	for (i = 0; i < argc; ++i) 
+		debug("%s",jsval2str(argv[i]));
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+
+static JSBool
+Error(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	uintN i;
+	for (i = 0; i < argc; ++i) 
+		error("%s",jsval2str(argv[i]));
 	*rval = SUCCESS;
 	return JS_TRUE;
 }
@@ -427,7 +448,7 @@ RequestInfoTable(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* r
 	RequestInfo ri;
 	ins.buffer = print_buffer(ins.buffer,"<table><tr><th>Request</th><th># Hits</th><th>Avg Time</th><th>PPM</th></tr>");
 	for (ri  = ins.srv->ri; ri; ri = ri->next) {
-		ins.buffer = print_buffer(ins.buffer, "<tr><td>http://%s%s</td><td>%i</td><td>%i&mu;s</td><td>%i</td></tr>",ri->host,ri->path,ri->hits,ri->time, 1000000 / ri->time);
+		ins.buffer = print_buffer(ins.buffer, "<tr><td>http://%s%s</td><td>%i</td><td>%i&mu;s</td><td>%i</td></tr>",ri->host,ri->path,ri->hits,ri->time, 60000000 / ri->time);
 	}
 	ins.buffer = print_buffer(ins.buffer,"</table>");
 	return JS_TRUE;
@@ -468,6 +489,69 @@ Mail(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		return JS_TRUE;
 	}
 	*rval = SUCCESS;
+	return JS_TRUE;
+}
+
+static JSBool
+RunScript(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 3) {
+		error("Usage: run(script,period,data)");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	str script = file_path(Req->host,Str("/%s",jsval2str(argv[0])));
+	int period = str_int(jsval2str(argv[1]));
+	server_scratch();
+	Headers data = new_headers();
+	JSObject* o = JSVAL_TO_OBJECT(argv[2]);	
+	JSIdArray* arr = JS_Enumerate(ins.cx, o);
+	int i;
+	for (i = 0; i < arr->length; ++i ) {
+		char* prop = JS_GetStringBytes(ATOM_TO_STRING(JSID_TO_ATOM(arr->vector[i])));
+		jsval value;
+		JS_GetProperty(ins.cx,o,prop,&value);
+		debug("Appending %c = %s to data\n",prop,jsval2str(value));
+		append_header(data,Str("%c",prop),jsval2str(value));
+	}	
+	client_scratch();
+	add_timer(script,period,data);
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+	
+static JSBool
+StopScript(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 1) {
+		error("Usage: stop(timer_id)");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	str tid = jsval2str(argv[0]);
+	debug("Cancelling timer recieved timer_id:  %s", tid);
+	Timers t = str_obj(tid,Timers);
+	debug("Cancelling timer %p",t);
+	cancel_timer(t);
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+	
+static JSBool
+ListScripts(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 0) {
+		error("Usage: running()");
+		*rval = EMPTY;
+		return JS_TRUE;
+	}
+	JSObject* arr =  JS_NewArrayObject(cx,0,NULL);
+	int i = 0;
+	Timers t;
+	for (t = ins.srv->timers; t; t = t->next) 
+		if (JS_DefineElement(cx,arr,i,str2jsval(Str("%p",t)),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT))
+			++i;
+	*rval = OBJECT_TO_JSVAL(arr);
 	return JS_TRUE;
 }
 	
@@ -621,6 +705,8 @@ static JSFunctionSpec my_functions[] = {
 	{"add_user",AddUser,0},
 	{"add_channel",AddChannel,0},
 	{"print", Print, 0},
+	{"debug", Debug, 0},
+	{"error", Error, 0},
 	{"exit", ExitJS, 0},
 	{"include", Include, 0},
 	{"use", Use, 0},
@@ -643,6 +729,9 @@ static JSFunctionSpec my_functions[] = {
 	{"request_info", RequestInfoTable, 0},
 	{"guid", GetGuid, 0 },
 	{"mail", Mail, 0 },
+	{"run", RunScript, 0 },
+	{"stop", StopScript, 0 },
+	{"running", ListScripts, 0 },
 	{"s3_auth", S3Auth, 0 }, 
 	{"s3_put_jpeg",S3PutJPEG, 0},
 	{"image_info",ImageInfo, 0},
@@ -697,7 +786,7 @@ CreateDatabaseTableFunctions(JSInstance* in)
 "		return gid; 												"
 "	}														",
 		table,table,table,table,table,table);
-		debug("Compiling script %c",table);
+	//	debug("Compiling script %c",table);
 		if (NULL == JS_CompileFunction(in->cx,in->glob,table,2,args,s->data,s->len,"jws.c",0)) 
 			debug("Failed to compile script %s",s);
 	}
@@ -705,10 +794,9 @@ CreateDatabaseTableFunctions(JSInstance* in)
 }
 
 int
-InitParams(JSInstance* in)
+InitParams(JSInstance* in, Headers headers)
 {
 	str x;
-	Headers headers = in->resp->req->query_vars;
 	JSContext* cx = in->cx;
 	JSObject* o;
 	JSObject* arr = NULL;
@@ -741,12 +829,11 @@ InitParams(JSInstance* in)
         return 0;
 }
 
-
 int
-InitJS(JSInstance* i, Server srv, Response resp)
+InitJS(JSInstance* i, Server srv, Headers data)
 {
 	i->srv = srv;
-	i->resp = resp;
+	i->resp = srv->resp;
 	i->buffer = NULL;
 	i->rt = JS_NewRuntime(RUNTIME_SIZE);
 	if (!i->rt) return 1;
@@ -757,7 +844,7 @@ InitJS(JSInstance* i, Server srv, Response resp)
 	if (!JS_DefineFunctions(i->cx, i->glob, my_functions)) return 1;
 	i->database = PQconnectdb(DB_CONNECT_STRING);
 	if (!i->database) return 1;
-	InitParams(i);
+	InitParams(i, data ? data : i->resp->req->query_vars);
 	return CreateDatabaseTableFunctions(i);
 }
 
@@ -810,25 +897,36 @@ ProcessFile(char* script)
 }
 
 int
+run_script(File fc, Headers data)
+{
+	jsval rval;
+	if (InitJS(&ins,srv,data)) {
+		error("Failed to initialize Javascript");
+		return 1;
+	}
+	if (!setjmp(jmp)) {
+		if (Resp)
+			ProcessFile(fc->data);
+		else 
+			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, fc->data, fc->st.st_size, "js.c", 1, &rval)) 
+				debug("Failed to evaluate script %c",fc->name);
+	}
+	if (DestroyJS(&ins)) {
+		error("Failed to destroy Javascript");
+		return 1;
+	}
+	return 0;
+}
+
+int
 jws_handler(File fc)
 {
 	Buffer tmp;
-	if (InitJS(&ins,srv,Resp)) {
-		debug("Failed to initialize Javascript");
-		goto error;
-	}
-	if (!setjmp(jmp)) {
-		ProcessFile(fc->data);
-	}
-	if (DestroyJS(&ins)) {
-		debug("Failed to destroy Javascript");
-		goto error;
-	}
-	Resp->contents = ins.buffer;
-	return Resp->status;
+	if (run_script(fc,NULL)) goto error;
+	if (Resp) Resp->contents = ins.buffer;
+	return Resp ? Resp->status : 0;
 error:
 	for (;ins.buffer; ins.buffer = free_buffer(ins.buffer));
-	Resp->contents = NULL;
+	if (Resp) Resp->contents = NULL;
 	return 500;
 }
-

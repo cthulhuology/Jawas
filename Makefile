@@ -52,6 +52,7 @@ signals.c \
 sockets.c \
 status.c  \
 str.c \
+timers.c \
 tls.c \
 uri.c \
 usage.c \

@@ -34,6 +34,7 @@ str num_str(double a);
 
 #define str_int(a) (a ? strtol(a->data,NULL,0) : 0)
 #define str_num(a) (a ? strtod(a->data,NULL,0) : 0)
+#define str_obj(a,t) (t)str_int(a)
 #define type_str_func(n,t,f)\
 str \
 n (t a) { \

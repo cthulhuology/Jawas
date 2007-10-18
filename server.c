@@ -229,10 +229,15 @@ run()
 	int events = srv->numevents;
 	srv->ec = NULL;
 	srv->numevents = 2;
+	server_scratch();
+	Req = NULL;
+	Resp = NULL;
+	Sock = NULL;
+	update_timers();
 	ec = poll_events(ec,events);
 	for (srv->ec = NULL; ec; ec = ec->next) {
-		start_usage(srv->usage);
 		server_scratch();
+		start_usage(srv->usage);
 		Req = NULL;
 		Resp = NULL;
 		Sock = NULL;

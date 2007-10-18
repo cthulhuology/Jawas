@@ -23,7 +23,7 @@ poll_events(Event ec, int numevents)
 	Scratch tmp = escratch;
 	escratch = NULL;
 	Event retval = NULL;
-	struct timespec ts = { 0, 0 };
+	struct timespec ts = { 1, 0 };
 	struct kevent* cl = (struct kevent*)(ec ? alloc_scratch(scratch,sizeof(struct kevent)*ec->pos) : NULL);
 	struct kevent* el = (struct kevent*)alloc_scratch(scratch,sizeof(struct kevent)*numevents);
 
@@ -38,7 +38,7 @@ poll_events(Event ec, int numevents)
 		cl[n].udata = ec->data;
 		ec = ec->next;
 	}
-	n = kevent(KQ,cl,n,el,numevents, NULL);
+	n = kevent(KQ,cl,n,el,numevents, &ts);
 	if (n < 0) goto done;
 //	debug("Processing %i events",n);
 	while (n--) 

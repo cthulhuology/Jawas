@@ -12,6 +12,7 @@
 #include "files.h"
 #include "tls.h"
 #include "sockets.h"
+#include "timers.h"
 
 typedef struct server_struct* Server;
 struct server_struct {
@@ -23,6 +24,9 @@ struct server_struct {
 	Socket sc;
 	TLSInfo tls;
 	Scratch scratch;
+	Timers timers;
+	time_t time;
+	int period;
 	int numevents;
 	int done;
 	RequestInfo ri;
