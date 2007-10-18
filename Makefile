@@ -49,6 +49,7 @@ requests.c \
 responses.c \
 server.c \
 signals.c \
+sms.c \
 sockets.c \
 status.c  \
 str.c \

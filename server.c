@@ -18,6 +18,7 @@
 #include "usage.h"
 #include "methods.h"
 #include "jws.h"
+#include "sms.h"
 
 Server srv = NULL;
 Scratch old_scratch_pad;
@@ -213,6 +214,9 @@ serve(int port, int tls_port)
 	srv->numevents = 2;
 	monitor_socket(srv->http_sock);
 	monitor_socket(srv->tls_sock);
+#ifndef LINUX
+	sms_open_modem();
+#endif
 	srv->done = 0;
 	general_signal_handlers();
 	socket_signal_handlers();
@@ -248,6 +252,9 @@ run()
 			if (ec->fd == srv->http_sock
 			|| ec->fd == srv->tls_sock) {
 				incoming(ec->fd);
+				break;
+			} else if (ec->fd == modem) {
+				sms_read_ack();
 				break;
 			}
 			Req = (Request)ec->data;
