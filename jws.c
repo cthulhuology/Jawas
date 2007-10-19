@@ -694,6 +694,90 @@ FacebookMethod(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rva
 	return JS_TRUE;
 }
 
+static JSBool
+SMSSendMSG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 1) {
+		error("Usage: sms_send_msg(index)");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	str index = jsval2str(argv[0]);
+	sms_send_msg(index);
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+
+static JSBool
+SMSWriteMSG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 2) {
+		error("Usage: sms_write_msg(number,txt)");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	str number = jsval2str(argv[0]);
+	str text  = jsval2str(argv[1]);
+	sms_write_msg(number,text);
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+
+static JSBool
+SMSReadMSG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 1) {
+		error("Usage: sms_read_msg(index)");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	str index = jsval2str(argv[0]);
+	sms_read_msg(index);
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+
+static JSBool
+SMSDeleteMSG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 1) {
+		error("Usage: sms_delete_msg(index)");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	str index = jsval2str(argv[0]);
+	sms_delete_msg(index);
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+
+static JSBool
+SMSQueryAll(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 0) {
+		error("Usage: sms_query_all()");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	sms_query_all();
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+
+static JSBool
+SMSQueryUnread(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 0) {
+		error("Usage: sms_query_unread()");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	sms_query_unread();
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+
+
 static JSClass global_class = {
 	"global", 0,
 	JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub,
@@ -740,6 +824,12 @@ static JSFunctionSpec my_functions[] = {
 	{"facebook_auth",FacebookAuth, 0},
 	{"facebook_login",FacebookLogin, 0},
 	{"facebook_method",FacebookMethod, 0},
+	{"sms_send_msg", SMSSendMSG, 0},
+	{"sms_write_msg", SMSWriteMSG, 0},
+	{"sms_read_msg", SMSReadMSG, 0 },
+	{"sms_delete_msg", SMSDeleteMSG, 0 },
+	{"sms_query_all", SMSQueryAll, 0 },
+	{"sms_query_unread", SMSQueryUnread, 0},
 	{0},
 };
 

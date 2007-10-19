@@ -1,1 +1,6 @@
 // CMTI sms handler
+debug("[SMS] message available");
+
+var (type,index) = /.*"(\w+)",\s*(\d+)/.match($line);
+sms_read_msg(index);
+

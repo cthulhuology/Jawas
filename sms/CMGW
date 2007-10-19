@@ -1,1 +1,4 @@
 // CMGW handler
+debug("[SMS] Wrote message " + $line);
+var index = /.*:\s+(\d+)/.match($line);
+sms_send_msg(index);

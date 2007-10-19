@@ -24,7 +24,8 @@ out_modem(str msg)
 str
 in_modem()
 {
-
+	str retval = char_str(NULL,512);
+	
 }
 
 int
@@ -99,7 +100,7 @@ parse_sms_cmd(str line)
 	int i;
 	str retval = NULL;
 	if (line->data[0] != '+') return NULL;
-	for (i = 1; i < line->len && line->data[i] != ":", ++i); 
+	for (i = 1; i < line->len && line->data[i] != ':'; ++i); 
 	if (i >= line->len) return NULL;
 	retval =  char_str(line->data + 1, i - 1);
 	debug("[SMS] Found CMD %s",retval);
@@ -113,11 +114,13 @@ sms_read_ack()
 	while (line = in_modem()) {
 		if (cmp_str(line,Str("OK"))) {
 			debug("[MODEM] OK");
-		} else if (ncmp_str(line,Str("ERROR",5))) {
+		} else if (ncmp_str(line,Str("ERROR"),5)) {
 			debug("[MODEM] ERROR: %s",line);
 		} else if (cmd = parse_sms_cmd(line)) {
 			File fc = load(file_path(char_str("sms",0),cmd));
-			run_script(fc,NULL);
+			Headers hds = new_headers();
+			append_header(hds,Str("line"),line);
+			run_script(fc,hds);
 		}
 	}
 }
