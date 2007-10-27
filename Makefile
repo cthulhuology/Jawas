@@ -30,6 +30,7 @@ amazon.c \
 auth.c \
 buffers.c \
 bsd.c \
+database.c \
 dates.c \
 events.c \
 facebook.c \
@@ -38,6 +39,7 @@ forms.c \
 headers.c \
 image.c \
 index.c \
+json.c \
 jws.c \
 linux.c \
 log.c \

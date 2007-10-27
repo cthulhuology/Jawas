@@ -26,7 +26,6 @@ struct server_struct {
 	Scratch scratch;
 	Timers timers;
 	time_t time;
-	int period;
 	int numevents;
 	int done;
 	RequestInfo ri;

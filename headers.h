@@ -19,6 +19,7 @@ Headers new_headers();
 void free_headers(Headers headers);
 
 str find_header(Headers headers, char* key);
+str list_headers(Headers kv);
 
 Headers append_header(Headers headers, str key, str value);
 void dump_headers(Headers headers);

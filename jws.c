@@ -9,6 +9,7 @@
 #include "config.h"
 #include "alloc.h"
 #include "pages.h"
+#include "headers.h"
 #include "log.h"
 #include "uri.h"
 #include "requests.h"
@@ -18,96 +19,27 @@
 #include "server.h"
 #include "jsapi.h"
 #include "jsstr.h"
+#include "jsobj.h"
 #include "mail.h"
 #include "amazon.h"
 #include "wand.h"
 #include "facebook.h"
 #include "timers.h"
+#include "database.h"
 #include "jws.h"
-
-#define EMPTY OBJECT_TO_JSVAL(NULL)
-
-#define jsval2str(x) char_str(JS_GetStringBytes(JS_ValueToString(cx,x)),JS_GetStringLength(JS_ValueToString(cx,x)))
-#define str2jsval(x) (x ? STRING_TO_JSVAL(JS_NewString(cx,memcpy(JS_malloc(cx,x->len),x->data,x->len),x->len)) : EMPTY)
-
-#define SUCCESS str2jsval(Str("0"))
-#define FAILURE str2jsval(Str("1"))
-
-// Javascript Functions
+#include "json.h"
+#include "sms.h"
 
 JSInstance ins;
 jmp_buf jmp;
 
 void ProcessFile(char* script);
 
-int
-sms_connect() 
-{
-	struct sockaddr_un unsc;
-#ifndef LINUX
-	unsc.sun_len = sizeof(unsc);
-#endif
-	unsc.sun_family = AF_UNIX;
-	memcpy(unsc.sun_path,"/tmp/sms",9);
-
-	int sock = socket(AF_UNIX,SOCK_STREAM,0);
-	if (connect(sock,(struct sockaddr*)&unsc,SUN_LEN(&unsc))) {
-		error("Failed to connect to /tmp/sms\n");
-		close(sock);
-		return 0;
-	}
-	return sock;
-}
-
 static JSBool
 ExitJS(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	longjmp(jmp,1);
 	return JS_TRUE;	// never get here
-}
-
-static JSBool
-SendMessage(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	int i;
-	JSString* s;
-	int sc = sms_connect();
-	write(sc,"SEND ",5);
-	for (i = 0; i < argc; ++i ) {
-		s = JS_ValueToString(cx,argv[i]);
-		write(sc,JS_GetStringBytes(s),JS_GetStringLength(s));
-		write(sc," ",1);
-	}
-	close(sc);
-	return JS_TRUE;	
-}
-
-static JSBool
-AddUser(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	int i;
-	JSString* s;
-	int sc = sms_connect();
-	write(sc,"ADD USER ",9);
-	for (i = 0; i < 3; ++i ) {
-		s = JS_ValueToString(cx,argv[i]);
-		write(sc,JS_GetStringBytes(s),JS_GetStringLength(s));
-		write(sc," ",1);
-	}
-	close(sc);
-	return JS_TRUE;	
-}
-
-static JSBool
-AddChannel(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	JSString* s;
-	int sc = sms_connect();
-	write(sc,"ADD CHANNEL ",12);
-	s = JS_ValueToString(cx,argv[0]);
-	write(sc,JS_GetStringBytes(s),JS_GetStringLength(s));
-	close(sc);
-	return JS_TRUE;	
 }
 
 static JSBool
@@ -250,60 +182,53 @@ Param(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 }
 
 static JSBool
+Now(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	str n = int_str(time(NULL));
+	*rval = str2jsval(n);
+	return JS_TRUE;
+}
+
+static JSBool
 Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	int i,j;
 	JSObject* arr;
 	JSObject* row;
-	str value;
-	str query;
-	PGresult* res;
 	if (argc != 1) {
 		error("Usage: query(querystring)");
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
-	query  = jsval2str(argv[0]);
-	res  = PQexec(ins.database,query->data);
-	switch(PQresultStatus(res)) {
-		case PGRES_EMPTY_QUERY:
-		case PGRES_COMMAND_OK:
-			PQclear(res);
-			*rval = EMPTY;
-			return JS_TRUE;
-		case PGRES_TUPLES_OK:
-			arr =  JS_NewArrayObject(cx,0,NULL);
-			if (! arr) {
-				error("Failed to initialize array for query : %s\n",query);
-				*rval = EMPTY;
-				return JS_TRUE;
-			}
-			for (i = 0; i < PQntuples(res); ++i) {
-				row = JS_NewObject(cx,NULL,NULL,arr);
-				if(!row || ! JS_DefineElement(cx,arr,i,OBJECT_TO_JSVAL(row),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
-					error("Failed to initialize object for row %i : %s\n",i,query);
-					continue;
-				}
-				for (j = 0; j < PQnfields(res); ++j) {
-					value = Str("%c", PQgetvalue(res,i,j));
-					if (!JS_DefineProperty(cx,row,PQfname(res,j),str2jsval(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
-						error("Failed to apply column %c to row %i\n",PQfname(res,j),i);
-						continue;
-					}
-				}
-			}
-			*rval = OBJECT_TO_JSVAL(arr);
-			PQclear(res);
-			return JS_TRUE;
-		case PGRES_BAD_RESPONSE:
-		case PGRES_NONFATAL_ERROR:
-		case PGRES_FATAL_ERROR:
-		default:
-			error("query(%s) failed %c", query, PQresultErrorMessage(res));
-			PQclear(res);
-			*rval = str2jsval(Str("%c",PQresultErrorMessage(res)));
-			return JS_TRUE;
+	str qstr = jsval2str(argv[0]);
+	int res = query(qstr);
+	if (res < 0) {
+		*rval = str2jsval(db_error());
+		return JS_TRUE;
 	}
+	arr =  JS_NewArrayObject(cx,0,NULL);
+	if (! arr) {
+		error("Failed to initialize array for query : %s\n",qstr);
+		*rval = EMPTY;
+		return JS_TRUE;
+	}
+	for (i = 0; i < res; ++i) {
+		row = JS_NewObject(cx,NULL,NULL,arr);
+		if(!row || ! JS_DefineElement(cx,arr,i,OBJECT_TO_JSVAL(row),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
+			error("Failed to initialize object for row %i : %s\n",i,qstr);
+			continue;
+		}
+		for (j = 0; j < fields(); ++j) {
+			str value = fetch(i,j);
+			if (!JS_DefineProperty(cx,row,field(j)->data,str2jsval(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
+				error("Failed to apply column %c to row %i\n",field(j),i);
+				continue;
+			}
+		}
+	}
+	reset();
+	*rval = OBJECT_TO_JSVAL(arr);
+	return JS_TRUE;
 }
 
 static JSBool
@@ -455,19 +380,83 @@ RequestInfoTable(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* r
 }
 
 static JSBool
-GetGuid(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+JSON(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	PGresult* res = PQexec(ins.database,"SELECT nextval('guid_seq')");
-	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-		error("Get next guid_seq value failed %s",PQresultErrorMessage(res));	
-		PQclear(res);
+	str jsn = json(cx,obj);
+	debug("JSON value %s",jsn);
+	*rval = str2jsval(jsn);
+	return JS_TRUE;
+}
+
+static JSBool
+SaveJSON(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc > 0) {
+		error("Usage: obj.save()");
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
-	str guid = Str("%c",PQgetvalue(res,0,0));
-	debug("Guid is %s",guid);
-        *rval = str2jsval(guid);
-	PQclear(res);
+	jsval id_val;
+	str guid;
+	if (JS_FALSE == JS_GetProperty(ins.cx,obj,"id",&id_val)) return JS_TRUE;
+	return JS_TRUE;	
+}
+
+static JSBool
+StoreJSON(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	str id,qstr;
+	if (argc > 1) {
+		error("Usage: obj.store([guid])");
+		*rval = EMPTY;
+		return JS_TRUE;
+	}
+	if (argc == 0) { 
+		id = guid();
+		qstr = Str("INSERT INTO object (id,data) VALUES (%s, '%s')",id,json(cx,obj));
+	} else {
+		id = jsval2str(argv[0]);
+		qstr = Str("UPDATE object SET data = '%s' WHERE id = %s",json(cx,obj),guid);
+	}
+	debug("Executing query %s",qstr);
+	int res = query(qstr);
+	reset();
+	if (res < 0) {
+		*rval = EMPTY;
+		return JS_TRUE;
+	}
+	*rval = str2jsval(id);
+	return JS_TRUE;
+}
+
+static JSBool
+LoadJSON(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	jsval retval;
+	str qstr = Str("SELECT data FROM object WHERE id = %s",jsval2str(argv[0]));
+	int res = query(qstr);
+	if (res < 0) {
+		reset();
+		*rval = EMPTY;
+		return JS_TRUE;
+	}
+	str jsn = Str("eval(%s)",fetch(0,0));
+	reset();
+	debug("Evaluating: %s",jsn);
+	if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, jsn->data, jsn->len, "js.c", 1, &retval)) {
+		error("Failed to load object %s",jsval2str(argv[0]));
+		*rval = EMPTY;
+		return JS_TRUE;
+	} 
+	*rval = retval;
+	return JS_TRUE;
+}
+
+static JSBool
+GetGuid(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	str id = guid();
+	*rval = id ?  str2jsval(id) : EMPTY;
 	return JS_TRUE;
 }
 
@@ -495,16 +484,17 @@ Mail(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 RunScript(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	if (argc != 3) {
-		error("Usage: run(script,period,data)");
+	if (argc != 4) {
+		error("Usage: run(host,script,when,data)");
 		*rval = FAILURE;
 		return JS_TRUE;
 	}
-	str script = file_path(Req->host,Str("/%s",jsval2str(argv[0])));
-	int period = str_int(jsval2str(argv[1]));
+	str host = jsval2str(argv[0]);
+	str script = file_path(host,Str("/%s",jsval2str(argv[1])));
+	int when = str_int(jsval2str(argv[2]));
 	server_scratch();
 	Headers data = new_headers();
-	JSObject* o = JSVAL_TO_OBJECT(argv[2]);	
+	JSObject* o = JSVAL_TO_OBJECT(argv[3]);	
 	JSIdArray* arr = JS_Enumerate(ins.cx, o);
 	int i;
 	for (i = 0; i < arr->length; ++i ) {
@@ -515,7 +505,7 @@ RunScript(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		append_header(data,Str("%c",prop),jsval2str(value));
 	}	
 	client_scratch();
-	add_timer(script,period,data);
+	add_timer(script,when,data);
 	*rval = SUCCESS;
 	return JS_TRUE;
 }
@@ -695,21 +685,33 @@ FacebookMethod(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rva
 }
 
 static JSBool
-SMSSendMSG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+SMSInit(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	if (argc != 1) {
-		error("Usage: sms_send_msg(index)");
+	if (argc != 0) {
+		error("Usage: sms_init()");
 		*rval = FAILURE;
 		return JS_TRUE;
 	}
-	str index = jsval2str(argv[0]);
-	sms_send_msg(index);
+	sms_process();
 	*rval = SUCCESS;
 	return JS_TRUE;
 }
 
 static JSBool
-SMSWriteMSG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+SMSReadACK(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 0) {
+		error("Usage: sms_read_ack()");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	sms_read_ack();
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+
+static JSBool
+SendSMS(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	if (argc != 2) {
 		error("Usage: sms_write_msg(number,txt)");
@@ -723,71 +725,20 @@ SMSWriteMSG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	return JS_TRUE;
 }
 
-static JSBool
-SMSReadMSG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	if (argc != 1) {
-		error("Usage: sms_read_msg(index)");
-		*rval = FAILURE;
-		return JS_TRUE;
-	}
-	str index = jsval2str(argv[0]);
-	sms_read_msg(index);
-	*rval = SUCCESS;
-	return JS_TRUE;
-}
-
-static JSBool
-SMSDeleteMSG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	if (argc != 1) {
-		error("Usage: sms_delete_msg(index)");
-		*rval = FAILURE;
-		return JS_TRUE;
-	}
-	str index = jsval2str(argv[0]);
-	sms_delete_msg(index);
-	*rval = SUCCESS;
-	return JS_TRUE;
-}
-
-static JSBool
-SMSQueryAll(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	if (argc != 0) {
-		error("Usage: sms_query_all()");
-		*rval = FAILURE;
-		return JS_TRUE;
-	}
-	sms_query_all();
-	*rval = SUCCESS;
-	return JS_TRUE;
-}
-
-static JSBool
-SMSQueryUnread(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	if (argc != 0) {
-		error("Usage: sms_query_unread()");
-		*rval = FAILURE;
-		return JS_TRUE;
-	}
-	sms_query_unread();
-	*rval = SUCCESS;
-	return JS_TRUE;
-}
-
-
 static JSClass global_class = {
 	"global", 0,
 	JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub,
 	JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, JS_FinalizeStub
 };
 
-static JSFunctionSpec my_functions[] = {
-	{"send_message",SendMessage,0},
-	{"add_user",AddUser,0},
-	{"add_channel",AddChannel,0},
+static JSFunctionSpec obj_functions[] = {
+	{"json", JSON, 0 },
+	{"store", StoreJSON, 0 },
+	{"load", LoadJSON, 0 },
+	{0},
+};
+
+static JSFunctionSpec glob_functions[] = {
 	{"print", Print, 0},
 	{"debug", Debug, 0},
 	{"error", Error, 0},
@@ -797,6 +748,7 @@ static JSFunctionSpec my_functions[] = {
 	{"cwd", CWD, 0},
 	{"header", Header, 0 },
 	{"param", Param, 0 },
+	{"now", Now, 0 },
 	{"query", Query, 0 },
 	{"encode", Encode, 0 },
 	{"decode", Decode, 0 },
@@ -824,12 +776,9 @@ static JSFunctionSpec my_functions[] = {
 	{"facebook_auth",FacebookAuth, 0},
 	{"facebook_login",FacebookLogin, 0},
 	{"facebook_method",FacebookMethod, 0},
-	{"sms_send_msg", SMSSendMSG, 0},
-	{"sms_write_msg", SMSWriteMSG, 0},
-	{"sms_read_msg", SMSReadMSG, 0 },
-	{"sms_delete_msg", SMSDeleteMSG, 0 },
-	{"sms_query_all", SMSQueryAll, 0 },
-	{"sms_query_unread", SMSQueryUnread, 0},
+	{"sms_init", SMSInit, 0},
+	{"sms_read_ack", SMSReadACK, 0},
+	{"send_sms", SendSMS, 0},
 	{0},
 };
 
@@ -837,16 +786,15 @@ static int
 CreateDatabaseTableFunctions(JSInstance* in)
 {
 	int i;
-	PGresult* res;
 	const char* args[] = { "id","obj",NULL };
-	char query[] = "SELECT tablename FROM pg_tables WHERE schemaname = 'public'";
-	res = PQexec(in->database,query);	
-	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+	str q = Str("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
+	int res = query(q);
+	if (res < 0) {
 		error("Failed to initialize database interface");
 		return 1;
 	}
-	for (i = 0; i < PQntuples(res); ++i) {
-		char* table = PQgetvalue(res,i,0);
+	for (i = 0; i < res; ++i) {
+		str table = fetch(i,0);
 		str s = Str(
 "	if (id) {													" 
 "		if (obj) {  												"
@@ -876,10 +824,10 @@ CreateDatabaseTableFunctions(JSInstance* in)
 "		return gid; 												"
 "	}														",
 		table,table,table,table,table,table);
-	//	debug("Compiling script %c",table);
-		if (NULL == JS_CompileFunction(in->cx,in->glob,table,2,args,s->data,s->len,"jws.c",0)) 
+		if (NULL == JS_CompileFunction(in->cx,in->glob,table->data,2,args,s->data,s->len,"jws.c",0)) 
 			debug("Failed to compile script %s",s);
 	}
+	reset();
 	return 0;
 }
 
@@ -931,8 +879,10 @@ InitJS(JSInstance* i, Server srv, Headers data)
 	if (!i->cx) return 1;
 	i->glob = JS_NewObject(i->cx, &global_class, NULL, NULL);
 	i->builtins = JS_InitStandardClasses(i->cx, i->glob);
-	if (!JS_DefineFunctions(i->cx, i->glob, my_functions)) return 1;
-	i->database = PQconnectdb(DB_CONNECT_STRING);
+	if (!JS_DefineFunctions(i->cx, i->glob, glob_functions)) return 1;
+	i->obj_proto = OBJ_GET_PROTO(i->cx, i->glob);
+	if (!JS_DefineFunctions(i->cx, i->obj_proto, obj_functions)) return 1; 
+	i->database = new_database();
 	if (!i->database) return 1;
 	InitParams(i, data ? data : i->resp->req->query_vars);
 	return CreateDatabaseTableFunctions(i);
@@ -941,7 +891,7 @@ InitJS(JSInstance* i, Server srv, Headers data)
 int 
 DestroyJS(JSInstance* i)
 {
-	PQfinish(i->database);	
+	close_database(i->database);
 	JS_DestroyContext(i->cx);
 	JS_DestroyRuntime(i->rt);
 	JS_ShutDown();

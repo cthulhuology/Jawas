@@ -19,6 +19,7 @@
 #include <sys/un.h>
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <dirent.h>
 #include <errno.h>
 #ifdef LINUX
 #define __USE_GNU

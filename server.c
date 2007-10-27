@@ -40,8 +40,10 @@ old_scratch()
 void
 client_scratch()
 {
-	old_scratch_pad = gscratch;
-	set_scratch(Sock->scratch);
+	if (Sock) {
+		old_scratch_pad = gscratch;
+		set_scratch(Sock->scratch);
+	}
 }
 
 File
@@ -78,8 +80,17 @@ load(str filename)
 void
 unload(int fd, str filename)
 {
+	Timers t;
 	server_scratch();
 	debug("Unloading %s\n",filename);
+	for (t = srv->timers; t; t = t->next) {
+		if (!strcmp(filename->data,t->script->name)) {
+			debug("Reloading fc %p, %s", t->script, filename);
+			reopen_file(t->script);
+			old_scratch();
+			return;
+		}
+	}
 	srv->fc = close_file(srv->fc,filename);
 	old_scratch();
 }
@@ -211,6 +222,8 @@ serve(int port, int tls_port)
 	srv->ec = NULL;
 	srv->fc = NULL;
 	srv->sc = NULL;
+	srv->timers = NULL;
+	srv->time = time(NULL);
 	srv->numevents = 2;
 	monitor_socket(srv->http_sock);
 	monitor_socket(srv->tls_sock);
@@ -223,6 +236,7 @@ serve(int port, int tls_port)
 #ifdef LINUX
 	file_signal_handlers();
 #endif
+	init_timers();
 }
 
 void
@@ -253,10 +267,7 @@ run()
 			|| ec->fd == srv->tls_sock) {
 				incoming(ec->fd);
 				break;
-			} else if (ec->fd == modem) {
-				sms_read_ack();
-				break;
-			}
+			} 
 			Req = (Request)ec->data;
 			Sock = Req->sc;
 			request();

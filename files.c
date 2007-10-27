@@ -32,6 +32,24 @@ open_file(File cache, str filename)
 }
 
 File
+reopen_file(File fc) 
+{
+	munmap(fc->data,fc->st.st_size);
+	close(fc->fd);
+	fc->fd = open(fc->name,O_RDONLY,0400);
+	if (fc->fd < 0 || fstat(fc->fd,&fc->st)) {
+		error("Failed to open file %c",fc->name);
+		return NULL;
+	}
+	if (!(fc->data = mmap(NULL,fc->st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fc->fd,0))) {
+		error("Failed to memory map file %c",fc->name);
+		close(fc->fd);
+		return NULL;
+	}
+	return fc;
+}
+
+File
 close_file(File fc, str filename)
 {
 	File tmp, last = NULL;		

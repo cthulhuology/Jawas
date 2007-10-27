@@ -14,11 +14,12 @@ struct timer_struct {
 	Timers next;
 	File script;
 	Headers data;
-	int period;
+	time_t when;
 };
 
-Timers add_timer(str file, int period, Headers data);
+Timers add_timer(str file, time_t when, Headers data);
 void update_timers();
 void cancel_timer(Timers t);
+void init_timers();
 
 #endif

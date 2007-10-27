@@ -23,6 +23,7 @@ struct file_cache_struct {
 extern str cwd;
 
 File open_file(File cache, str filename);
+File reopen_file(File fc);
 File query_cache(File* cache, str filename);
 File query_fd_cache(File cache, int fd);
 File close_file(File fc, str filename);

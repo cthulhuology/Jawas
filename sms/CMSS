@@ -1,2 +1,0 @@
-// CMSS handler
-debug("[SMS] Message Sent" + $line);

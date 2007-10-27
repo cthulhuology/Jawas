@@ -87,6 +87,20 @@ sort_headers(Headers kv)
 	return retval;
 }
 
+str
+list_headers(Headers kv)
+{
+	str retval = NULL;
+	int i;
+	for (i = 0; i < MAX_HEADERS && kv[i].key; ++i) {
+		debug("i is %i",i);
+		debug("retval is %p",retval);
+		retval = retval ? Str("%s, %s : %s", retval, kv[i].key, kv[i].value)
+				: Str("%s : %s", kv[i].key,kv[i].value); 
+	}
+	return retval;
+}
+
 HEADER_FUNC(cache_control,Cache_Control_MSG)
 HEADER_FUNC(connection,Connection_MSG)
 HEADER_FUNC(date_field,Date_MSG)
