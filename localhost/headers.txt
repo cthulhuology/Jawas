@@ -1,7 +1,0 @@
-<html>
-<head>
-<title><?js= title =?></title>
-<link href="/admin/style.css" type="text/css" rel="stylesheet" />
-</head>
-<body>
-

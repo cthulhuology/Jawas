@@ -1,4 +1,0 @@
-<?js
-	add_channel("NewChannel");
-	add_user("DaveG","7163482984","NewChannel");
-?>
