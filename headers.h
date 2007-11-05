@@ -8,6 +8,7 @@
 #define __HEADERS_H__
 
 #include "str.h"
+#include "buffers.h"
 
 typedef struct headers_struct*  Headers;
 struct headers_struct {
@@ -20,6 +21,7 @@ void free_headers(Headers headers);
 
 str find_header(Headers headers, char* key);
 str list_headers(Headers kv);
+Buffer print_headers(Buffer dst, Headers src);
 
 Headers append_header(Headers headers, str key, str value);
 void dump_headers(Headers headers);

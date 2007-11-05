@@ -15,6 +15,7 @@
 #define CONTEXT_SIZE 8192
 #define MAX_INDEX_LEN 12
 #define MAX_WRITE_SIZE getpagesize() 
+#define SOCKET_CONNECT_TIMEOUT 1
 
 #define error(msg ...)	log_msg(0,msg)
 #define notice(msg ...)	log_msg(1,msg)

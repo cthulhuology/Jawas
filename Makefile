@@ -16,7 +16,7 @@ LDFLAGS  += `Wand-config --ldflags --libs`
 ifeq ($(ARCH),Darwin)
 	CFLAGS += -ggdb -DXP_UNIX 
 	INCLUDES = -Ijs -Ijs/Darwin_DBG.OBJ -I/opt/local/include/postgresql82/
-	LDFLAGS += -Ljs/Darwin_DBG.OBJ/ -L/opt/local/lib/postgresql82/
+	LDFLAGS += -Ljs/Darwin_DBG.OBJ/ -L/opt/local/lib/postgresql82/ 
 else	
 	CFLAGS += -ggdb -DXP_UNIX -DLINUX
 	INCLUDES = -Ijs -Ijs/Linux_All_DBG.OBJ -I/usr/include/postgresql/
@@ -47,6 +47,7 @@ mail.c \
 methods.c \
 mime.c \
 pages.c \
+post.c \
 requests.c \
 responses.c \
 server.c \
@@ -55,6 +56,7 @@ sms.c \
 sockets.c \
 status.c  \
 str.c \
+strings.c \
 timers.c \
 tls.c \
 uri.c \

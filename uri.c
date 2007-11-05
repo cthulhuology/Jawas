@@ -67,7 +67,6 @@ uri_encode(str s)
 	for (i = 0; i < len; ++i) {
 		if (is_clean_char(s->data[i])) {
 			retval->data[j++] = s->data[i];
-			++j;
 		} else {
 			retval->data[j++] = '%';
 			retval->data[j++] = hex_chars[s->data[i]/16];

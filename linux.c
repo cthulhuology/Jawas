@@ -50,10 +50,10 @@ poll_events(Event ec, int numevents)
 		ec = ec->next;
 	}
 	struct epoll_event* el  = (struct epoll_event*)alloc_scratch(scratch,sizeof(struct epoll_event)*numevents);
-	debug("numevents is %i", numevents);
-	n = epoll_wait(KQ,el,numevents,-1);
+	// debug("numevents is %i", numevents);
+	n = epoll_wait(KQ,el,numevents,1);
 	if (n < 0) goto done;
-	debug("Epoll got %i events",n);
+	// debug("Epoll got %i events",n);
 	while (n--) {
 		if (el[n].data.ptr == &srv->http_sock) {
 			debug("Processing incomming HTTP connection on socket %i", srv->http_sock);
@@ -82,8 +82,8 @@ done:
 void
 add_file_monitor(int f,void* r)
 {
-	if(fcntl(f,F_NOTIFY,NODE_FLAGS))
-		debug("Failed to monitor file %i",f);
+//	if(fcntl(f,F_NOTIFY,NODE_FLAGS))
+//		debug("Failed to monitor file %i",f);
 }
 
 void

@@ -52,6 +52,35 @@ resize_image(str file, str width, str height)
 }
 
 str
+rotate_image(str file, str degrees, str color)
+{
+	MagickWand* mw;
+	PixelWand* pw;
+	str retval = temp_file();
+	double deg = (double)str_int(degrees);
+	MagickWandGenesis();
+	mw = NewMagickWand();
+	pw = NewPixelWand();
+	color ? PixelSetColor(pw,color->data) : PixelSetColor(pw,"black");
+	if (MagickFalse == MagickReadImage(mw,file->data)) {
+		error("Failed to read %s\n",file);
+		return NULL;
+	}
+	MagickResetIterator(mw);
+	while (MagickNextImage(mw) != MagickFalse) {
+		MagickRotateImage(mw,pw,deg);
+		if (MagickFalse == MagickWriteImage(mw,retval->data)) {
+			error("Failed to write %s\n",retval);
+			return NULL;
+		}
+	}
+	DestroyPixelWand(pw);
+	DestroyMagickWand(mw);
+	MagickWandTerminus();
+	return retval;
+}
+
+str
 crop_image(str file, str width, str height)
 {
 	str retval = temp_file();

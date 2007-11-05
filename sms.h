@@ -8,6 +8,7 @@
 #define __HAVE_SMS_H__
 
 #define MAX_SMS_MESSAGE 512
+#define SMS_STACK_SIZE 64
 
 int sms_open_modem();
 int sms_init_modem();
@@ -20,8 +21,11 @@ int sms_delete_msg(str index);
 int sms_read_msg(str index);
 int sms_write_msg(str number,str text);
 int sms_send_msg(str index);
-void sms_read_ack();
-void sms_process();
+int sms_process_stack();
+int sms_process_line();
+int sms_wait();
+int sms_again();
+int sms_next();
 
 extern int modem;
 

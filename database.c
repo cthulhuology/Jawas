@@ -27,11 +27,12 @@ int
 query(str q)
 {
 	if (db->res) reset();
-	db->res = PQexec(db->conn,q->data);
+	db->res = PQexec(db->conn,str_char(q));
 	switch(PQresultStatus(db->res)) {
 		case PGRES_EMPTY_QUERY:
 		case PGRES_COMMAND_OK:
 			PQclear(db->res);
+			db->res = NULL;
 			return 0;
 		case PGRES_TUPLES_OK:
 			return PQntuples(db->res);	
@@ -39,8 +40,9 @@ query(str q)
 		case PGRES_NONFATAL_ERROR:
 		case PGRES_FATAL_ERROR:
 		default:
-			error("[DB] %s failed %c", query, PQresultErrorMessage(db->res));
+			error("[DB] %s failed %c", q, PQresultErrorMessage(db->res));
 			PQclear(db->res);
+			db->res = NULL;
 	}
 	return -1;
 }
@@ -76,7 +78,7 @@ fetch(int row, int col)
 void
 reset()
 {
-	PQclear(db->res);
+	if (db->res) PQclear(db->res);
 	db->res = NULL;
 }
 

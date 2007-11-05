@@ -58,7 +58,7 @@ append_header(Headers headers, str key, str value)
 	if (i > MAX_HEADERS) return NULL;
 	headers[i].key = key;
 	headers[i].value = value;
-	debug("Appending headers: %s = %s",key,value);
+//	debug("Appending headers: %s = %s",key,value);
 	return headers;
 }
 
@@ -98,6 +98,16 @@ list_headers(Headers kv)
 		retval = retval ? Str("%s, %s : %s", retval, kv[i].key, kv[i].value)
 				: Str("%s : %s", kv[i].key,kv[i].value); 
 	}
+	return retval;
+}
+
+Buffer
+print_headers(Buffer dst, Headers src)
+{
+	int i;
+	Buffer retval = dst;
+	for (i = 0; i < MAX_HEADERS && src[i].key; ++i) 
+		retval = print_buffer(retval,"%s: %s\r\n",src[i].key,src[i].value);
 	return retval;
 }
 

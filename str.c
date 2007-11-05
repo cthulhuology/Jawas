@@ -17,6 +17,18 @@ Cstr(const char* a, int l)
 	return retval;
 }
 
+char*
+str_char(str s)
+{
+	int i, j;
+	char* retval = salloc(s->len);
+	for (i = j = 0; i < s->len; ++i) 
+		if (s->data[i])
+			retval[j++] = s->data[i];
+	retval[j] = '\0';
+	return retval;
+}
+	
 str
 char_str(const char* a, int l)
 {
@@ -121,3 +133,39 @@ lesser_str(str a, str b)
 	int retval = strncmp(a->data,b->data,min(a->len,b->len));
 	return  retval < 0 ? 1 : retval > 0 ? 0 : a->len < b->len;
 }
+
+str
+name_field(str line)
+{
+	int i;
+	for (i = 0; i < line->len && line->data[i] != ':'; ++i);
+	return char_str(line->data, i);
+}
+
+str 
+skip_fields(str line, int n)
+{
+	int i;
+	if (n == 0) {
+		for(i = 0; i < line->len && line->data[i] != ':'; ++i);
+		debug("Skipped to field %s",char_str(line->data +i, line->len - i));
+		for (++i;i< line->len && isspace(line->data[i]); ++i);
+		if (i < line->len)
+			return char_str(line->data + i, line->len - i);
+		return line;
+	}
+	for (i = 0; i < line->len && n; ++i) 
+		if (line->data[i] == ',') 
+			--n;
+	return char_str(line->data + i, line->len - i);
+}
+
+str
+dequote(str line)
+{
+	int i, j;
+	for (i = 0; i < line->len && line->data[i] != '"'; ++i);
+	for (j = i+1; j < line->len && line->data[j] != '"'; ++j);
+	return char_str(line->data + i + 1, j - i - 1);
+} 
+

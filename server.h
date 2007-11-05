@@ -19,6 +19,7 @@ struct server_struct {
 	int kq;
 	int http_sock;
 	int tls_sock;
+	int alarm;
 	Event ec;
 	File fc;
 	Socket sc;

@@ -48,24 +48,6 @@ send_headers(Socket sc, Headers headers)
 	return total;
 }
 
-
-int
-send_contents(Socket sc, Buffer buf)
-{
-	int total = 0;
-	if (!sc || !buf) return 0;
-	if (buf->next) total = send_contents(sc,buf->next);
-	total += write_chunked_socket(sc,buf->data,buf->length);
-	return total;
-}
-
-int
-send_raw_contents(Socket sc, File fc, int off)
-{
-	if (!sc || !fc) return 0;
-	return write_chunked_socket(sc,fc->data+off,min(fc->st.st_size-off,MAX_WRITE_SIZE));
-}
-
 static char* server_name = SERVER_VERSION;
 
 Response 
@@ -99,7 +81,7 @@ send_response(Response resp)
 		return 0;
 	}
 	resp->written += resp->contents ?
-		send_contents(resp->sc,resp->contents):
+		send_contents(resp->sc,resp->contents,1):
 		send_raw_contents(resp->sc,resp->raw_contents,resp->written);
 	if (resp->written >= resp->length)
 		write_chunked_socket(resp->sc,NULL,0);

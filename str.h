@@ -27,6 +27,7 @@ cstr Cstr(const char* a, int l);
 str Str(const char* fmt, ...);
 str new_str(const char* fmt, va_list args); 
 
+char* str_char(str);
 str char_str(const char* a, int l);
 str int_str(int a);
 str obj_str(void* a);
@@ -55,5 +56,8 @@ n (t a) { \
 	(a->len >= n && b->len >= n ? ! strncmp(a->data,b->data,n) : 0)
 
 int lesser_str(str a, str b);
+str name_field(str line);
+str skip_fields(str line, int n);
+str dequote(str line);
 
 #endif

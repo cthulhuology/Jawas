@@ -45,8 +45,8 @@ int DestroyJS(JSInstance* i);
 #define jsval2str(x) char_str(JS_GetStringBytes(JS_ValueToString(cx,x)),JS_GetStringLength(JS_ValueToString(cx,x)))
 #define str2jsval(x) (x ? STRING_TO_JSVAL(JS_NewString(cx,memcpy(JS_malloc(cx,x->len),x->data,x->len),x->len)) : EMPTY)
 
-#define SUCCESS str2jsval(Str("0"))
-#define FAILURE str2jsval(Str("1"))
+#define SUCCESS BOOLEAN_TO_JSVAL(JS_FALSE)
+#define FAILURE BOOLEAN_TO_JSVAL(JS_TRUE)
 
 // Javascript Functions
 

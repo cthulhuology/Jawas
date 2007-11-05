@@ -3,16 +3,18 @@
 #
 
 USER = dave
-#TARGETS +=  kadath.nexttolast.com
 TARGETS +=  nexttolast.com
 
 .PHONY: $(TARGETS)
 $(TARGETS):
-	rsync -avz  -e "ssh -i $$HOME/.ssh/rsync-key" . $(USER)@$@:/opt/Jawas/Code/Jawas
-#	ssh -i $$HOME/.ssh/rsync-key $(USER)@$@ 'cd /opt/Jawas/Code/Jawas && make'
-# prod'
+	rsync -avz  . $(USER)@$@:/opt/Jawas/Dev/
 
 .PHONY: dist
 dist:
 	$(MAKE) clean
 	$(MAKE) $(TARGETS)
+
+.PHONY: kadath
+kadath:
+	$(MAKE)
+	rsync -avz . $(USER)@kadath.nexttolast.com:/Users/dave/Code/Jawas/

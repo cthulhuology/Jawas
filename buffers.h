@@ -36,5 +36,6 @@ void dump_buffer(Buffer src, int pos);
 str readline_buffer(Buffer buf, int pos);
 int skipheaders_buffer(Buffer src, int pos);
 Buffer dechunk_buffer(Buffer src);
+int length_buffer(Buffer buf);
 
 #endif

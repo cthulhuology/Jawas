@@ -27,6 +27,14 @@ open_request(Socket sc)
 }
 
 int
+is_chunked(Request req)
+{
+	str enc = find_header(req->headers, Transfer_Encoding_MSG);
+ 	debug("Encoding: %s",enc);
+ 	return enc && icmp_str(enc,Str("chunked"));
+}
+
+int
 calc_chunked_length(Buffer buf)
 {
 	int total = 0;
@@ -43,6 +51,7 @@ calc_chunked_length(Buffer buf)
 	int body = pos;		
 	for (tmp = seek_buffer(buf,pos); tmp; tmp = seek_buffer(buf,pos)) {
 		line = readline_buffer(buf,pos);	
+		if (line->len == 0) break;
 		debug("Line is %s",line);
 		delta = str_int(Str("0x%s",line));
 		total += delta;
@@ -59,7 +68,12 @@ calc_chunked_length(Buffer buf)
 Request
 dechunk_request(Request req)
 {
-
+	if (is_chunked(req)) {
+		Buffer hed = read_buffer(NULL,req->contents,0,req->body);
+		Buffer con = dechunk_buffer(req->contents);
+		req->contents = read_buffer(hed,con,0,length_buffer(con));
+	}
+	return req;
 }
 
 int
@@ -67,9 +81,8 @@ request_content_length(Request req)
 {
 	if (! req) return 0;
 	str enc = find_header(req->headers, Transfer_Encoding_MSG);
-	if (enc && icmp_str(enc,Str("chunked"))) {
+	if (is_chunked(req)) 
 		return calc_chunked_length(req->contents);
-	}
 	str value = find_header(req->headers, Content_Length_MSG);
 	return str_int(value);
 }
@@ -149,6 +162,7 @@ read_request(Request req)
 		req->done = (length_buffer(req->contents) - req->body) >= request_content_length(req);
 		debug("Request done %c [%i of %i bytes]", req->done ? "yes" : "no", length_buffer(req->contents), request_content_length(req));
 	}
+	if (req->done) return dechunk_request(req);
 	//debug("REQUEST CONTENTS >>");
 //	dump_buffer(req->contents,0);
 	return req;

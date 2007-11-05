@@ -16,9 +16,16 @@ gen_signal_handler()
 }
 
 void
+alrm_signal_handler()
+{
+	srv->alarm = 1;
+}
+
+void
 general_signal_handlers()
 {
 	signal(SIGHUP,gen_signal_handler);
 	signal(SIGINT,gen_signal_handler);
 	signal(SIGTERM,gen_signal_handler);
+	signal(SIGALRM,alrm_signal_handler);
 }

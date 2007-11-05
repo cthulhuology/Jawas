@@ -17,6 +17,7 @@
 #include "uri.h"
 #include "usage.h"
 #include "methods.h"
+#include "strings.h"
 #include "jws.h"
 #include "sms.h"
 
@@ -52,7 +53,7 @@ load(str filename)
 	File retval = NULL;
 	if (!filename) return NULL;
 	server_scratch();	
-	debug("Opening %s\n",filename);
+//	debug("Opening %s\n",filename);
 	retval = query_cache(&srv->fc,filename);
 #ifdef LINUX
 	if (retval) {
@@ -60,7 +61,7 @@ load(str filename)
 	}
 #else
 	if (retval) {
-		debug("Found file %s in cache",filename);
+	//	debug("Found file %s in cache",filename);
 		old_scratch();
 		return retval;
 	}
@@ -82,7 +83,7 @@ unload(int fd, str filename)
 {
 	Timers t;
 	server_scratch();
-	debug("Unloading %s\n",filename);
+//	debug("Unloading %s\n",filename);
 	for (t = srv->timers; t; t = t->next) {
 		if (!strcmp(filename->data,t->script->name)) {
 			debug("Reloading fc %p, %s", t->script, filename);
@@ -162,6 +163,8 @@ request()
 			Resp->status = error_handler(400);
 		else 
 			Resp->status = dispatch_method(parse_method(Req));
+		connection(Resp->headers,"close");
+		transfer_encoding(Resp->headers,"chunked");
 		add_write_socket(Sock->fd,Resp);
 	} else {
 		add_read_socket(Sock->fd,Req);
@@ -175,8 +178,6 @@ respond()
 {
 	//debug("RESPOND START");
 	client_scratch();
-	connection(Resp->headers,"close");
-	transfer_encoding(Resp->headers,"chunked");
 	if (send_response(Resp)) {
 		old_scratch();
 		add_write_socket(Sock->fd,Resp);
@@ -215,6 +216,7 @@ serve(int port, int tls_port)
 #else
 	srv->kq = kqueue();
 #endif
+	srv->alarm = 0;
 	srv->http_sock = open_socket(port);
 	srv->tls_sock = open_socket(tls_port);
 	srv->tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
@@ -227,15 +229,13 @@ serve(int port, int tls_port)
 	srv->numevents = 2;
 	monitor_socket(srv->http_sock);
 	monitor_socket(srv->tls_sock);
-#ifndef LINUX
-	sms_open_modem();
-#endif
 	srv->done = 0;
 	general_signal_handlers();
 	socket_signal_handlers();
 #ifdef LINUX
 	file_signal_handlers();
 #endif
+	init_strings();
 	init_timers();
 }
 

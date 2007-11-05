@@ -29,6 +29,7 @@
 #include "jws.h"
 #include "json.h"
 #include "sms.h"
+#include "post.h"
 
 JSInstance ins;
 jmp_buf jmp;
@@ -489,23 +490,19 @@ RunScript(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		*rval = FAILURE;
 		return JS_TRUE;
 	}
+	int i;
 	str host = jsval2str(argv[0]);
 	str script = file_path(host,Str("/%s",jsval2str(argv[1])));
 	int when = str_int(jsval2str(argv[2]));
-	server_scratch();
-	Headers data = new_headers();
 	JSObject* o = JSVAL_TO_OBJECT(argv[3]);	
 	JSIdArray* arr = JS_Enumerate(ins.cx, o);
-	int i;
+	Timers t = add_timer(script,when);
 	for (i = 0; i < arr->length; ++i ) {
 		char* prop = JS_GetStringBytes(ATOM_TO_STRING(JSID_TO_ATOM(arr->vector[i])));
 		jsval value;
 		JS_GetProperty(ins.cx,o,prop,&value);
-		debug("Appending %c = %s to data\n",prop,jsval2str(value));
-		append_header(data,Str("%c",prop),jsval2str(value));
-	}	
-	client_scratch();
-	add_timer(script,when,data);
+		set_timer_value(t,Str("%c",prop),jsval2str(value));
+	}
 	*rval = SUCCESS;
 	return JS_TRUE;
 }
@@ -590,6 +587,22 @@ ResizeImage(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	str width = jsval2str(argv[1]);
 	str height = jsval2str(argv[2]);
 	str retval = resize_image(file,width,height);
+	*rval = str2jsval(retval);
+	return JS_TRUE;
+}
+
+static JSBool
+RotateImage(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 3) {
+		error("Usage: resize_image(filename,width,height)");
+		*rval = EMPTY;
+		return JS_TRUE;
+	}
+	str file = jsval2str(argv[0]);
+	str degrees = jsval2str(argv[1]);
+	str color = jsval2str(argv[2]);
+	str retval = rotate_image(file,degrees,color);
 	*rval = str2jsval(retval);
 	return JS_TRUE;
 }
@@ -692,8 +705,8 @@ SMSInit(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		*rval = FAILURE;
 		return JS_TRUE;
 	}
-	sms_process();
-	*rval = SUCCESS;
+	
+	*rval = sms_process_stack() ? FAILURE : SUCCESS;
 	return JS_TRUE;
 }
 
@@ -705,8 +718,7 @@ SMSReadACK(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		*rval = FAILURE;
 		return JS_TRUE;
 	}
-	sms_read_ack();
-	*rval = SUCCESS;
+	*rval = sms_process_line() ? FAILURE : SUCCESS;
 	return JS_TRUE;
 }
 
@@ -720,9 +732,40 @@ SendSMS(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	}
 	str number = jsval2str(argv[0]);
 	str text  = jsval2str(argv[1]);
-	sms_write_msg(number,text);
-	*rval = SUCCESS;
+	*rval = sms_write_msg(number,text) ? FAILURE : SUCCESS;
 	return JS_TRUE;
+}
+
+static JSBool
+PostHTTP(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 4) {
+		error("Usage: post(host,path,headers,data)");
+		*rval = EMPTY;
+		return JS_TRUE;
+	}
+	int i;
+	str host = jsval2str(argv[0]);
+	str path = jsval2str(argv[1]);
+	Post p = new_post(host,path);
+	str body = jsval2str(argv[3]);
+	p = set_post_data(p,body);
+	JSObject* o = JSVAL_TO_OBJECT(argv[2]);	
+	JSIdArray* arr = JS_Enumerate(ins.cx, o);
+	for (i = 0; i < arr->length; ++i ) {
+		char* prop = JS_GetStringBytes(ATOM_TO_STRING(JSID_TO_ATOM(arr->vector[i])));
+		jsval value;
+		JS_GetProperty(ins.cx,o,prop,&value);
+		set_post_header(p,Str("%c",prop),jsval2str(value));
+	}
+	if (post(p)) {
+		error("Failed to post to http://%s%s",host,path);
+		*rval = EMPTY;
+		return JS_TRUE;
+	}
+	str resp = post_response(p);
+	*rval = str2jsval(resp);
+	return JS_TRUE;	
 }
 
 static JSClass global_class = {
@@ -772,6 +815,7 @@ static JSFunctionSpec glob_functions[] = {
 	{"s3_put_jpeg",S3PutJPEG, 0},
 	{"image_info",ImageInfo, 0},
 	{"resize_image",ResizeImage, 0},
+	{"rotate_image",RotateImage, 0},
 	{"crop_image",CropImage, 0},
 	{"facebook_auth",FacebookAuth, 0},
 	{"facebook_login",FacebookLogin, 0},
@@ -779,6 +823,7 @@ static JSFunctionSpec glob_functions[] = {
 	{"sms_init", SMSInit, 0},
 	{"sms_read_ack", SMSReadACK, 0},
 	{"send_sms", SendSMS, 0},
+	{"post", PostHTTP, 0},
 	{0},
 };
 
@@ -843,7 +888,7 @@ InitParams(JSInstance* in, Headers headers)
 	for (i = 0; i < MAX_HEADERS && headers[i].key; ++i) {
 		if (headers[i].key == (str)-1) continue;
 		x = Str("$%s",headers[i].key);
-		debug("Initializing %s = %s",x,headers[i].value);
+//		debug("Initializing %s = %s",x,headers[i].value);
 		n = 0;
 		arr = NULL;
 		if (JS_FALSE == JS_DefineProperty(in->cx,in->glob,x->data,str2jsval(headers[i].value),NULL, NULL,JSPROP_READONLY))
@@ -885,7 +930,8 @@ InitJS(JSInstance* i, Server srv, Headers data)
 	i->database = new_database();
 	if (!i->database) return 1;
 	InitParams(i, data ? data : i->resp->req->query_vars);
-	return CreateDatabaseTableFunctions(i);
+//	return CreateDatabaseTableFunctions(i);
+	return 0;
 }
 
 int 

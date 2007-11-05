@@ -7,6 +7,8 @@
 #ifndef __USAGE_H__
 #define __USAGE_H__
 
+#include <sys/resource.h>
+
 typedef struct usage_struct* Usage;
 struct usage_struct {
 	int type;

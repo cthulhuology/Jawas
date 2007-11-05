@@ -12,11 +12,13 @@ typedef struct smpp_header_struct* SMPP_GENERIC_NAK;
 typedef struct smpp_bind_struct* SMPP_BIND_RX;
 typedef struct smpp_bind_struct* SMPP_BIND_TX;
 typedef struct smpp_bind_resp_struct* SMPP_BIND_RX_RESP;
-typedef struct smpp_bind_resp_struct* SMPP_BIND_TXR_RESP;
+typedef struct smpp_bind_resp_struct* SMPP_BIND_TX_RESP;
 typedef struct smpp_header_struct* SMPP_UNBIND:
 typedef struct smpp_header_struct* SMPP_UNBIND_RESP:
-typedef struct smpp_
-
+typedef struct smpp_header_struct* SMPP_ENQUIRE;
+typedef struct smpp_header_struct* SMPP_ENQUIRE_RESP;
+typedef struct smpp_submit_struct* SMPP_DELIVER;
+typedef struct smpp_submit_resp_struct* SMPP_DELIVER;
 
 struct smpp_header_struct {
 	int cmd_len;
@@ -150,6 +152,5 @@ struct smpp_param_retrieve_resp_struct {
 	int seq_no;
 	char param_value[101];
 };
-
 
 #endif

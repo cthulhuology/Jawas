@@ -9,6 +9,7 @@
 #include "alloc.h"
 #include "log.h"
 #include "sockets.h"
+#include "server.h"
 
 #ifdef LINUX 
 	extern void remove_epoll(int fd);
@@ -33,6 +34,18 @@ nonblock(int fd)
 {
 	int flags = fcntl(fd,F_GETFL,0);
 	return fcntl(fd,F_SETFL,flags | O_NONBLOCK);
+}
+
+int
+set_timeout(Socket sc)
+{
+	struct itimerval timeout;
+	timeout.it_interval.tv_usec = 0;
+	timeout.it_interval.tv_sec = 0;
+	timeout.it_value.tv_usec = 0;
+	timeout.it_value.tv_sec = SOCKET_CONNECT_TIMEOUT;
+	return setsockopt(sc->fd,SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(struct itimerval))
+		&& setsockopt(sc->fd,SOL_SOCKET,SO_SNDTIMEO,&timeout,sizeof(struct itimerval));
 }
 
 int
@@ -100,6 +113,7 @@ connect_socket(char* host, int port)
 	struct sockaddr_in saddr;
 	struct in_addr **list;
 	socklen_t slen = sizeof(struct sockaddr_in);
+	struct itimerval timeout;
 	int sock = socket(AF_INET,SOCK_STREAM,0);
 	if (sock < 1) {	
 		error("[JAWAS] failed to create socket");
@@ -110,18 +124,39 @@ connect_socket(char* host, int port)
 		return NULL;
 	}
 	list = (struct in_addr**)hst->h_addr_list;
+	int connected = 0; 
 	for (i = 0; list[i]; ++i) {
 		saddr.sin_port = htons(port);
 		saddr.sin_addr = *list[i];
 		saddr.sin_family = AF_INET;
 		debug("Connecting to %c",inet_ntoa(*list[i]));
+		timeout.it_interval.tv_usec = 0;
+		timeout.it_interval.tv_sec = 0;
+		timeout.it_value.tv_usec = 0;
+		timeout.it_value.tv_sec = SOCKET_CONNECT_TIMEOUT;
+		if (setitimer(0, &timeout, &timeout))
+			error("Failed to set timeout");
+		connected = 1;
 		if (connect(sock,(struct sockaddr*)&saddr,slen)) {
+			if (srv->alarm) {
+				error("[JAWAS] socket conect timeout!");
+				srv->alarm = 0;
+			}
 			perror("connect");
 			error("[JAWAS] failed to connect to %c:%i",host,port);
+			connected = 0;
 			continue;
 		}
+		srv->alarm = 0;
+		timeout.it_interval.tv_usec = 0;
+		timeout.it_interval.tv_sec = 0;
+		timeout.it_value.tv_usec = 0;
+		timeout.it_value.tv_sec = 0;
+		if (setitimer(0,&timeout,&timeout)) 
+			error("Failed to clear timeout");
 		break;
 	}
+	if (!connected) return NULL;
 	retval = (Socket)salloc(sizeof(struct socket_cache_struct));
 	retval->next = NULL;
 	retval->fd = sock;
@@ -187,10 +222,10 @@ write_socket(Socket sc, char* src, int len)
 {
 	if (! sc) return 0;
 	if (sc->tls) {
-//		write(2,src,len);
+		// write(2,src,len);
 		return write_tls(sc->tls,src,len);
 	} else {
-//		write(2,src,len);
+		// write(2,src,len);
 		return write(sc->fd,src,len);
 	}
 }
@@ -206,11 +241,11 @@ write_chunked_socket(Socket sc, char* src, int len)
 		if (src) total = write_tls(sc->tls,src,len);
 		write_tls(sc->tls,"\r\n",2);
 	} else {
-//		write(2,header->data,header->len);
+		// write(2,header->data,header->len);
 		write(sc->fd,header->data,header->len);
- //		if (src) total = write(2,src,len);
+ 		// if (src) total = write(2,src,len);
  		if (src) total = write(sc->fd,src,len);
-//		write(2,"\r\n",2);
+		// write(2,"\r\n",2);
 		write(sc->fd,"\r\n",2);
 	}
 	return total;
@@ -220,6 +255,26 @@ str
 readstr_socket(Socket sc)
 {
 	str retval = char_str(NULL,MAX_ALLOC_SIZE - sizeof(int) - 1);
+	set_timeout(sc);
 	retval->len = recv(sc->fd,retval->data,retval->len,0);
+	if (retval->len < 0) retval->len = 0;
 	return retval;
 }
+
+int
+send_contents(Socket sc, Buffer buf, int chunked)
+{
+	int total = 0;
+	if (!sc || !buf) return 0;
+	if (buf->next) total = send_contents(sc,buf->next,chunked);
+	total += (chunked ? write_chunked_socket(sc,buf->data,buf->length) : write_socket(sc,buf->data,buf->length));
+	return total;
+}
+
+int
+send_raw_contents(Socket sc, File fc, int off)
+{
+	if (!sc || !fc) return 0;
+	return write_chunked_socket(sc,fc->data+off,min(fc->st.st_size-off,MAX_WRITE_SIZE));
+}
+
