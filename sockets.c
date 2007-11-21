@@ -26,7 +26,7 @@ signal_handler(int sig)
 void
 socket_signal_handlers()
 {
-	signal(SIGPIPE,signal_handler);
+	signal(SIGPIPE,SIG_IGN);
 }
 
 int
@@ -98,6 +98,7 @@ accept_socket(Socket sc, int fd, TLSInfo tls)
 	retval->peer = saddr.sin_addr.s_addr;
 	retval->port = saddr.sin_port;
 	retval->scratch = gscratch;
+	retval->closed = 0;
 	++gsci.current;
 	++gsci.total;
 	gsci.max = max(gsci.current,gsci.max);
@@ -166,6 +167,7 @@ connect_socket(char* host, int port)
 	retval->port = port;
 	retval->host = Str("%c",host);
 	retval->peer = (int)saddr.sin_addr.s_addr;
+	retval->closed = 0;
 	return retval;
 }
 
@@ -208,6 +210,7 @@ read_socket(Socket sc)
 				free_buffer(retval);
 				return sc->buf;
 			} else {
+				error("ERROR %i occured", errno);
 				return NULL;	
 			}
 		}
@@ -220,35 +223,42 @@ read_socket(Socket sc)
 int
 write_socket(Socket sc, char* src, int len)
 {
+	int retval = 0;
 	if (! sc) return 0;
 	if (sc->tls) {
-		// write(2,src,len);
-		return write_tls(sc->tls,src,len);
+		retval = write_tls(sc->tls,src,len);
 	} else {
-		// write(2,src,len);
-		return write(sc->fd,src,len);
+		retval = write(sc->fd,src,len);
 	}
+	if (retval < 0) 
+		sc->closed = 1;
+	return retval;
 }
 
 int
 write_chunked_socket(Socket sc, char* src, int len)
 {
-	int total;
+	int retval;
 	str header = Str("%h\r\n",len);
 	if (! sc) return 0;
 	if (sc->tls) {
-		write_tls(sc->tls,header->data,header->len);
-		if (src) total = write_tls(sc->tls,src,len);
-		write_tls(sc->tls,"\r\n",2);
+		if (write_tls(sc->tls,header->data,header->len) < 0)
+			sc->closed = 1;
+		if (src) 
+			retval = write_tls(sc->tls,src,len);
+		if (write_tls(sc->tls,"\r\n",2) < 0)
+			sc->closed = 1;
 	} else {
-		// write(2,header->data,header->len);
-		write(sc->fd,header->data,header->len);
- 		// if (src) total = write(2,src,len);
- 		if (src) total = write(sc->fd,src,len);
-		// write(2,"\r\n",2);
-		write(sc->fd,"\r\n",2);
+		if (write(sc->fd,header->data,header->len) < 0)
+			sc->closed = 1;
+ 		if (src) 
+			retval = write(sc->fd,src,len);
+		if (write(sc->fd,"\r\n",2) < 0) 
+			sc->closed = 1;
 	}
-	return total;
+	if (retval < 0)
+		sc->closed = 1;
+	return retval;
 }
 
 str

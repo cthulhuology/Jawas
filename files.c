@@ -10,6 +10,7 @@
 #include "files.h"
 
 str cwd = NULL;
+int file_index = 0;
 
 File
 open_file(File cache, str filename)
@@ -115,6 +116,6 @@ set_cwd()
 str
 temp_file()
 {
-	return Str("/tmp/%i%i",random(),time(NULL));
+	return Str("/tmp/%i%i",++file_index,time(NULL));
 }
 

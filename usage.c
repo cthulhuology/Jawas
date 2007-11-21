@@ -38,7 +38,7 @@ stop_usage(Usage u)
 	if (getrusage(RUSAGE_SELF,&u->end)) 
 		error("Failed to calculate usage");
 	int delta = timediff(&u->end.ru_utime,&u->start.ru_utime) + timediff(&u->end.ru_stime,&u->start.ru_stime);
-	debug("Delta is %i",delta);
+	debug("Usage Delta is %i",delta);
 	++u->requests;
 	if (u->hits < 1000) 
 		++u->hits;

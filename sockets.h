@@ -22,6 +22,7 @@ struct socket_cache_struct {
 	unsigned int peer;
 	int port;
 	str host;
+	int closed;
 };
 
 typedef struct socket_info_struct SocketInfo;

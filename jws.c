@@ -57,7 +57,6 @@ Print(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 			*rval = FAILURE;
 			return JS_TRUE;
 		}
-		if (i) ins.buffer = write_buffer(ins.buffer," ",1);
 		c = JS_GetStringBytes(s);
 		ins.buffer = write_buffer(ins.buffer, c, JS_GetStringLength(s));
 	}

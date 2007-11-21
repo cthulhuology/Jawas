@@ -55,7 +55,7 @@ calc_chunked_length(Buffer buf)
 		debug("Line is %s",line);
 		delta = str_int(Str("0x%s",line));
 		total += delta;
-		debug("Delta is %i",delta);
+		debug("Requst Delta is %i",delta);
 		pos += delta + line->len + 4;
 		if (delta == 0) {
 			debug("Done reading");
@@ -233,6 +233,7 @@ start_request(RequestInfo ri, Request req) {
 RequestInfo
 end_request(RequestInfo ri, Request req) {
 	RequestInfo tmp;
+	debug("Ending request %p",req);
 	stop_usage(req->usage);
 	for (tmp = ri; tmp; tmp = tmp->next) {
 		if(cmp_str(tmp->host,req->host))

@@ -58,6 +58,10 @@ free_scratch(Scratch s)
 {
 	Scratch tmp;
 	if (!s) return;
+	if (s->next == s) {
+		error("Free encountered looped memory");
+		return;
+	}
 	if (s->next) free_scratch(s->next);
 	gsi.current -= s->len;
 	free_page((Page)s);

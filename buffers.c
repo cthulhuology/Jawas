@@ -110,7 +110,8 @@ find_buffer(Buffer buf, int pos, char* delim)
 				if (delim[j] == tmp->data[i]) 
 					return i + tmp->pos;
 		if (i + tmp->pos >= len) return len;
-		tmp = seek_buffer(buf,pos+tmp->length - delta);
+		pos = tmp->pos + tmp->length;
+		tmp = seek_buffer(buf,pos);
 	}
 	return len;
 }
@@ -212,7 +213,7 @@ dechunk_buffer(Buffer src)
 		str line = readline_buffer(src,pos);	
 		debug("Line is %s",line);
 		delta = str_int(Str("0x%s",line));
-		debug("Delta is %i",delta);
+		debug("Buffer Delta is %i",delta);
 		retval = read_buffer(retval,src,pos+line->len+2,delta);
 		pos += delta + line->len + 4;
 		if (delta == 0) {

@@ -71,8 +71,6 @@ send_response(Response resp)
 {
 	if (resp->length < 0) {
 		resp->length = calculate_content_length(resp->contents,resp->raw_contents);
-	//	str len = Str("%i",resp->length);
-	//	content_length(resp->headers,len->data);
 		server(resp->headers,server_name);
 		send_status(resp->sc,resp->status);
 		send_headers(resp->sc,resp->headers);

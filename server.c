@@ -124,7 +124,7 @@ disconnect()
 	server_scratch();
 //	debug("DISCONNECT START");
 	for (tmp = srv->sc; tmp; tmp = tmp->next) {
-		debug("disconnect  %p vs %p ", tmp,Sock);
+		// debug("disconnect  %p vs %p ", tmp,Sock);
 		if (tmp == Sock)  {
 			notice("%i.%i.%i.%i:%i disconnected\n",
 				(0xff & Sock->peer),
@@ -260,9 +260,13 @@ run()
 		Resp = NULL;
 		Sock = NULL;
 		if (ec->fd == 0) continue;
+		debug("event %p type %i",ec,ec->type);
 		switch (ec->type) {
 		case READ:
-			if (ec->flag == SEOF) break;
+			if (ec->flag == SEOF)  {
+				error("Got EOF on %p", ec);
+				break;
+			}
 			if (ec->fd == srv->http_sock
 			|| ec->fd == srv->tls_sock) {
 				incoming(ec->fd);
@@ -270,12 +274,22 @@ run()
 			} 
 			Req = (Request)ec->data;
 			Sock = Req->sc;
+			if (Sock->closed) {
+				error("Read socket closed %p",Sock);
+				close_request(Req);
+				break;
+			}
 			request();
 			break;
 		case WRITE:
 			Resp = (Response)ec->data;
 			Sock = Resp->sc;
 			Req = Resp->req;
+			if (Sock->closed) {
+				error("Write socket closed %p",Sock);
+				close_response(Resp);
+				break;
+			}
 			respond();
 			break;
 		case NODE:
@@ -283,6 +297,7 @@ run()
 			unload(ec->fd,char_str(fc->name,0));
 			break;
 		}
+		debug("Request done");
 		stop_usage(srv->usage);
 	//	dump_usage(srv->usage);
 	}
