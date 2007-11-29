@@ -79,6 +79,7 @@ read_buffer(Buffer dst, Buffer src, int pos, int len)
 	tmp = seek_buffer(src,pos);
 	if (!tmp) return retval;
 	delta = pos - tmp->pos;
+	debug("Read Buffer Delta is %i (pos %i) (tmp->pos %i)",delta,pos, tmp->pos);
 	if (delta + len <= tmp->length) {
 		memcpy(retval->data,&tmp->data[delta],len);
 		retval->length = len;
