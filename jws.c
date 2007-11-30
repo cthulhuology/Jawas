@@ -192,15 +192,20 @@ Now(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	int i,j;
+	int i = 0,j = 0,o = 0;
 	JSObject* arr;
 	JSObject* row;
-	if (argc != 1) {
-		error("Usage: query(querystring)");
+	if (argc < 1) {
+		error("Usage: query(querystring,[...])");
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
 	str qstr = jsval2str(argv[0]);
+	if (argc > 1) 
+		for (i = 1; i < qstr->len && j < argc; ++i)
+			if (qstr->data[i] == '?') 
+				qstr = Str("%s%s%s",qstr,sub_str(qstr,o,i),singlequote(jsval2str(argv[++j])));
+	debug("[Query] %s",qstr);
 	int res = query(qstr);
 	if (res < 0) {
 		*rval = str2jsval(db_error());

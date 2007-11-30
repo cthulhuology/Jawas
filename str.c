@@ -169,3 +169,26 @@ dequote(str line)
 	return char_str(line->data + i + 1, j - i - 1);
 } 
 
+str
+sub_str(str s, int start, int end)
+{
+	str retval =  char_str(s->data + start, end - start);
+	debug("sub_str \"%s\"[%i,%i]",retval,start,end);
+	return retval;
+}
+
+str
+singlequote(str s)
+{
+	int i,o = 0;
+	str retval = NULL;
+	for (i = 0; i < s->len; ++i) {
+		if (s->data[i] == '\'') {
+			retval = Str("%s%s''",retval,sub_str(s,o,i));
+			o = i + 1;
+		}
+	}
+	retval = Str("%s%s''",retval,sub_str(s,o,i));
+	debug("Singlequote %s is %s",s,retval);
+	return retval;
+}

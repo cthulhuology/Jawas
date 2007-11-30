@@ -30,7 +30,7 @@ int
 is_chunked(Request req)
 {
 	str enc = find_header(req->headers, Transfer_Encoding_MSG);
- 	debug("Encoding: %s",enc);
+ 	// debug("Encoding: %s",enc);
  	return enc && icmp_str(enc,Str("chunked"));
 }
 
@@ -52,13 +52,11 @@ calc_chunked_length(Buffer buf)
 	for (tmp = seek_buffer(buf,pos); tmp; tmp = seek_buffer(buf,pos)) {
 		line = readline_buffer(buf,pos);	
 		if (line->len == 0) break;
-		debug("Line is %s",line);
+	// 	debug("Line is %s",line);
 		delta = str_int(Str("0x%s",line));
 		total += delta;
-		debug("Requst Delta is %i",delta);
 		pos += delta + line->len + 4;
 		if (delta == 0) {
-			debug("Done reading");
 			return total;
 		}
 	}
@@ -160,7 +158,7 @@ read_request(Request req)
 	}
 	if (req->body) {
 		req->done = (length_buffer(req->contents) - req->body) >= request_content_length(req);
-		debug("Request done %c [%i of %i bytes]", req->done ? "yes" : "no", length_buffer(req->contents), request_content_length(req));
+// 		debug("Request done %c [%i of %i bytes]", req->done ? "yes" : "no", length_buffer(req->contents), request_content_length(req));
 	}
 	if (req->done) return dechunk_request(req);
 	//debug("REQUEST CONTENTS >>");
@@ -233,7 +231,7 @@ start_request(RequestInfo ri, Request req) {
 RequestInfo
 end_request(RequestInfo ri, Request req) {
 	RequestInfo tmp;
-	debug("Ending request %p",req);
+	// debug("Ending request %p",req);
 	stop_usage(req->usage);
 	for (tmp = ri; tmp; tmp = tmp->next) {
 		if(cmp_str(tmp->host,req->host))

@@ -59,5 +59,7 @@ int lesser_str(str a, str b);
 str name_field(str line);
 str skip_fields(str line, int n);
 str dequote(str line);
+str sub_str(str s, int start, int end);
+str singlequote(str s);
 
 #endif

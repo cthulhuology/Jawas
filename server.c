@@ -260,7 +260,7 @@ run()
 		Resp = NULL;
 		Sock = NULL;
 		if (ec->fd == 0) continue;
-		debug("event %p type %i",ec,ec->type);
+		// debug("event %p type %i",ec,ec->type);
 		switch (ec->type) {
 		case READ:
 			if (ec->flag == SEOF)  {
@@ -297,7 +297,7 @@ run()
 			unload(ec->fd,char_str(fc->name,0));
 			break;
 		}
-		debug("Request done");
+	//	debug("Request done");
 		stop_usage(srv->usage);
 	//	dump_usage(srv->usage);
 	}
