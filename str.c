@@ -184,11 +184,12 @@ singlequote(str s)
 	str retval = NULL;
 	for (i = 0; i < s->len; ++i) {
 		if (s->data[i] == '\'') {
-			retval = Str("%s%s''",retval,sub_str(s,o,i));
+			retval = retval ? Str("%s%s''",retval,sub_str(s,o,i)) : Str("%s''",sub_str(s,o,i));
+			debug("Retval: [%s]", retval);
 			o = i + 1;
 		}
 	}
-	retval = Str("%s%s''",retval,sub_str(s,o,i));
+	retval = retval ? Str("%s%s",retval,sub_str(s,o,i)) : s;
 	debug("Singlequote %s is %s",s,retval);
 	return retval;
 }

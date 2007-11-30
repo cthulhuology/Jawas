@@ -201,12 +201,22 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		return JS_TRUE;
 	}
 	str qstr = jsval2str(argv[0]);
+	str qry = NULL;
 	if (argc > 1) 
 		for (i = 1; i < qstr->len && j < argc; ++i)
-			if (qstr->data[i] == '?') 
-				qstr = Str("%s%s%s",qstr,sub_str(qstr,o,i),singlequote(jsval2str(argv[++j])));
-	debug("[Query] %s",qstr);
-	int res = query(qstr);
+			if (qstr->data[i] == '?') {
+				++j;
+				str val = jsval2str(argv[j]);
+				debug("Value [%i] is %s",j,val);
+				val = singlequote(val);
+				debug("Single Quoted Value is %s",val);
+				qry = qry ? Str("%s%s%s",qry,sub_str(qstr,o,i),val) : Str("%s%s",sub_str(qstr,o,i),val);
+				debug("Qry is %s",qry);
+				o = i + 1;
+			}
+	qry = qry ? Str("%s%s",qry,sub_str(qstr,o,qstr->len)) : qstr;
+	debug("[Query] %s",qry);
+	int res = query(qry);
 	if (res < 0) {
 		*rval = str2jsval(db_error());
 		return JS_TRUE;

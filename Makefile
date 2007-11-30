@@ -8,13 +8,13 @@ ARCH := $(shell uname)
 
 LIBS = -ljs -lpq -lssl -lcrypto
 
-CFLAGS += -O2 -pg `Wand-config --cppflags`
+CFLAGS += `Wand-config --cppflags` 
 #CFLAGS += -foptimize-sibling-calls -fomit-frame-pointer
 
 LDFLAGS  += `Wand-config --ldflags --libs`
 
 ifeq ($(ARCH),Darwin)
-	CFLAGS += -ggdb -DXP_UNIX 
+	CFLAGS += -ggdb -DXP_UNIX -fnested-functions
 	INCLUDES = -Ijs -Ijs/Darwin_DBG.OBJ -I/opt/local/include/postgresql82/
 	LDFLAGS += -Ljs/Darwin_DBG.OBJ/ -L/opt/local/lib/postgresql82/ 
 else	
