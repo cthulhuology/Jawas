@@ -38,7 +38,7 @@ commit :
 install :
 	for I in dev prod; do \
 		sudo mkdir -p /usr/local/Jawas/$$I/Sites; \
-		sudo rm -f /usr/local/Jawas/$$Sites/{jawasd|libjs.so}
+		sudo rm -f /usr/local/Jawas/$$Sites/{jawasd|libjs.so}; \
 		cd /usr/local/Jawas/$$I/Sites && sudo ln -s ../Jawas/jawasd; \
 		cd /usr/local/Jawas/$$I/Sites && sudo ln -s ../Jawas/js/$(ARCH)_DBG.OBJ/libjs.so \
 	; done
