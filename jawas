@@ -24,14 +24,17 @@ case "$1" in
 	'prod')
 		echo "Starting Production";
 		export LD_LIBRARY_PATH="$PROD"
-		cd $PROD && exec $CMD
+		cd $PROD && exec ./jawasd -d >jawas.log 2>&1 &
 		;;
 	*)
 		echo "Starting Development";
 		export LD_LIBRARY_PATH="$DEV"
-		cd $DEV && exec $CMD
+		cd $DEV && exec ./jawasd -d >jawas.log 2>&1 &
 		;;
 	esac
+	;;
+*)
+	echo "Usage: jawas [start|stop] [prod]"
 	;;
 esac
 
