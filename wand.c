@@ -149,10 +149,12 @@ get_image_properties(const char* filename)
 		char* name;
 		image_method_t method;
 	} fields[] = {
+#ifndef FREEBSD
 		{ "EXIF:Make", (image_method_t)MagickGetImageProperty },
 		{ "EXIF:Model", (image_method_t)MagickGetImageProperty },
 		{ "EXIF:Orientation", (image_method_t)MagickGetImageProperty },
 		{ "EXIF:DateTime", (image_method_t)MagickGetImageProperty },
+#endif
 		{ "xxxxxHeight", get_image_height },
 		{ "xxxxxWidth", get_image_width },
 		{ "xxxxxSize", get_image_size },

@@ -17,7 +17,13 @@ ifeq ($(ARCH),Darwin)
 	CFLAGS += -ggdb -DXP_UNIX -fnested-functions
 	INCLUDES = -Ijs -Ijs/Darwin_DBG.OBJ -I/opt/local/include/postgresql82/
 	LDFLAGS += -Ljs/Darwin_DBG.OBJ/ -L/opt/local/lib/postgresql82/ 
-else	
+endif
+ifeq ($(ARCH),FreeBSD)
+	CFLAGS += -ggdb -DXP_UNIX  -DFREEBSD
+	INCLUDES = -Ijs -Ijs/FreeBSD_DBG.OBJ -I/usr/local/include/postgresql/server/libpq/
+	LDFLAGS += -Ljs/FreeBSD_DBG.OBJ/
+endif
+ifeq ($(ARCH),Linux)
 	CFLAGS += -ggdb -DXP_UNIX -DLINUX
 	INCLUDES = -Ijs -Ijs/Linux_All_DBG.OBJ -I/usr/include/postgresql/
 	LDFLAGS += -Ljs/Linux_All_DBG.OBJ/

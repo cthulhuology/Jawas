@@ -1,0 +1,24 @@
+#!/bin/bash
+case "$1" in
+'kill')
+	case "$2" in
+	'prod')
+		echo "Stopping Production";
+		kill `cat /opt/Jawas/Site/jawas.pid`
+		;;
+	*)
+		echo "Stopping Development";
+		kill `cat /opt/Jawas/Sites/jawas.pid`
+		;;
+	esac
+	;;
+'prod')
+	echo "Starting Production";
+	cd /opt/Jawas/Site && ulimit -v 500000 -m 125000 &&  ./jawasd -d > prod.log 2>&1 &
+	;;
+*)
+	echo "Starting Development";
+	cd /opt/Jawas/Sites && ./jawasd -d > dev.log 2>&1 &
+	;;
+esac
+

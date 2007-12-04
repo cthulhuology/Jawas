@@ -3,11 +3,6 @@
 // All Rights Reserved
 //
 
-#ifdef LINUX
-#include <sys/epoll.h>
-#else
-#include <sys/event.h>
-#endif
 #include <sys/mman.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
@@ -21,6 +16,11 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
+#ifdef LINUX
+#include <sys/epoll.h>
+#else
+#include <sys/event.h>
+#endif
 #ifdef LINUX
 #define __USE_GNU
 #endif
