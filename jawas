@@ -1,24 +1,35 @@
 #!/bin/bash
+#
+# jawas init script
+#
+
+CONF=/usr/local/etc/jawas.conf 
+. $CONF
+
 case "$1" in
-'kill')
+'stop')
 	case "$2" in
 	'prod')
 		echo "Stopping Production";
-		kill `cat /opt/Jawas/Site/jawas.pid`
+		kill `cat $PROD/jawas.pid`
 		;;
 	*)
 		echo "Stopping Development";
-		kill `cat /opt/Jawas/Sites/jawas.pid`
+		kill `cat $DEV/jawas.pid`
 		;;
 	esac
 	;;
-'prod')
-	echo "Starting Production";
-	cd /opt/Jawas/Site && ulimit -v 500000 -m 125000 &&  ./jawasd -d > prod.log 2>&1 &
-	;;
-*)
-	echo "Starting Development";
-	cd /opt/Jawas/Sites && ./jawasd -d > dev.log 2>&1 &
+'start)
+	case "$2" in
+	'prod')
+		echo "Starting Production";
+		cd $PROD && exec $CMD
+		;;
+	*)
+		echo "Starting Development";
+		cd $DEV && .exec $CMD
+		;;
+	esac
 	;;
 esac
 
