@@ -19,7 +19,7 @@ case "$1" in
 		;;
 	esac
 	;;
-'start)
+'start')
 	case "$2" in
 	'prod')
 		echo "Starting Production";
@@ -27,7 +27,7 @@ case "$1" in
 		;;
 	*)
 		echo "Starting Development";
-		cd $DEV && .exec $CMD
+		cd $DEV && exec $CMD
 		;;
 	esac
 	;;

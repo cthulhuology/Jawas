@@ -34,3 +34,15 @@ jsclean:
 
 commit :
 	git commit -a
+
+install :
+	for I in dev prod; do \
+		sudo mkdir -p /usr/local/Jawas/$$I/Sites; \
+		cd /usr/local/Jawas/$$I/Sites && sudo ln -s ../Jawas/jawasd; \
+		cd /usr/local/Jawas/$$I/Sites && sudo ln -s ../Jawas/js/$(ARCH)_DBG.OBJ/libjs.so \
+	; done
+	sudo mkdir -p /usr/local/etc/rc.d
+	sudo cp jawas.conf /usr/local/etc
+	sudo cp jawas.sh /usr/local/etc/rc.d/jawas
+	sudo mkdir -p /usr/local/sbin
+	sudo cp jawas /usr/local/sbin
