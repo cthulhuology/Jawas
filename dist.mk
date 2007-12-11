@@ -3,18 +3,14 @@
 #
 
 USER = dave
-TARGETS +=  nexttolast.com
+TARGETS +=  apu
 
 .PHONY: $(TARGETS)
 $(TARGETS):
-	rsync -avz  . $(USER)@$@:/opt/Jawas/Dev/
+	git push $(TARGETS)
+	ssh $(USER)@$(TARGETS) "cd dev/Jawas && git pull repo"
 
 .PHONY: dist
 dist:
 	$(MAKE) clean
 	$(MAKE) $(TARGETS)
-
-.PHONY: kadath
-kadath:
-	$(MAKE)
-	rsync -avz . $(USER)@kadath.nexttolast.com:/Users/dave/Code/Jawas/

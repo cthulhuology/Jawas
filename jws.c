@@ -573,6 +573,24 @@ S3Auth(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 }
 
 static JSBool
+S3Put(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 4) {
+		error("Usage: s3_put(file,bucket,filename,mime)");
+		*rval = FAILURE;
+		return JS_TRUE;
+	}
+	
+	str file = jsval2str(argv[0]);
+	str bucket = jsval2str(argv[1]); 
+	str filename = jsval2str(argv[2]);
+	str mime = jsval2str(argv[3]);
+	s3_put(file,bucket,filename,mime);
+	*rval = SUCCESS;
+	return JS_TRUE;
+}
+
+static JSBool
 S3PutJPEG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	if (argc != 3) {
@@ -826,6 +844,7 @@ static JSFunctionSpec glob_functions[] = {
 	{"stop", StopScript, 0 },
 	{"running", ListScripts, 0 },
 	{"s3_auth", S3Auth, 0 }, 
+	{"s3_put",S3Put, 0},
 	{"s3_put_jpeg",S3PutJPEG, 0},
 	{"image_info",ImageInfo, 0},
 	{"resize_image",ResizeImage, 0},

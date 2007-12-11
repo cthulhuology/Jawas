@@ -38,17 +38,16 @@ s3_put_auth_string(str verb, str mime, str date, str bucket, str filename)
 }
 
 str
-s3_put_jpeg(str file, str bucket, str filename)
+s3_put(str file, str bucket, str filename, str mime)
 {
 	int off;
 	File fc = load(file);
 	debug("Loaded file %s", file);
+	debug("MIME is %s",mime);
 	str date = Date();
 	debug("Date is %s",date);
 	str md5 = base64(md5sum(fc->data,fc->st.st_size));
 	debug("MD5 is %s",md5);
-	str mime = Str("image/jpeg");
-	debug("MIME is %s",mime);
 	str auth = s3_put_auth_string(Str("PUT"),mime,date,bucket,filename);
 	debug("AUTH is %s", auth);
 	str size = Str("%i",fc->st.st_size);
@@ -68,4 +67,11 @@ s3_put_jpeg(str file, str bucket, str filename)
 		exit(0);
 	}
 	return cmd;
+}
+
+str
+s3_put_jpeg(str file, str bucket, str filename)
+{
+	str mime = Str("image/jpeg");
+	s3_put(file,bucket,filename,mime);
 }
