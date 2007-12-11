@@ -51,9 +51,10 @@ facebook_method(str method, Headers kv)
 	kv = append_header(kv,Str("api_key"),facebook_key);
 	kv = append_header(kv,Str("sig"),facebook_sig(kv));
 	str args = Str("%s=%s",kv->slots[0].key,kv->slots[0].value);
-	for (i = 1; kv->nslots; ++i) 
-		if (! kv->slots[i].key) continue;
+	overz(kv,i,1) {
+		skip_null(kv,i);
 		args = Str("%s&%s=%s",args, kv->slots[i].key,kv->slots[i].value);
+	}
 	str headers = Str("Host: api.facebook.com\r\nContent-type: application/x-www-form-urlencoded\r\nUser-Agent: Jawas\r\nContent-Length: %i\r\n",args->len);
 	str post = Str("POST http://api.facebook.com/restserver.php HTTP/1.1\r\n%s\r\n%s\r\n",headers,args);
 	debug("posting to facebook\n%s",post);
