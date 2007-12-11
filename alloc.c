@@ -53,7 +53,7 @@ free_scratch(Scratch s)
 {
 	if (!s) return;
 	if (s->next) free_scratch(s->next);	
-	if (free_page(s)) {
+	if (free_page((Page)s)) {
 		++gsi.frees;
 	}
 }
