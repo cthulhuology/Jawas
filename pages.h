@@ -10,25 +10,26 @@
 typedef struct page_struct* Page;
 struct page_struct {
 	Page next;
-	char data[0];
+	char data[4096 - sizeof(Page)];
 };
 
 typedef struct page_info_struct PageInfo;
 struct page_info_struct {
-	char* baseaddr;
+	Page baseaddr;
 	Page free;
 	size_t size;
 	size_t allocated;
-	size_t allocations;
 	size_t frees;
-	int guard;
 };
 
 extern PageInfo gpi;
 
 Page new_page();
-void free_page(Page p);
+int free_page(Page p);
 void dump_page_info();
+int free_memory();
+int total_memory();
+int alloced_memory();
 
 #endif
 

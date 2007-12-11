@@ -209,6 +209,7 @@ serve(int port, int tls_port)
 	Scratch scratch = new_scratch(NULL);
 	srv = (Server)alloc_scratch(scratch,sizeof(struct server_struct));
 	srv->scratch = scratch;
+	set_scratch(NULL);
 	server_scratch();
 	set_cwd();
 #ifdef LINUX
@@ -319,7 +320,6 @@ stop()
 	srv->sock = 0;
 	close(srv->kq);
 	srv->kq = 0;
-	free_events();
 	srv->ec = NULL;
 	srv->numevents = 0;
 	for (fc = srv->fc; fc; fc = close_file(fc,char_str(fc->name,0)));

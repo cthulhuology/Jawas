@@ -24,7 +24,6 @@ struct event_cache_struct {
 };
 
 Event poll_events(Event ec, int numevents);
-void free_events();
 
 Event queue_event(Event ec, int fd, enum event_types type, enum event_flags flag, void* udata);
 

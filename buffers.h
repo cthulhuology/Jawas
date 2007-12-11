@@ -8,20 +8,19 @@
 #define __BUFFERS_H__
 
 #include <sys/types.h>
+#include "defines.h"
 #include "str.h"
 
-static int Max_Buffer_Size = 4080;
 
 typedef struct buffer_struct* Buffer;
 struct buffer_struct {
 	Buffer next;
 	size_t length;
 	size_t pos;
-	char data[0];
+	char data[Max_Buffer_Size];
 };
 
 Buffer new_buffer(Buffer buf, int pos);
-Buffer free_buffer(Buffer buf);
 Buffer seek_buffer(Buffer buf, int pos);
 int find_buffer(Buffer buf, int pos, char* delim);
 char fetch_buffer(Buffer buf, int pos);

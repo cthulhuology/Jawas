@@ -120,18 +120,19 @@ parse_request_headers(Buffer buf, int* body)
 			continue;
 		}
 		count = 0;
-		if (reset && ! headers[i].key) {
+		if (reset && ! Key(headers,i)) {
 			for (l = 1; (o + l) < len && fetch_buffer(buf,o+l) != ':'; ++l);
-			headers[i].key = read_str(buf,o,l);
+			headers->nslots++;
+			headers->slots[i].key = read_str(buf,o,l);
 			o += l-1;
 			c = fetch_buffer(buf,o);
-		} 
+		}
 		if (reset && c == ':') {
 			o += 1;
 			while(isspace(c = fetch_buffer(buf,o))) ++o;
 			for (l = 1; (o + l) < len && c != '\r' && c != '\n'; ++l) c = fetch_buffer(buf,o+l); 
-			headers[i].value = read_str(buf,o,l-1);
-		//	debug("Settings headers %s = %s", headers[i].key, headers[i].value);
+			headers->slots[i].value = read_str(buf,o,l-1);
+			debug("Headers[%i] [%s=%s]",i,Key(headers,i),Value(headers,i));
 			reset = 0;
 			o += l-1;
 			++i;
@@ -171,9 +172,6 @@ close_request(Request req)
 {
 	Buffer buf;
 	if (!req) return;
-	for (buf = req->contents; buf; buf = free_buffer(buf));
-	if (req->query_vars) free_headers(req->query_vars);
-	free_headers(req->headers);
 }
 
 str
@@ -217,7 +215,6 @@ parse_path()
 		for (l = 1; !isspace(fetch_buffer(Req->contents,end + l)); ++l);
 		qs = read_buffer(NULL,Req->contents,end,l);
 		Req->query_vars = parse_uri_encoded(NULL,qs,1,length_buffer(qs));
-		free_buffer(qs);
 	}
 	return Req->path = read_str(Req->contents,i,end - i);
 }

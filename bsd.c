@@ -15,18 +15,22 @@
 
 extern Scratch escratch;
 
+struct kevent* cl = NULL;
+struct kevent* el = NULL;
+
 Event
 poll_events(Event ec, int numevents)
 {
 	int n;
-	Scratch scratch = new_scratch(NULL);
 	Scratch tmp = escratch;
-	escratch = NULL;
+	escratch = new_scratch(NULL);
+	set_scratch(escratch);
 	Event retval = NULL;
 	struct timespec ts = { 1, 0 };
-	struct kevent* cl = (struct kevent*)(ec ? alloc_scratch(scratch,sizeof(struct kevent)*ec->pos) : NULL);
-	struct kevent* el = (struct kevent*)alloc_scratch(scratch,sizeof(struct kevent)*numevents);
-
+	cl = (!cl ? cl = malloc(sizeof(struct kevent)*255) : cl);
+	el = (!el ? el = malloc(sizeof(struct kevent)*255) : el);
+	memset(cl,0,sizeof(struct kevent)*255);
+	memset(el,0,sizeof(struct kevent)*255);
 	for (n = 0; ec; ++n) {
 		cl[n].ident = ec->fd;
 		cl[n].filter = (ec->type == READ ? EVFILT_READ :
@@ -40,12 +44,10 @@ poll_events(Event ec, int numevents)
 	}
 	n = kevent(KQ,cl,n,el,numevents, &ts);
 	if (n < 0) goto done;
-//	debug("Processing %i events",n);
 	while (n--) 
 		retval = queue_event(retval,el[n].ident,el[n].filter == EVFILT_READ ? READ : el[n].filter == EVFILT_WRITE ? WRITE : NODE, el[n].flags == EV_EOF ? EOF : NONE,el[n].udata);
 done:
-	free_scratch(scratch);
-	free_scratch(tmp);
+	free_scratch(tmp); // Done with old event scratch freeing
 	return retval;
 }
 

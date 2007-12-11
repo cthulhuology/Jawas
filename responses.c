@@ -38,11 +38,16 @@ send_headers(Socket sc, Headers headers)
 	int i;
 	int total = 0;
 	if (!headers) return total;
-	for (i = 0; headers[i].key; ++i) {
-		total += write_socket(sc,headers[i].key->data,headers[i].key->len);
-		total += write_socket(sc,": ",2);
-		total += write_socket(sc,headers[i].value->data,headers[i].value->len);
-		total += write_socket(sc,"\r\n",2);
+	over(headers,i) {
+		skip_null(headers,i);
+		str key = Key(headers,i);
+		str value = Value(headers,i);
+		if (key && value) {
+			total += write_socket(sc,key->data,key->len);
+			total += write_socket(sc,": ",2);
+			total += write_socket(sc,value->data,value->len);
+			total += write_socket(sc,"\r\n",2);
+		}
 	}
 	total += write_socket(sc,"\r\n",2);
 	return total;
@@ -92,7 +97,5 @@ close_response(Response resp)
 	Buffer buf;
 	if (! resp) return;
 	close_request(resp->req);
-	free_headers(resp->headers);
-	for (buf = resp->contents; buf; buf = free_buffer(buf));
 }
 

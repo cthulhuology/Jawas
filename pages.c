@@ -9,7 +9,7 @@
 #include "log.h"
 #include "pages.h"
 
-PageInfo gpi = { NULL, NULL, 0, 0, 0, 0, 0 };
+PageInfo gpi = { NULL, NULL, 0, 0, 0 };
 
 Page
 new_page()
@@ -17,16 +17,15 @@ new_page()
 	Page tmp;
 	int i;	
 	if (!gpi.free) {
-		gpi.baseaddr = mmap(NULL,getpagesize() * CACHE_PAGES,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANON,-1,0);
-		if (gpi.baseaddr == (char*)-1) return NULL;
+		gpi.baseaddr = (Page)mmap(NULL,getpagesize() * CACHE_PAGES,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANON,-1,0);
+		if (gpi.baseaddr == (Page)-1) return NULL;
 		gpi.size = CACHE_PAGES * getpagesize();
 		gpi.allocated = 0;
-		gpi.allocations = 0;
 		gpi.frees = 0;
 		tmp = gpi.free = (Page)gpi.baseaddr;
 		for (i = 0; i < CACHE_PAGES - 1; ++i) {
-			tmp->next = (Page)(gpi.baseaddr+((1+i)*getpagesize()));
-			tmp = (Page)(gpi.baseaddr + ((1 + i) * getpagesize()));
+			tmp->next = &gpi.baseaddr[1+i];
+			tmp = tmp->next;
 		}
 		tmp->next = NULL;
 	}
@@ -35,27 +34,46 @@ new_page()
 		exit(1);
 	}
 	++gpi.allocated;
-	++gpi.allocations;
 	tmp = gpi.free;
 	gpi.free = gpi.free->next;
 	return tmp;
 }
 
-void
+int
 free_page(Page p)
 {
 	Page tmp;
 	for (tmp = gpi.free; PAGE_GUARD && tmp; tmp = tmp->next) {
 		if (tmp == p) {
-			error("Double free on page %i\n",p);
-			dump_page_info();
-			for(;;) {}
-		}		
+			fprintf(stderr,"Double free on page %p\n",p);
+			return 0;
+		}
 	}
 	++gpi.frees;
-	--gpi.allocated;
 	p->next = gpi.free;
 	gpi.free = p;	
+	return 1;
+}
+
+int
+free_memory() 
+{
+	int total = 0;
+	Page tmp;
+	for (tmp = gpi.free; tmp; tmp = tmp->next) ++total;
+	return total * getpagesize();
+}
+
+int
+total_memory()
+{
+	return gpi.size;
+}
+
+int
+alloced_memory()
+{
+	return total_memory() - free_memory();
 }
 
 void
@@ -66,7 +84,6 @@ dump_page_info()
 	notice("\tBase Address: %p\n",gpi.baseaddr);
 	notice("\tSize: %i bytes\n",gpi.size);
 	notice("\tAllocated: %i\n",gpi.allocated);
-	notice("\tAllocations: %i\n",gpi.allocations);
 	notice("\tFrees: %i\n",gpi.frees);
 	notice("****************************************");
 }

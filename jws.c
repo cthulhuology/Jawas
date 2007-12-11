@@ -354,14 +354,10 @@ MemInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		
 	ins.buffer = print_buffer(ins.buffer,"<table>");
 	ins.buffer = print_buffer(ins.buffer,"<tr><td>Base Address:</td><td> %p</td></tr>",gpi.baseaddr);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Free Memory Size:</td><td> %i</td></tr>",gpi.size - (gpi.allocated * getpagesize()));
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Allocated Memory:</td><td> %i</td></tr>",gpi.allocated * getpagesize());
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Scratch Memory:</td><td> %i</td></tr>",gsi.current);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Max Scratch Memory:</td><td> %i</td></tr>",gsi.max_memory);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Scratch Memory Allocations:</td><td> %i</td></tr>",gsi.allocs);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Free Memory:</td><td> %p</td></tr>",free_memory());
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Allocated Memory:</td><td> %p</td></tr>",alloced_memory());
 	ins.buffer = print_buffer(ins.buffer,"<tr><td>Pages Allocated:</td><td> %i</td></tr>",gpi.allocated);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Scratch Pages Allocated:</td><td> %i</td></tr>",gsi.scratches);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Page Allocations:</td><td> %i</td></tr>",gpi.allocations);
+	ins.buffer = print_buffer(ins.buffer,"<tr><td>Scratch Pages Allocated:</td><td> %i</td></tr>",gsi.allocated);
 	ins.buffer = print_buffer(ins.buffer,"<tr><td>Freed Pages:</td><td> %i</td></tr>",gpi.frees);
 	ins.buffer = print_buffer(ins.buffer,"<tr><td>Freed Scratch Pages:</td><td> %i</td></tr>",gsi.frees);
 	ins.buffer = print_buffer(ins.buffer,"</table>");
@@ -918,25 +914,22 @@ InitParams(JSInstance* in, Headers headers)
 	JSObject* arr = NULL;
 	int i,j, n;
 	if (! headers) return 0;
-	for (i = 0; i < MAX_HEADERS && headers[i].key; ++i) {
-		if (headers[i].key == (str)-1) continue;
-		x = Str("$%s",headers[i].key);
-//		debug("Initializing %s = %s",x,headers[i].value);
+	over(headers,i) {
+		skip_null(headers,i);
+		x = Str("$%s",Key(headers,i));
 		n = 0;
 		arr = NULL;
-		if (JS_FALSE == JS_DefineProperty(in->cx,in->glob,x->data,str2jsval(headers[i].value),NULL, NULL,JSPROP_READONLY))
+		if (JS_FALSE == JS_DefineProperty(in->cx,in->glob,x->data,str2jsval(Value(headers,i)),NULL, NULL,JSPROP_READONLY))
 			debug("Failed to set property %s",x);
-		for (j = i+1; j < MAX_HEADERS && headers[j].key; ++j) {
-			if (headers[j].key == (str)-1) continue;
-			if (cmp_str(headers[i].key,headers[j].key)) {
+		overz(headers,j,i+1) {
+			skip_null(headers,j);
+			if (cmp_str(Key(headers,i),Key(headers,j))) {
 				if (! arr) {
 					arr =  JS_NewArrayObject(in->cx,0,NULL);
-					JS_DefineElement(in->cx,arr,n,str2jsval(headers[i].value),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
-					debug("Adding %s to array %s",headers[i].value,x);
+					JS_DefineElement(in->cx,arr,n,str2jsval(Value(headers,i)),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
 				}
-				debug("Adding %s to array %s",headers[j].value,x);
-				JS_DefineElement(in->cx,arr,++n,str2jsval(headers[j].value),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
-				headers[j].key = (str)-1;
+				JS_DefineElement(in->cx,arr,++n,str2jsval(Value(headers,j)),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
+				headers->slots[j].key = NULL;
 			}
 		}
 		if (arr && JS_FALSE == JS_DefineProperty(in->cx,in->glob,x->data,OBJECT_TO_JSVAL(arr),NULL, NULL,JSPROP_READONLY))
@@ -1045,7 +1038,6 @@ jws_handler(File fc)
 	if (Resp) Resp->contents = ins.buffer;
 	return Resp ? Resp->status : 0;
 error:
-	for (;ins.buffer; ins.buffer = free_buffer(ins.buffer));
 	if (Resp) Resp->contents = NULL;
 	return 500;
 }

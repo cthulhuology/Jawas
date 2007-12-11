@@ -207,7 +207,6 @@ read_socket(Socket sc)
 		retval = new_buffer(retval,retval->pos + retval->length)) {
 		if (bytes == -1 ) {
 			if (errno == EAGAIN) {
-				free_buffer(retval);
 				return sc->buf;
 			} else {
 				error("ERROR %i occured", errno);

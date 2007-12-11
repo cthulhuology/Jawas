@@ -10,14 +10,26 @@
 #include "str.h"
 #include "buffers.h"
 
+#define MAX_HEADERS 250
+#define HEADERS_SIZE sizeof(struct headers_struct)
+#define over(x,y) for(y=0; y < x->nslots && y < MAX_HEADERS; ++y) 
+#define overz(x,y,z) for(y=z; y < x->nslots && y < MAX_HEADERS; ++y) 
+#define skip_null(x,y) if (x->slots[y].key == NULL) continue;
+
+#define Key(o,s) (0 <= s && s < o->nslots ? o->slots[s].key : NULL)
+#define Value(o,s) (0 <= s && s < o->nslots ? o->slots[s].value : NULL)
+
 typedef struct headers_struct*  Headers;
-struct headers_struct {
+struct headers_data_struct {
 	str key;
 	str value;
 };
+struct headers_struct {
+	int nslots;
+	struct headers_data_struct slots[MAX_HEADERS];
+};
 
 Headers new_headers();
-void free_headers(Headers headers);
 
 str find_header(Headers headers, char* key);
 str list_headers(Headers kv);
@@ -52,11 +64,10 @@ static char* Server_MSG = "Server";
 Headers \
 f (Headers headers, const char* value) {\
 	int i = free_header_slot(headers);\
-	 headers[i].key = char_str(k,0);\
-	 headers[i].value = char_str(value,0);\
+	 headers->slots[i].key = char_str(k,0);\
+	 headers->slots[i].value = char_str(value,0);\
 	 return headers;\
 }
 
-#define MAX_HEADERS (getpagesize() / sizeof(struct headers_struct))
 
 #endif

@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "pages.h"
+#include "alloc.h"
 #include "str.h"
 #include "headers.h"
 
@@ -14,16 +14,9 @@ Headers
 new_headers()
 {
 	Headers retval;
-	retval = (Headers)new_page();
-	memset(retval,0,getpagesize());
+	retval = (Headers)salloc(HEADERS_SIZE);
+	memset(retval,0,HEADERS_SIZE);
 	return retval;
-}
-
-void
-free_headers(Headers headers)
-{
-	if (! headers) return;
-	free_page((Page)headers);
 }
 
 str
@@ -32,10 +25,11 @@ find_header(Headers headers, char* key)
 	int i;
 	if (! headers || ! key) return NULL;
 	int len = strlen(key);
-	for (i = 0; i < MAX_HEADERS && headers[i].key; ++i ) {
-		if (len == headers[i].key->len 
-		&& !strncasecmp(headers[i].key->data,key,len)) 
-			return headers[i].value;
+	for (i = 0; i < headers->nslots && i < MAX_HEADERS; ++i ) {
+		if (! headers->slots[i].key) continue;
+		if (len == headers->slots[i].key->len 
+		&& !strncasecmp(headers->slots[i].key->data,key,len)) 
+			return headers->slots[i].value;
 	}
 	return NULL;
 }
@@ -43,9 +37,10 @@ find_header(Headers headers, char* key)
 int
 free_header_slot(Headers headers)
 {
-	int i;
-	for (i = 0; i < MAX_HEADERS && headers[i].key; ++i);
-	return i;
+	if (headers->nslots < MAX_HEADERS) 
+		return headers->nslots++;
+	error("MAX HEADERS exceeded");
+	halt;
 }
 
 Headers
@@ -56,9 +51,9 @@ append_header(Headers headers, str key, str value)
 		headers = new_headers();
 	i = free_header_slot(headers);
 	if (i > MAX_HEADERS) return NULL;
-	headers[i].key = key;
-	headers[i].value = value;
-//	debug("Appending headers: %s = %s",key,value);
+	headers->slots[i].key = key;
+	headers->slots[i].value = value;
+	debug("Append headers [%s = %s]",Key(headers,i),Value(headers,i));
 	return headers;
 }
 
@@ -67,20 +62,22 @@ sort_headers(Headers kv)
 {
 	int i, j;
 	Headers retval = new_headers();
-	for (i = 0; i < MAX_HEADERS && kv[i].key; ++i) {
-		retval[i].key = kv[i].key;
-		retval[i].value = kv[i].value;
+	retval->nslots = kv->nslots;
+	over(kv,i) {
+		retval->slots[i].key = Key(kv,i);
+		retval->slots[i].value = Value(kv,i);
 	}
-	for (i = 0; i < MAX_HEADERS && retval[i].key; ++i) {
-		str pivot = retval[i].key;
-		for (j = i+1; j < MAX_HEADERS && retval[j].key; ++j) {
-			if (lesser_str(retval[j].key,retval[i].key)) {
-				str tmp_key = retval[i].key;
-				str tmp_value =  retval[i].value;
-				retval[i].key = retval[j].key;
-				retval[i].value = retval[j].value;
-				retval[j].key = tmp_key;
-				retval[j].value = tmp_value;
+	over(retval,i) {
+		skip_null(retval,i);
+		str pivot = Key(retval,i);
+		overz(retval,j,i+1) {
+			if (lesser_str(Key(retval,j),Key(retval,i))) {
+				str tmp_key = Key(retval,i);
+				str tmp_value =  Value(retval,i);
+				retval->slots[i].key = Key(retval,j);
+				retval->slots[i].value = Key(retval,j);
+				retval->slots[j].key = tmp_key;
+				retval->slots[j].value = tmp_value;
 			}
 		}
 	}
@@ -92,11 +89,12 @@ list_headers(Headers kv)
 {
 	str retval = NULL;
 	int i;
-	for (i = 0; i < MAX_HEADERS && kv[i].key; ++i) {
+	over(kv,i) {
+		skip_null(kv,i);
 		debug("i is %i",i);
 		debug("retval is %p",retval);
-		retval = retval ? Str("%s, %s : %s", retval, kv[i].key, kv[i].value)
-				: Str("%s : %s", kv[i].key,kv[i].value); 
+		retval = retval ? Str("%s, %s : %s", retval, kv->slots[i].key, kv->slots[i].value)
+				: Str("%s : %s", kv->slots[i].key,kv->slots[i].value); 
 	}
 	return retval;
 }
@@ -106,8 +104,10 @@ print_headers(Buffer dst, Headers src)
 {
 	int i;
 	Buffer retval = dst;
-	for (i = 0; i < MAX_HEADERS && src[i].key; ++i) 
-		retval = print_buffer(retval,"%s: %s\r\n",src[i].key,src[i].value);
+	over(src,i) {
+		skip_null(src,i);
+		retval = print_buffer(retval,"%s: %s\r\n",Key(src,i),Value(src,i));
+	}
 	return retval;
 }
 

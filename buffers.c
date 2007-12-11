@@ -12,20 +12,11 @@
 Buffer
 new_buffer(Buffer buf, int pos)
 {
-	Buffer retval = (Buffer)new_page();
+	Buffer retval = (Buffer)salloc(sizeof(struct buffer_struct));
 	memset(retval->data,0,Max_Buffer_Size);
 	retval->length = 0;
 	retval->next = buf;
 	retval->pos = pos;
-	return retval;
-}
-
-Buffer
-free_buffer(Buffer buf)
-{
-	if (! buf) return NULL;
-	Buffer retval = buf->next;
-	free_page((Page)buf);
 	return retval;
 }
 

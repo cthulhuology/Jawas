@@ -20,12 +20,8 @@ struct scratch_struct  {
 
 typedef struct scratch_info_struct ScratchInfo;
 struct scratch_info_struct {
-	size_t scratches;
+	size_t allocated;
 	size_t frees;
-	size_t max_scratches;	
-	size_t allocs;
-	size_t max_memory;
-	size_t current;
 };
 
 extern ScratchInfo gsi;

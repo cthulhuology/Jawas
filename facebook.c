@@ -35,9 +35,9 @@ facebook_sig(Headers kv)
 {
 	int i;
 	Headers sorted = sort_headers(kv);
-	str retval = Str("%s=%s",sorted[0].key,sorted[0].value);
-	for (i = 1; sorted[i].key; ++i) 
-		retval = Str("%s%s=%s", retval, sorted[i].key, sorted[i].value);
+	str retval = Str("%s=%s",sorted->slots[0].key,sorted->slots[0].value);
+	for (i = 1; sorted->slots[i].key; ++i) 
+		retval = Str("%s%s=%s", retval, sorted->slots[i].key, sorted->slots[i].value);
 	retval = Str("%s%s",retval,facebook_secret);
 	retval =  md5hex(retval->data,retval->len);	
 	return retval;
@@ -50,9 +50,10 @@ facebook_method(str method, Headers kv)
 	kv = append_header(kv,Str("method"),method);
 	kv = append_header(kv,Str("api_key"),facebook_key);
 	kv = append_header(kv,Str("sig"),facebook_sig(kv));
-	str args = Str("%s=%s",kv[0].key,kv[0].value);
-	for (i = 1; kv[i].key; ++i) 
-		args = Str("%s&%s=%s",args, kv[i].key,kv[i].value);
+	str args = Str("%s=%s",kv->slots[0].key,kv->slots[0].value);
+	for (i = 1; kv->nslots; ++i) 
+		if (! kv->slots[i].key) continue;
+		args = Str("%s&%s=%s",args, kv->slots[i].key,kv->slots[i].value);
 	str headers = Str("Host: api.facebook.com\r\nContent-type: application/x-www-form-urlencoded\r\nUser-Agent: Jawas\r\nContent-Length: %i\r\n",args->len);
 	str post = Str("POST http://api.facebook.com/restserver.php HTTP/1.1\r\n%s\r\n%s\r\n",headers,args);
 	debug("posting to facebook\n%s",post);

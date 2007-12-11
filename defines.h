@@ -17,9 +17,12 @@
 #define MAX_WRITE_SIZE getpagesize() 
 #define SOCKET_CONNECT_TIMEOUT 1
 
+#define Max_Buffer_Size 4000
+
 #define error(msg ...)	log_msg(0,msg)
 #define notice(msg ...)	log_msg(1,msg)
 #define debug(msg ...)	log_msg(2,msg)
+#define halt for(;;) {};
 
 #define Sock	srv->sock
 #define Req	srv->req
