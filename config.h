@@ -16,7 +16,7 @@
 #define FACEBOOK_SECRET "/opt/Jawas/Code/Jawas/facebook.secret"
 #define MAILHOST "mail.nexttolast.com"
 #define PAGE_GUARD 1
-#define CACHE_PAGES 100
+#define CACHE_PAGES 10000
 #else 
 #define LOG_LEVEL 1
 #define DB_CONNECT_STRING "dbname=jawas user=jawas"
@@ -30,7 +30,7 @@
 #define FACEBOOK_SECRET "/opt/Jawas/Code/Jawas/facebook.secret"
 #define MAILHOST "mail.nexttolast.com"
 #define PAGE_GUARD 0
-#define CACHE_PAGES 100
+#define CACHE_PAGES 10000
 #endif
 
 
