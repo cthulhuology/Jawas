@@ -75,7 +75,7 @@ sort_headers(Headers kv)
 				str tmp_key = Key(retval,i);
 				str tmp_value =  Value(retval,i);
 				retval->slots[i].key = Key(retval,j);
-				retval->slots[i].value = Key(retval,j);
+				retval->slots[i].value = Value(retval,j);
 				retval->slots[j].key = tmp_key;
 				retval->slots[j].value = tmp_value;
 			}
