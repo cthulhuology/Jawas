@@ -2,13 +2,12 @@
 # dist.mk
 #
 
-USER = dave
 TARGETS +=  apu
 
 .PHONY: $(TARGETS)
 $(TARGETS):
-	git push $(TARGETS)
-	ssh $(USER)@$(TARGETS) "cd $(SITE)/Jawas && git pull /usr/pub/git/jawas.git && gmake && jawas stop $(PROD) && jawas start $(PROD)"
+	git push $@
+	ssh $@ "cd $(SITE)/Jawas && git pull /usr/pub/git/jawas.git && gmake && jawas stop $(PROD) && jawas start $(PROD)"
 
 .PHONY: dev
 dev:
