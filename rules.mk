@@ -32,9 +32,6 @@ javascript:
 jsclean: 
 	cd js && $(MAKE) clean
 
-commit :
-	git commit -a
-
 install :
 	for I in dev prod; do \
 		sudo mkdir -p /usr/local/Jawas/$$I/Sites; \
