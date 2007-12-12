@@ -39,7 +39,7 @@ facebook_sig(Headers kv)
 	str retval = Str("%s=%s",Key(sorted,0),Value(sorted,0));
 	overs(sorted,i,i=1) { 
 		skip_null(sorted,i);
-		retval = Str("%s%s=%s", retval, Key(sorted,i) Value(sorted,i));
+		retval = Str("%s%s=%s", retval, Key(sorted,i), Value(sorted,i));
 	}
 	retval = Str("%s%s",retval,facebook_secret);
 	retval =  md5hex(retval->data,retval->len);	
