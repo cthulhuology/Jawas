@@ -8,9 +8,13 @@ TARGETS +=  apu
 .PHONY: $(TARGETS)
 $(TARGETS):
 	git push $(TARGETS)
-	ssh $(USER)@$(TARGETS) "cd dev/Jawas && git pull /usr/pub/git/jawas.git"
+	ssh $(USER)@$(TARGETS) "cd $(SITE)/Jawas && git pull /usr/pub/git/jawas.git && gmake"
 
-.PHONY: dist
-dist:
+.PHONY: dev
+dev:
+	$(MAKE) $(TARGETS) SITE=dev
+
+.PHONY: release
+release:
 	$(MAKE) clean
-	$(MAKE) $(TARGETS)
+	$(MAKE) $(TARGETS) SITE=prod	

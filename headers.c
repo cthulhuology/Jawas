@@ -70,7 +70,7 @@ sort_headers(Headers kv)
 	over(retval,i) {
 		skip_null(retval,i);
 		str pivot = Key(retval,i);
-		overz(retval,j,i+1) {
+		overs(retval,j,i+1) {
 			if (lesser_str(Key(retval,j),Key(retval,i))) {
 				str tmp_key = Key(retval,i);
 				str tmp_value =  Value(retval,i);

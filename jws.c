@@ -921,7 +921,7 @@ InitParams(JSInstance* in, Headers headers)
 		arr = NULL;
 		if (JS_FALSE == JS_DefineProperty(in->cx,in->glob,x->data,str2jsval(Value(headers,i)),NULL, NULL,JSPROP_READONLY))
 			debug("Failed to set property %s",x);
-		overz(headers,j,i+1) {
+		overs(headers,j,i+1) {
 			skip_null(headers,j);
 			if (cmp_str(Key(headers,i),Key(headers,j))) {
 				if (! arr) {

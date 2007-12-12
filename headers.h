@@ -13,7 +13,7 @@
 #define MAX_HEADERS 250
 #define HEADERS_SIZE sizeof(struct headers_struct)
 #define over(x,y) for(y=0; y < x->nslots && y < MAX_HEADERS; ++y) 
-#define overz(x,y,z) for(y=z; y < x->nslots && y < MAX_HEADERS; ++y) 
+#define overs(x,y,z) for(y=z; y < x->nslots && y < MAX_HEADERS; ++y) 
 #define skip_null(x,y) if (x->slots[y].key == NULL) continue;
 
 #define Key(o,s) (0 <= s && s < o->nslots ? o->slots[s].key : NULL)

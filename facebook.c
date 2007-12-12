@@ -35,9 +35,11 @@ facebook_sig(Headers kv)
 {
 	int i;
 	Headers sorted = sort_headers(kv);
+	debug("Headers %s", list_headers(sorted));
 	str retval = Str("%s=%s",sorted->slots[0].key,sorted->slots[0].value);
-	for (i = 1; sorted->slots[i].key; ++i) 
+	overs(sorted,i,i=1) { 
 		retval = Str("%s%s=%s", retval, sorted->slots[i].key, sorted->slots[i].value);
+	}
 	retval = Str("%s%s",retval,facebook_secret);
 	retval =  md5hex(retval->data,retval->len);	
 	return retval;
@@ -51,7 +53,7 @@ facebook_method(str method, Headers kv)
 	kv = append_header(kv,Str("api_key"),facebook_key);
 	kv = append_header(kv,Str("sig"),facebook_sig(kv));
 	str args = Str("%s=%s",kv->slots[0].key,kv->slots[0].value);
-	overz(kv,i,1) {
+	overs(kv,i,1) {
 		skip_null(kv,i);
 		args = Str("%s&%s=%s",args, kv->slots[i].key,kv->slots[i].value);
 	}
