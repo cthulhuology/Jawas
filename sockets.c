@@ -158,10 +158,11 @@ connect_socket(char* host, int port)
 		break;
 	}
 	if (!connected) return NULL;
+	nonblock(sock);
 	retval = (Socket)salloc(sizeof(struct socket_cache_struct));
 	retval->next = NULL;
 	retval->fd = sock;
-	retval->scratch = NULL;
+	retval->scratch = new_scratch(NULL);
 	retval->buf = NULL;
 	retval->tls = NULL;
 	retval->port = port;
@@ -201,10 +202,11 @@ read_socket(Socket sc)
 	int bytes = 0;
 	Buffer retval = sc->buf;
 	for (retval = new_buffer(retval,(retval ? retval->pos + retval->length : 0)); 
-		bytes = (sc->tls ? 
+		bytes = sc->tls ? 
 			read_tls(sc->tls,retval->data,Max_Buffer_Size) : 
-			read(sc->fd,retval->data,Max_Buffer_Size)); 
+			read(sc->fd,retval->data,Max_Buffer_Size); 
 		retval = new_buffer(retval,retval->pos + retval->length)) {
+		if (bytes > 0 ) write(2,retval->data,bytes);
 		if (bytes == -1 ) {
 			if (errno == EAGAIN) {
 				return sc->buf;
@@ -216,12 +218,13 @@ read_socket(Socket sc)
 		retval->length = bytes;
 		sc->buf = retval;
 	}
-	return NULL;
+	return retval;
 }
 
 int
 write_socket(Socket sc, char* src, int len)
 {
+	write(2,src,len);
 	int retval = 0;
 	if (! sc) return 0;
 	if (sc->tls) {
@@ -237,6 +240,7 @@ write_socket(Socket sc, char* src, int len)
 int
 write_chunked_socket(Socket sc, char* src, int len)
 {
+	write(2,src,len);
 	int retval;
 	str header = Str("%h\r\n",len);
 	if (! sc) return 0;
@@ -287,3 +291,24 @@ send_raw_contents(Socket sc, File fc, int off)
 	return write_chunked_socket(sc,fc->data+off,min(fc->st.st_size-off,MAX_WRITE_SIZE));
 }
 
+int
+closed_socket(Socket sc, char* msg)
+{
+	if (sc->closed) {
+		error("%c : Socket<%p>",msg);
+		return 1;
+	}
+	return 0;
+}
+
+void
+socket_notice(Socket sc, char* msg)
+{
+	notice("Socket <%p> %i.%i.%i.%i:%i %c\n",
+		srv->sc,
+		(0xff & srv->sc->peer),
+		(0xff00 & srv->sc->peer) >> 8,
+		(0xff0000 & srv->sc->peer) >> 16,
+		(0xff000000 & srv->sc->peer) >> 24,
+		srv->sc->port, msg);
+}

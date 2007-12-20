@@ -9,6 +9,7 @@
 #include "alloc.h"
 #include "str.h"
 #include "headers.h"
+#include "sockets.h"
 
 Headers
 new_headers()
@@ -109,6 +110,84 @@ print_headers(Buffer dst, Headers src)
 		retval = print_buffer(retval,"%s: %s\r\n",Key(src,i),Value(src,i));
 	}
 	return retval;
+}
+
+Headers
+parse_headers(Buffer buf, int* body)
+{
+	char c;
+	int i,o,l,reset,count;
+	int len = length_buffer(buf);
+	Headers headers = new_headers();
+	if (! headers) {
+		error("Failed to allocate new headers\n");
+		return NULL;
+	}
+	count = 0;
+	for (o = 0; o < len; ++o ) {
+		c = fetch_buffer(buf,o);
+		if (c == '\r' || c == '\n') break;
+	}
+	if (o >= len) {
+		error("No line breaks found! Bad request\n");
+		return NULL;
+	}
+	for (i = 0; i < MAX_HEADERS && o < len; ++o) {
+		c = fetch_buffer(buf,o);
+		if (c == '\r' || c == '\n') {
+			reset = 1;
+			++count;
+			if (count > 2) {
+				*body = o+1;
+				//debug("=== BODY ===");
+				//dump_buffer(buf,*body);
+				//debug("=== DONE ===");
+				return headers;
+			}
+			continue;
+		}
+		count = 0;
+		if (reset && ! Key(headers,i)) {
+			for (l = 1; (o + l) < len && fetch_buffer(buf,o+l) != ':'; ++l);
+			headers->nslots++;
+			headers->slots[i].key = read_str(buf,o,l);
+			o += l-1;
+			c = fetch_buffer(buf,o);
+		}
+		if (reset && c == ':') {
+			o += 1;
+			while(isspace(c = fetch_buffer(buf,o))) ++o;
+			for (l = 1; (o + l) < len && c != '\r' && c != '\n'; ++l) c = fetch_buffer(buf,o+l); 
+			headers->slots[i].value = read_str(buf,o,l-1);
+			debug("Headers[%i] [%s=%s]",i,Key(headers,i),Value(headers,i));
+			reset = 0;
+			o += l-1;
+			++i;
+		}
+	}
+	debug("***** BODY NOT SET!!!");
+	return headers;
+}
+
+int
+send_headers(Socket sc, Headers headers)
+{
+	int i;
+	int total = 0;
+	if (!headers) return total;
+	over(headers,i) {
+		skip_null(headers,i);
+		str key = Key(headers,i);
+		str value = Value(headers,i);
+		if (key && value) {
+			total += write_socket(sc,key->data,key->len);
+			total += write_socket(sc,": ",2);
+			total += write_socket(sc,value->data,value->len);
+			total += write_socket(sc,"\r\n",2);
+		}
+	}
+	total += write_socket(sc,"\r\n",2);
+	return total;
 }
 
 HEADER_FUNC(cache_control,Cache_Control_MSG)

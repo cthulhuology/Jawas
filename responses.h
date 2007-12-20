@@ -13,7 +13,6 @@
 #include "sockets.h"
 #include "files.h"
 
-typedef struct response_struct* Response;
 struct response_struct {
 	Socket sc;
 	Request req;
@@ -23,11 +22,13 @@ struct response_struct {
 	int status;
 	int length;
 	int written;
+	int body;
 	int done;
 };
 
-Response process_request(Request req);
+Response new_response(Request req);
 int send_response(Response resp);
 void close_response(Response resp);
+Response process_response(Response resp);
 
 #endif

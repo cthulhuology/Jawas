@@ -10,8 +10,18 @@
 #include "requests.h"
 #include "responses.h"
 
-enum event_types { READ, WRITE, NODE };
+enum event_types { READ, WRITE, RESP, REQ, NODE };
 enum event_flags { NONE, ONESHOT, SEOF };
+
+typedef struct event_data_wrapper* EventData;
+struct event_data_wrapper {
+	enum event_types type;
+	union {
+		Request req;
+		Response resp;
+		File file;
+	} value;
+};
 
 typedef struct event_cache_struct* Event;
 struct event_cache_struct {
@@ -20,27 +30,22 @@ struct event_cache_struct {
 	enum event_types type;
 	enum event_flags flag;
 	int fd;
-	void* data;
+	EventData data;
 };
 
-Event poll_events(Event ec, int numevents);
 
 Event queue_event(Event ec, int fd, enum event_types type, enum event_flags flag, void* udata);
-
+Event poll_events(Event ec, int numevents);
 Event file_monitor(Event ec);
 
-#define monitor_socket(f) \
-	srv->ec = queue_event(srv->ec,f, READ, NONE, NULL); \
-	srv->numevents++;
-
-#define add_read_socket(f,r) \
-	srv->ec = queue_event(srv->ec,f, READ, ONESHOT, r); \
-	srv->numevents++;
-
-#define add_write_socket(f,r) \
-	srv->ec = queue_event(srv->ec,f, WRITE, ONESHOT, r); \
-	srv->numevents++; 
-
+void monitor_socket(int f);
+void add_read_socket(int f, void* r);
+void add_write_socket(int f, void* r);
+void add_req_socket(int f, void* r);
+void add_resp_socket(int f, void* r);
 void add_file_monitor(int f, void* r);
+
+void* event_data(EventData ed);
+EventData new_event_data(enum event_types type, void* udata);
 
 #endif

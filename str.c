@@ -54,6 +54,13 @@ Str(const char* fmt, ...)
 }
 
 str
+copy(str s)
+{
+	if (!s) return NULL;
+	return char_str(s->data,s->len);
+}
+
+str
 new_str(const char* fmt, va_list args)
 {
 	cstr x;
@@ -138,6 +145,7 @@ str
 name_field(str line)
 {
 	int i;
+	if (!line) return NULL;
 	for (i = 0; i < line->len && line->data[i] != ':'; ++i);
 	return char_str(line->data, i);
 }
@@ -146,6 +154,7 @@ str
 skip_fields(str line, int n)
 {
 	int i;
+	if (! line) return NULL;
 	if (n == 0) {
 		for(i = 0; i < line->len && line->data[i] != ':'; ++i);
 		debug("Skipped to field %s",char_str(line->data +i, line->len - i));

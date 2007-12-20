@@ -39,15 +39,12 @@ struct server_struct {
 
 extern Server srv;
 
-File load(str filename);
-void unload(int fd, str filename);
-
 void serve(int port, int tls_port);
 void run();
-void incoming(int fd);
-void request();
-void respond();
 void stop();
+
+File load(str filename);
+void unload(int fd, str filename);
 
 void server_scratch();
 void client_scratch();

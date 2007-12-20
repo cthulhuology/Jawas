@@ -47,5 +47,7 @@ str readstr_socket(Socket sc);
 int write_socket(Socket sc, char* src, int len);
 Socket reset_socket(Socket sc);
 Socket close_socket(Socket sc);
+int closed_socket(Socket sc, char* msg);
+void socket_notice(Socket sc, char* msg);
 
 #endif

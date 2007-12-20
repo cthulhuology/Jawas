@@ -9,6 +9,7 @@
 
 #include "str.h"
 #include "buffers.h"
+#include "sockets.h"
 
 #define MAX_HEADERS 250
 #define HEADERS_SIZE sizeof(struct headers_struct)
@@ -30,13 +31,15 @@ struct headers_struct {
 };
 
 Headers new_headers();
+Headers parse_headers(Buffer buf, int* body);
+Headers append_header(Headers headers, str key, str value);
 
 str find_header(Headers headers, char* key);
 str list_headers(Headers kv);
-Buffer print_headers(Buffer dst, Headers src);
 
-Headers append_header(Headers headers, str key, str value);
 void dump_headers(Headers headers);
+Buffer print_headers(Buffer dst, Headers src);
+int send_headers(Socket sc, Headers headers);
 
 Headers sort_headers(Headers kv);
 

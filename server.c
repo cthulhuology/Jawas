@@ -53,15 +53,12 @@ load(str filename)
 	File retval = NULL;
 	if (!filename) return NULL;
 	server_scratch();	
-//	debug("Opening %s\n",filename);
 	retval = query_cache(&srv->fc,filename);
 #ifdef LINUX
-	if (retval) {
+	if (retval) 
 		unload(retval->fd,filename);
-	}
 #else
 	if (retval) {
-	//	debug("Found file %s in cache",filename);
 		old_scratch();
 		return retval;
 	}
@@ -83,7 +80,6 @@ unload(int fd, str filename)
 {
 	Timers t;
 	server_scratch();
-//	debug("Unloading %s\n",filename);
 	for (t = srv->timers; t; t = t->next) {
 		if (!strcmp(filename->data,t->script->name)) {
 			debug("Reloading fc %p, %s", t->script, filename);
@@ -100,20 +96,13 @@ void
 incoming(int fd)
 {
 	Request req;
-//	debug("INCOMING START");
 	Scratch scratch = new_scratch(NULL);
 	set_scratch(scratch);
 	srv->sc = accept_socket(srv->sc,fd,(srv->http_sock == fd ? NULL : srv->tls));
 	req = open_request(srv->sc);
 	srv->ri = start_request(srv->ri,req);
 	add_read_socket(srv->sc->fd,req);
-	notice("%i.%i.%i.%i:%i connected\n",
-		(0xff & srv->sc->peer),
-		(0xff00 & srv->sc->peer) >> 8,
-		(0xff0000 & srv->sc->peer) >> 16,
-		(0xff000000 & srv->sc->peer) >> 24,
-		srv->sc->port);
-	//debug("INCOMING DONE");
+	socket_notice(srv->sc,"Connected");
 }
 
 void
@@ -122,74 +111,94 @@ disconnect()
 	Socket tmp,last;
 	last = NULL;
 	server_scratch();
-//	debug("DISCONNECT START");
 	for (tmp = srv->sc; tmp; tmp = tmp->next) {
-		// debug("disconnect  %p vs %p ", tmp,Sock);
 		if (tmp == Sock)  {
-			notice("%i.%i.%i.%i:%i disconnected\n",
-				(0xff & Sock->peer),
-				(0xff00 & Sock->peer) >> 8,
-				(0xff0000 & Sock->peer) >> 16,
-				(0xff000000 & Sock->peer) >> 24,
-		Sock->port);
-			if (last) last->next = close_socket(Sock);
-			else srv->sc = close_socket(Sock);
+			socket_notice(Sock,"Disconnected");
+			last ? 
+				(last->next = close_socket(Sock)) :
+				(srv->sc = close_socket(Sock));
 		}
 		last = tmp;
 	}
-	//debug("DISCONNECT DONE");
 }
 
 void
-request()
+read_request()
 {
 	char* filename;
 	File fc;
 	client_scratch();
-//	debug("REQUEST START");
-	if (!read_request(Req)) {
+	if (!process_request(Req)) {
 		old_scratch();
 		error("Failed to read request\n");
-		close_request(Req);
 		disconnect();
-		debug("REQUEST DONE");
 		return;
 	}
 	if (Req->done) {
 		Sock->buf = NULL;
-		Resp = process_request(Req);
+		Resp = new_response(Req);
 		parse_path(Req);	
-		if (! parse_host(Req)) 
-			Resp->status = error_handler(400);
-		else 
-			Resp->status = dispatch_method(parse_method(Req));
-		connection(Resp->headers,"close");
-		transfer_encoding(Resp->headers,"chunked");
-		add_write_socket(Sock->fd,Resp);
+		Resp->status = parse_host(Req) ?
+			dispatch_method(parse_method(Req)) :
+			error_handler(400);
+		if (Resp->status > 0) {
+			connection(Resp->headers,"close");
+			transfer_encoding(Resp->headers,"chunked");
+			add_write_socket(Sock->fd,Resp);
+		}
 	} else {
 		add_read_socket(Sock->fd,Req);
 	}
-//	debug("REQUEST DONE");
 	old_scratch();
 }
 
 void
-respond()
+read_response()
 {
-	//debug("RESPOND START");
+	client_scratch();
+	if (!process_response(Resp)) {
+		old_scratch();
+		error("Failed to read response\n");
+		disconnect();		
+		return;
+	}
+	Resp->done ?
+		process_callback(Req,Resp) :
+		add_resp_socket(Sock->fd,Resp);
+	if (Resp->done)
+		disconnect();
+	old_scratch();
+}
+
+void
+write_response()
+{
 	client_scratch();
 	if (send_response(Resp)) {
 		old_scratch();
 		add_write_socket(Sock->fd,Resp);
-	//	debug("RESPOND CONTINUE");
 		return;
 	}
 	old_scratch();
 	srv->ri = end_request(srv->ri,Resp->req);
-//	dump_usage(Resp->req->usage);
-	close_response(Resp);
 	disconnect();
-//	debug("RESPOND DONE");
+}
+
+void
+write_request()
+{
+	debug("write_request");
+	client_scratch();
+	if (send_request(Req)) {
+		old_scratch();
+		debug("Rescheduling for another request");
+		add_req_socket(Sock->fd,Req);
+		return;
+	}
+	old_scratch();
+	debug("Adding response sock");
+	add_resp_socket(Sock->fd,new_response(Req));
+	debug("write_request done");
 }
 
 str
@@ -240,6 +249,30 @@ serve(int port, int tls_port)
 	init_timers();
 }
 
+int
+external_port(int fd)
+{
+	return fd == srv->http_sock || fd == srv->tls_sock;
+}
+
+void
+set_SockReqResp(Socket sc, Request rq, Response rsp)
+{
+	Resp = NULL;	
+	Req = NULL;
+	Sock = NULL;
+	if (rsp) {
+		Resp = rsp;
+		Req = Resp->req;
+		Sock = Resp->sc;
+	} else if (rq) {
+		Req = rq;
+		Sock = Req->sc;
+	} else if (sc) {
+		Sock = sc;
+	}
+}
+
 void
 run()
 {
@@ -249,58 +282,57 @@ run()
 	srv->ec = NULL;
 	srv->numevents = 2;
 	server_scratch();
-	Req = NULL;
-	Resp = NULL;
-	Sock = NULL;
+	set_SockReqResp(NULL,NULL,NULL);
 	update_timers();
 	ec = poll_events(ec,events);
 	for (srv->ec = NULL; ec; ec = ec->next) {
 		server_scratch();
 		start_usage(srv->usage);
-		Req = NULL;
-		Resp = NULL;
-		Sock = NULL;
+		set_SockReqResp(NULL,NULL,NULL);
 		if (ec->fd == 0) continue;
-		// debug("event %p type %i",ec,ec->type);
+		debug("ec->type %i on ec->fd %i",ec->type,ec->fd);
+		if (external_port(ec->fd)) {
+			incoming(ec->fd);
+			continue;
+		}
 		switch (ec->type) {
 		case READ:
-			if (ec->flag == SEOF)  {
-				error("Got EOF on %p", ec);
-				break;
-			}
-			if (ec->fd == srv->http_sock
-			|| ec->fd == srv->tls_sock) {
-				incoming(ec->fd);
-				break;
-			} 
-			Req = (Request)ec->data;
-			Sock = Req->sc;
-			if (Sock->closed) {
-				error("Read socket closed %p",Sock);
-				close_request(Req);
-				break;
-			}
-			request();
+			debug("READ EVENT");
+			set_SockReqResp(NULL,(Request)event_data(ec->data),NULL);
+			closed_socket(Sock,"Read failed") ?
+				disconnect():
+				read_request();
 			break;
 		case WRITE:
-			Resp = (Response)ec->data;
-			Sock = Resp->sc;
-			Req = Resp->req;
-			if (Sock->closed) {
-				error("Write socket closed %p",Sock);
-				close_response(Resp);
-				break;
-			}
-			respond();
+			debug("WRITE EVENT");
+			set_SockReqResp(NULL,NULL,(Response)event_data(ec->data));
+			closed_socket(Sock,"Write failed") ?
+				disconnect() :
+				write_response();
 			break;
+		case REQ:
+			debug("REQ EVENT");
+			set_SockReqResp(NULL,(Request)event_data(ec->data),NULL);
+			closed_socket(Sock,"Request failed") ?
+				disconnect() :
+				write_request();
+			break;	
+		case RESP:
+			debug("RESP EVENT");
+			set_SockReqResp(NULL,NULL,(Response)event_data(ec->data));
+			closed_socket(Sock,"Response failed") ?
+				disconnect() :
+				read_response();
+			break;	
 		case NODE:
-			fc = (File)ec->data;
+			debug("NODE EVENT");
+			fc = (File)event_data(ec->data);
 			unload(ec->fd,char_str(fc->name,0));
 			break;
+		default:
+			debug("UNKNOWN EVENT");
 		}
-	//	debug("Request done");
 		stop_usage(srv->usage);
-	//	dump_usage(srv->usage);
 	}
 	if (srv->done) {
 		stop();
@@ -329,5 +361,3 @@ stop()
 	srv->kq = 0;
 	srv->done = 0;
 }
-
-

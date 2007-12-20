@@ -26,6 +26,7 @@ cstr Cstr(const char* a, int l);
 
 str Str(const char* fmt, ...);
 str new_str(const char* fmt, va_list args); 
+str copy(str s);
 
 char* str_char(str);
 str char_str(const char* a, int l);

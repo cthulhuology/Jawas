@@ -12,6 +12,7 @@
 #include "sockets.h"
 #include "usage.h"
 
+typedef struct response_struct* Response;
 typedef struct request_struct* Request;
 struct request_struct {
 	Socket sc;
@@ -19,10 +20,16 @@ struct request_struct {
 	Headers query_vars;
 	Buffer contents;	
 	Usage usage;
+	Response resp;
+	str cb;
+	str method;
 	str host;
+	int port;
 	str path;
 	int body;
 	int done;
+	int written;
+	int length;
 };
 
 typedef struct request_info_struct* RequestInfo;
@@ -34,10 +41,17 @@ struct request_info_struct {
 	int hits;	
 };
 
+Request new_request(str method, str host, str path);
+Request request_headers(Request req, str key, str value);
+Request request_data(Request req, str text);
+
 Request open_request(Socket sc);
-Request read_request(Request req);
+Request process_request(Request req);
+
+int send_request(Request req);
 int request_content_length(Request req);
 void close_request(Request req);
+void request_callback(Request req, Response resp, str cb);
 
 str parse_method();
 str parse_host();

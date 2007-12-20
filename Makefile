@@ -53,7 +53,6 @@ mail.c \
 methods.c \
 mime.c \
 pages.c \
-post.c \
 requests.c \
 responses.c \
 server.c \
@@ -65,6 +64,7 @@ str.c \
 strings.c \
 timers.c \
 tls.c \
+transfer.c \
 uri.c \
 usage.c \
 wand.c

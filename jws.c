@@ -29,7 +29,6 @@
 #include "jws.h"
 #include "json.h"
 #include "sms.h"
-#include "post.h"
 
 JSInstance ins;
 jmp_buf jmp;
@@ -134,7 +133,7 @@ Use(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		*rval = FAILURE;
 		return JS_TRUE;
 	}
-	if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, fc->data, fc->st.st_size, "js.c", 1, rval)) {
+	if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, fc->data, fc->st.st_size, "jws.c", 1, rval)) {
 		debug("Failed to evaluate script %s",filename);
 		*rval = FAILURE;
 		return JS_TRUE;
@@ -454,7 +453,7 @@ LoadJSON(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	str jsn = Str("eval(%s)",fetch(0,0));
 	reset();
 	debug("Evaluating: %s",jsn);
-	if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, jsn->data, jsn->len, "js.c", 1, &retval)) {
+	if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, jsn->data, jsn->len, "jws.c", 1, &retval)) {
 		error("Failed to load object %s",jsval2str(argv[0]));
 		*rval = EMPTY;
 		return JS_TRUE;
@@ -767,33 +766,32 @@ SendSMS(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 PostHTTP(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	if (argc != 4) {
-		error("Usage: post(host,path,headers,data)");
+	if (argc != 5) {
+		error("Usage: post(host,path,headers,data,callback)");
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
 	int i;
 	str host = jsval2str(argv[0]);
 	str path = jsval2str(argv[1]);
-	Post p = new_post(host,path);
-	str body = jsval2str(argv[3]);
-	p = set_post_data(p,body);
+	Request req = new_request(Str("POST"),host,path);
+	
 	JSObject* o = JSVAL_TO_OBJECT(argv[2]);	
 	JSIdArray* arr = JS_Enumerate(ins.cx, o);
 	for (i = 0; i < arr->length; ++i ) {
 		char* prop = JS_GetStringBytes(ATOM_TO_STRING(JSID_TO_ATOM(arr->vector[i])));
 		jsval value;
 		JS_GetProperty(ins.cx,o,prop,&value);
-		set_post_header(p,Str("%c",prop),jsval2str(value));
+		request_headers(req,Str("%c",prop),jsval2str(value));
 	}
-	if (post(p)) {
-		error("Failed to post to http://%s%s",host,path);
-		*rval = EMPTY;
-		return JS_TRUE;
-	}
-	str resp = post_response(p);
-	*rval = str2jsval(resp);
-	return JS_TRUE;	
+	str body = jsval2str(argv[3]);
+	req = request_data(req,body);
+	str callback = jsval2str(argv[4]);
+	request_callback(req,ins.resp,callback);
+	send_request(req);
+	ins.resp->status = 0;
+	longjmp(jmp,1);
+	return JS_TRUE; // never get here
 }
 
 static JSClass global_class = {
@@ -856,55 +854,6 @@ static JSFunctionSpec glob_functions[] = {
 	{0},
 };
 
-static int
-CreateDatabaseTableFunctions(JSInstance* in)
-{
-	int i;
-	const char* args[] = { "id","obj",NULL };
-	str q = Str("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
-	int res = query(q);
-	if (res < 0) {
-		error("Failed to initialize database interface");
-		return 1;
-	}
-	for (i = 0; i < res; ++i) {
-		str table = fetch(i,0);
-		str s = Str(
-"	if (id) {													" 
-"		if (obj) {  												"
-"			var kv = [];											"
-"			for (var k in obj) {										"
-"				if (k != 'id') kv.push(k + \"= '\" + obj[k] + \"'\");					"
-"			}												"
-"			query(\"UPDATE %c SET \" + kv.join(\", \") + \" WHERE id = \" + id);				"
-"			return id;											"
-"		} else {												" 
-"			var res = query(\"SELECT * FROM %c WHERE id = '\" + id + \"'\"); 				"
-"			return res[0]; 											"
-"		} 													"
-"	} else {													"
-"		var gid = guid();											"
-"		var keys = [];												"
-"		var values = [];											"
-"		for (var k in obj) {											"
-"			if (k != 'id') {										"
-"				keys.push(k);										"
-"				values.push(obj[k]);									"
-"			}												"
-"		}													"
-"		keys.push('id');											"
-"		values.push(gid);											"
-"		query(\"INSERT INTO %c (\" + keys.join(\", \") + \") VALUES ('\" + values.join(\"', '\") + \"')\");	"
-"		return gid; 												"
-"	}														",
-		table,table,table,table,table,table);
-		if (NULL == JS_CompileFunction(in->cx,in->glob,table->data,2,args,s->data,s->len,"jws.c",0)) 
-			debug("Failed to compile script %s",s);
-	}
-	reset();
-	return 0;
-}
-
 int
 InitParams(JSInstance* in, Headers headers)
 {
@@ -939,6 +888,56 @@ InitParams(JSInstance* in, Headers headers)
 }
 
 int
+InitScripts(JSInstance* in)
+{
+	int i;
+	jsval retval;
+	if (in && in->resp && in->resp->req && in->resp->req->host) {
+		int rows = query(Str("SELECT func FROM scripts WHERE site = '%s' and active",in->resp->req->host));
+		for (i = 0; i < rows; ++i) {
+			str script = fetch(i,0);
+			if (JS_FALSE == JS_EvaluateScript(in->cx, in->glob, script->data, script->len, "jws.c", 1, &retval)) {
+				error("Failed to compile script:");
+				error("%s",script);
+			}
+		}	
+		reset();
+	}
+	return 0;
+}
+
+int
+InitRequest(JSInstance* in, Request req)
+{
+	int i;
+	JSContext* cx = in->cx;
+	JSObject* rq = JS_DefineObject(in->cx,in->glob,"request",NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
+	over(req->headers,i) {
+		if (!JS_DefineProperty(in->cx,rq,Key(req->headers,i)->data,str2jsval(Value(req->headers,i)),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
+				error("Failed to assign property %s to request", Key(req->headers,i));
+				continue;
+		}
+	}
+	
+}
+
+int
+InitResponse(JSInstance* in, Response resp)
+{
+	int i;
+	JSContext* cx = in->cx;
+	JSObject* rq = JS_DefineObject(in->cx,in->glob,"request",NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
+	JSObject* rsp = JS_DefineObject(in->cx,in->glob,"response",NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
+	over(resp->headers,i) {
+		if (!JS_DefineProperty(in->cx,rsp,Key(resp->headers,i)->data,str2jsval(Value(resp->headers,i)),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
+				error("Failed to assign property %s to response", Key(resp->headers,i));
+				continue;
+		}
+	}
+
+}
+
+int
 InitJS(JSInstance* i, Server srv, Headers data)
 {
 	i->srv = srv;
@@ -956,7 +955,9 @@ InitJS(JSInstance* i, Server srv, Headers data)
 	i->database = new_database();
 	if (!i->database) return 1;
 	InitParams(i, data ? data : i->resp->req->query_vars);
-//	return CreateDatabaseTableFunctions(i);
+	if (i->resp && i->resp->req) InitRequest(i,i->resp->req);
+	if (i->resp) InitResponse(i,i->resp);
+	InitScripts(i);
 	return 0;
 }
 
@@ -1001,7 +1002,7 @@ ProcessFile(char* script)
 				o += len + 5;
 				len = o+2;
 			}
-			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, scratch->data, scratch->len, "js.c", 1, &retval))
+			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, scratch->data, scratch->len, "jws.c", 1, &retval))
 				error("Failed to evaluate [%x]", scratch);
 		}
 	}
@@ -1020,7 +1021,7 @@ run_script(File fc, Headers data)
 		if (Resp)
 			ProcessFile(fc->data);
 		else 
-			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, fc->data, fc->st.st_size, "js.c", 1, &rval)) 
+			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, fc->data, fc->st.st_size, "jws.c", 1, &rval)) 
 				debug("Failed to evaluate script %c",fc->name);
 	}
 	if (DestroyJS(&ins)) {
@@ -1040,4 +1041,30 @@ jws_handler(File fc)
 error:
 	if (Resp) Resp->contents = NULL;
 	return 500;
+}
+
+int
+process_callback(Request req, Response resp)
+{
+	jsval rval;
+	srv->resp = req->resp;	// set to original response
+	if (InitJS(&ins,srv,new_headers())) {
+		error("Failed to initialize Javascript");
+		return 1;
+	}
+	if (!setjmp(jmp)) {
+		if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, req->cb->data, req->cb->len, "jws.c", 1, &rval)) 
+				debug("Failed to evaluate script %s",req->cb);
+	}
+	if (DestroyJS(&ins)) {
+		error("Failed to destroy Javascript");
+		return 1;
+	}
+	req->resp->status = 200;
+	debug("process_callback setting headers");
+	connection(req->resp->headers,"close");
+	transfer_encoding(req->resp->headers,"chunked");
+	debug("process_callback initializing writeback");
+	add_write_socket(req->resp->sc->fd,req->resp);
+	return 0;
 }

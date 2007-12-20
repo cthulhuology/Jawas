@@ -13,60 +13,67 @@
 #include "requests.h"
 #include "uri.h"
 #include "server.h"
+#include "transfer.h"
 
 Request
-open_request(Socket sc)
+new_request(str method, str host, str path)
 {
 	Request retval = (Request)salloc(sizeof(struct request_struct));
 	if (retval) {
-		memset(retval,0,sizeof(struct request_struct));
-		retval->sc = sc;
+		retval->method = copy(method);
+		retval->host = name_field(host);	
+		int port = str_int(skip_fields(host,0));	
+		retval->port = port ? port : 80;
+		retval->path = copy(path);
+		retval->sc = NULL;
 		retval->usage = new_usage(0);
+		retval->headers = new_headers();
+		retval->query_vars = new_headers();
+		retval->contents = NULL;
+		retval->resp = NULL;
+		retval->cb = NULL;
+		retval->body = 0;
+		retval->done = 0;
+		retval->written = 0;
+		retval->length = -1;
 	}
 	return retval;
 }
 
-int
-is_chunked(Request req)
+Request
+request_port(Request req,int port)
 {
-	str enc = find_header(req->headers, Transfer_Encoding_MSG);
- 	// debug("Encoding: %s",enc);
- 	return enc && icmp_str(enc,Str("chunked"));
+	req->port = port;	
+	return req;
 }
 
-int
-calc_chunked_length(Buffer buf)
+Request
+request_headers(Request req, str key, str value)
 {
-	int total = 0;
-	int pos = 0;
-	int delta = 0;
-	Buffer tmp;
-	str line;
+	append_header(req->headers,key,value);
+	return req;
+}
 
-	for (tmp = seek_buffer(buf,pos); tmp; tmp = seek_buffer(buf,pos)) {
-		line = readline_buffer(buf,pos);
-		pos += line->len + 2;
-		if (line->len == 0) break;
-	}
-	int body = pos;		
-	for (tmp = seek_buffer(buf,pos); tmp; tmp = seek_buffer(buf,pos)) {
-		line = readline_buffer(buf,pos);	
-		if (line->len == 0) break;
-	// 	debug("Line is %s",line);
-		delta = str_int(Str("0x%s",line));
-		total += delta;
-		pos += delta + line->len + 4;
-		if (delta == 0) {
-			return total;
-		}
-	}
-	return 0x7fffffff;
+Request
+request_data(Request req, str text)
+{
+	if (text->len > 0) 
+		req->contents = write_str(req->contents,text);
+	return req;
+}
+
+Request
+open_request(Socket sc)
+{
+	Request retval = new_request(NULL,NULL,NULL);
+	if (retval) retval->sc = sc;
+	return retval;
 }
 
 Request
 dechunk_request(Request req)
 {
-	if (is_chunked(req)) {
+	if (is_chunked(req->headers)) {
 		Buffer hed = read_buffer(NULL,req->contents,0,req->body);
 		Buffer con = dechunk_buffer(req->contents);
 		req->contents = read_buffer(hed,con,0,length_buffer(con));
@@ -74,76 +81,8 @@ dechunk_request(Request req)
 	return req;
 }
 
-int
-request_content_length(Request req)
-{
-	if (! req) return 0;
-	str enc = find_header(req->headers, Transfer_Encoding_MSG);
-	if (is_chunked(req)) 
-		return calc_chunked_length(req->contents);
-	str value = find_header(req->headers, Content_Length_MSG);
-	return str_int(value);
-}
-
-Headers
-parse_request_headers(Buffer buf, int* body)
-{
-	char c;
-	int i,o,l,reset,count;
-	int len = length_buffer(buf);
-	Headers headers = new_headers();
-	if (! headers) {
-		error("Failed to allocate new headers\n");
-		return NULL;
-	}
-	count = 0;
-	for (o = 0; o < len; ++o ) {
-		c = fetch_buffer(buf,o);
-		if (c == '\r' || c == '\n') break;
-	}
-	if (o >= len) {
-		error("No line breaks found! Bad request\n");
-		return NULL;
-	}
-	for (i = 0; i < MAX_HEADERS && o < len; ++o) {
-		c = fetch_buffer(buf,o);
-		if (c == '\r' || c == '\n') {
-			reset = 1;
-			++count;
-			if (count > 2) {
-				*body = o+1;
-				//debug("=== BODY ===");
-				//dump_buffer(buf,*body);
-				//debug("=== DONE ===");
-				return headers;
-			}
-			continue;
-		}
-		count = 0;
-		if (reset && ! Key(headers,i)) {
-			for (l = 1; (o + l) < len && fetch_buffer(buf,o+l) != ':'; ++l);
-			headers->nslots++;
-			headers->slots[i].key = read_str(buf,o,l);
-			o += l-1;
-			c = fetch_buffer(buf,o);
-		}
-		if (reset && c == ':') {
-			o += 1;
-			while(isspace(c = fetch_buffer(buf,o))) ++o;
-			for (l = 1; (o + l) < len && c != '\r' && c != '\n'; ++l) c = fetch_buffer(buf,o+l); 
-			headers->slots[i].value = read_str(buf,o,l-1);
-			debug("Headers[%i] [%s=%s]",i,Key(headers,i),Value(headers,i));
-			reset = 0;
-			o += l-1;
-			++i;
-		}
-	}
-	debug("***** BODY NOT SET!!!");
-	return headers;
-}
-
 Request 
-read_request(Request req)
+process_request(Request req)
 {
 	req->contents = read_socket(req->sc);
 	if (!req->contents) {
@@ -151,27 +90,16 @@ read_request(Request req)
 		return NULL;
 	}
 	if (!req->body) {
-		req->headers = parse_request_headers(req->contents,&req->body);
+		req->headers = parse_headers(req->contents,&req->body);
 		if (!req->headers) {
 			error("No request headers on request %i\n",req);
 			return NULL;
 		}
 	}
 	if (req->body) {
-		req->done = (length_buffer(req->contents) - req->body) >= request_content_length(req);
-// 		debug("Request done %c [%i of %i bytes]", req->done ? "yes" : "no", length_buffer(req->contents), request_content_length(req));
+		req->done = (length_buffer(req->contents) - req->body) >= inbound_content_length(req->contents,req->headers);
 	}
-	if (req->done) return dechunk_request(req);
-	//debug("REQUEST CONTENTS >>");
-//	dump_buffer(req->contents,0);
-	return req;
-}
-
-void 
-close_request(Request req)
-{
-	Buffer buf;
-	if (!req) return;
+	return req->done ? dechunk_request(req) : req;
 }
 
 str
@@ -247,4 +175,49 @@ end_request(RequestInfo ri, Request req) {
 	tmp->hits = req->usage->hits;
 	old_scratch();
 	return tmp;
+}
+
+int
+send_request(Request req)
+{
+	debug("send_request");
+	if (! req->sc ) {
+		req->sc = connect_socket(req->host->data,req->port);
+		if (! req->sc) {
+			error("Failed to connect to %s:%i\n",req->host,req->port);
+			return 0;
+		}
+		debug("send_request connected, scheduling write");
+		add_req_socket(req->sc->fd,req);
+		return 0;
+	}
+	if (req->length < 0) {
+		debug("send_request sending request");
+		str cmd = Str("%s %s HTTP/1.1\r\n",req->method,req->path);
+		debug("Fetching: %s",cmd);
+		write_socket(req->sc,cmd->data,cmd->len);
+		request_headers(req,Str("Host"),req->host);
+		request_headers(req,Str("Transfer-Encoding"),Str("chunked"));
+		send_headers(req->sc,req->headers);
+		req->length = outbound_content_length(req->contents,NULL);	
+		debug("send_request contents? %i", req->contents != NULL);
+		if (req->contents == NULL) 	
+			write_chunked_socket(req->sc,NULL,0);
+		return req->contents != NULL;
+	}
+	if (req->contents) {
+		debug("send_request sending contents");
+		req->written += send_contents(req->sc,req->contents,1);
+	}
+	if (req->written >= req->length)
+		write_chunked_socket(req->sc,NULL,0);
+	debug("send_request more? %i", req->written < req->length);
+	return req->written < req->length;
+}
+
+void
+request_callback(Request req, Response resp,  str cb)
+{
+	req->resp = resp;
+	req->cb = cb;
 }
