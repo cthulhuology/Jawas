@@ -28,9 +28,11 @@ parse_uri_encoded(Headers head, str buf, int pos)
 	for (; i < l; ++i) {
 		o = find(buf,i,"=");
 		key = from(buf,i,o-i);
+		debug("Key is (%i,%i) = [%s]",i,o,key);
 		i = o+1;
 		o = find(buf,i,"&\r\n");
 		value = from(buf,i,o-i);
+		debug("Value is (%i,%i) = [%s]",i,o,value);
 		debug("Adding URI parsed values [%s=%s]",key,value);
 		append_header(retval,key,value);
 		i = o;
