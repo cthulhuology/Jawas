@@ -51,6 +51,7 @@ str
 facebook_method(str method, Headers kv)
 {
 	int i;
+	str retval;
 	kv = append_header(kv,Str("method"),method);
 	kv = append_header(kv,Str("api_key"),facebook_key);
 	kv = append_header(kv,Str("sig"),facebook_sig(kv));
@@ -66,7 +67,7 @@ facebook_method(str method, Headers kv)
 	Socket sc = connect_socket("api.facebook.com",80);
 	write_socket(sc,post);
 
-	str retval = read_socket(sc);
+	retval = read_socket(sc);
 	retval = dechunk(retval);
 	close_socket(sc);
 	return retval;
