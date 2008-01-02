@@ -8,7 +8,7 @@ commit :
 	git commit -a
 
 .PHONY: $(TARGETS)
-$(TARGETS): 
+$(TARGETS): commit
 	git push $@
 	ssh $@ "cd $(SITE)/Jawas && git pull /usr/pub/git/jawas.git && gmake && jawas stop $(PROD) && jawas start $(PROD)"
 
