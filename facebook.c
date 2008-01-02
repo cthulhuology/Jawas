@@ -66,7 +66,6 @@ facebook_method(str method, Headers kv)
 	debug("posting to facebook\n%s",post);
 	Socket sc = connect_socket("api.facebook.com",80);
 	write_socket(sc,post);
-
 	retval = read_socket(sc);
 	retval = dechunk(retval);
 	close_socket(sc);
