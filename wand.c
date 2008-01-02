@@ -20,7 +20,7 @@ resize_image(str file, str width, str height)
 {
 	MagickWand* mw;
 	str retval = temp_file();
-	int max_height,max_width,h,w,x,y;
+	int max_height,max_width,h,w;
 	max_height = str_int(height);
 	max_width = str_int(width);
 	MagickWandGenesis();

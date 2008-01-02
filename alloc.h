@@ -9,8 +9,6 @@
 
 #define MAX_ALLOC_SIZE (getpagesize() - sizeof(struct scratch_struct))
 
-#define salloc(x)	alloc_scratch(gscratch,x)
-
 typedef struct scratch_struct* Scratch;
 struct scratch_struct  {
 	Scratch next;
@@ -32,6 +30,7 @@ void free_scratch(Scratch s);
 void set_scratch(Scratch s);
 
 char* alloc_scratch(Scratch s, int size);
+char* salloc(int size);
 void dump_scratch_info();
 
 #endif

@@ -7,8 +7,8 @@
 #ifndef __REQUEST_H__
 #define __REQUEST_H__
 
+#include "str.h"
 #include "headers.h"
-#include "buffers.h"
 #include "sockets.h"
 #include "usage.h"
 
@@ -18,7 +18,7 @@ struct request_struct {
 	Socket sc;
 	Headers headers;
 	Headers query_vars;
-	Buffer contents;	
+	str contents;	
 	Usage usage;
 	Response resp;
 	str cb;

@@ -47,5 +47,6 @@ void add_file_monitor(int f, void* r);
 
 void* event_data(EventData ed);
 EventData new_event_data(enum event_types type, void* udata);
+enum event_types event_type(EventData ed);
 
 #endif

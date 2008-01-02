@@ -20,4 +20,14 @@ ext_const_str(CMGD);
 ext_const_str(CMTI);
 
 int init_strings();
+
+extern char* Cache_Control_MSG;
+extern char* Connection_MSG;
+extern char* Date_MSG;
+extern char* Transfer_Encoding_MSG;
+extern char* Content_Length_MSG;
+extern char* Content_Type_MSG;
+extern char* Expires_MSG;
+extern char* Location_MSG;
+extern char* Server_MSG;
 #endif

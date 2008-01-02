@@ -7,6 +7,7 @@
 #include "include.h"
 #include "defines.h"
 #include "alloc.h"
+#include "str.h"
 #include "log.h"
 #include "sockets.h"
 #include "server.h"
@@ -89,7 +90,6 @@ accept_socket(Socket sc, int fd, TLSInfo tls)
 	}
 	nonblock(sock);
 	retval = (Socket)salloc(sizeof(struct socket_cache_struct));
-	memset(retval,0,sizeof(struct socket_cache_struct));
 	retval->host = NULL;
 	retval->tls = (tls ? open_tls(tls,sock) : NULL);
 	retval->buf = NULL;
@@ -196,99 +196,106 @@ reset_socket(Socket sc)
 	return sc;
 }
 
-Buffer
+str
 read_socket(Socket sc)
 {
-	int bytes = 0;
-	Buffer retval = sc->buf;
-	for (retval = new_buffer(retval,(retval ? retval->pos + retval->length : 0)); 
-		bytes = sc->tls ? 
-			read_tls(sc->tls,retval->data,Max_Buffer_Size) : 
-			read(sc->fd,retval->data,Max_Buffer_Size); 
-		retval = new_buffer(retval,retval->pos + retval->length)) {
-		if (bytes > 0 ) write(2,retval->data,bytes);
-		if (bytes == -1 ) {
+	str retval = sc->buf,t;
+	for (t = blank(Max_Buffer_Size); (t->length = sc->tls ? 
+			read_tls(sc->tls,t->data,Max_Buffer_Size) : 
+			read(sc->fd,t->data,Max_Buffer_Size)); sc->buf = append(sc->buf,t)) {
+		debug("Length read %i, length contents",t->length, len(retval));
+		if (t->length == -1 ) {
 			if (errno == EAGAIN) {
+				debug("EAGAIN");
+				debug("Length of sc buf %i",len(sc->buf));
 				return sc->buf;
 			} else {
 				error("ERROR %i occured", errno);
 				return NULL;	
 			}
 		}
-		retval->length = bytes;
-		sc->buf = retval;
 	}
 	return retval;
 }
 
 int
-write_socket(Socket sc, char* src, int len)
+write_to_socket(Socket sc,char* data, int length)
 {
-	write(2,src,len);
+	debug("Writing [%s]",copy(data,length));
+	if (sc->closed) return 0;
+	int retval = sc->tls ? 
+		write_tls(sc->tls,data,length) :
+		write(sc->fd,data,length);
+	if (retval < 0) {
+		sc->closed = 1;
+		return 0;
+	}
+	return retval;
+}
+
+int
+write_socket(Socket sc, str buf)
+{
+	str t;
 	int retval = 0;
 	if (! sc) return 0;
-	if (sc->tls) {
-		retval = write_tls(sc->tls,src,len);
-	} else {
-		retval = write(sc->fd,src,len);
-	}
-	if (retval < 0) 
-		sc->closed = 1;
+	for (t = buf; t; t = buf->next) 
+		retval += write_to_socket(sc,t->data,t->length);
 	return retval;
 }
 
 int
-write_chunked_socket(Socket sc, char* src, int len)
+write_chunk(Socket sc, char* data, int length)
 {
-	write(2,src,len);
-	int retval;
-	str header = Str("%h\r\n",len);
+	int retval = 0;
+	str header = Str("%h\r\n",length);
+	fprintf(stderr,"Writing chunk %i\n",length);
+	write_to_socket(sc,header->data,header->length);
+	fprintf(stderr,"Header length %i",header->length);
+	if (data) 
+		retval = write_to_socket(sc,data,length);
+	write_to_socket(sc,"\r\n",2);
+	return retval;
+}
+
+int
+write_chunked_socket(Socket sc, str buf)
+{
+	int retval = 0;
 	if (! sc) return 0;
-	if (sc->tls) {
-		if (write_tls(sc->tls,header->data,header->len) < 0)
-			sc->closed = 1;
-		if (src) 
-			retval = write_tls(sc->tls,src,len);
-		if (write_tls(sc->tls,"\r\n",2) < 0)
-			sc->closed = 1;
-	} else {
-		if (write(sc->fd,header->data,header->len) < 0)
-			sc->closed = 1;
- 		if (src) 
-			retval = write(sc->fd,src,len);
-		if (write(sc->fd,"\r\n",2) < 0) 
-			sc->closed = 1;
-	}
-	if (retval < 0)
-		sc->closed = 1;
-	return retval;
-}
-
-str
-readstr_socket(Socket sc)
-{
-	str retval = char_str(NULL,MAX_ALLOC_SIZE - sizeof(int) - 1);
-	set_timeout(sc);
-	retval->len = recv(sc->fd,retval->data,retval->len,0);
-	if (retval->len < 0) retval->len = 0;
+	char* data = dump(buf);
+	int i, l = len(buf);
+	for (i = 0; i < l; i += MAX_WRITE_SIZE)
+		retval += write_chunk(sc,data + i,min(MAX_WRITE_SIZE,l-i));
 	return retval;
 }
 
 int
-send_contents(Socket sc, Buffer buf, int chunked)
+send_contents(Socket sc, str buf, int chunked)
 {
-	int total = 0;
 	if (!sc || !buf) return 0;
-	if (buf->next) total = send_contents(sc,buf->next,chunked);
-	total += (chunked ? write_chunked_socket(sc,buf->data,buf->length) : write_socket(sc,buf->data,buf->length));
-	return total;
+	fprintf(stderr," Writing chunked? %i\n",chunked);
+	return chunked ? 
+		write_chunked_socket(sc,buf) : 
+		write_socket(sc,buf);
+}
+
+int
+write_raw_chunked_socket(Socket sc, char *data, int length)
+{
+	int retval = write_chunk(sc,data,length);		
+	if (retval < 0) {
+		retval = 0;
+		sc->closed = 1;
+	}
+	return retval;
 }
 
 int
 send_raw_contents(Socket sc, File fc, int off)
 {
 	if (!sc || !fc) return 0;
-	return write_chunked_socket(sc,fc->data+off,min(fc->st.st_size-off,MAX_WRITE_SIZE));
+	return write_raw_chunked_socket(sc,fc->data+off,min(fc->st.st_size-off,MAX_WRITE_SIZE));
 }
 
 int

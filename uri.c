@@ -9,27 +9,27 @@
 #include "alloc.h"
 #include "str.h"
 #include "log.h"
-#include "buffers.h"
 #include "uri.h"
 #include "server.h"
 
+static char mark_chars[] = "-_.!~*'()";
+static int mark_len = 9;
+static char hex_chars[] = "0123456789abcdef";
+
 Headers
-parse_uri_encoded(Headers head, Buffer buf, int pos, int len)
+parse_uri_encoded(Headers head, str buf, int pos)
 {
 	if (!buf) return NULL;
-	//debug("==== DUMPING BODY ====");
-	//dump_buffer(buf,pos);
-	//debug("==== LEN %i ====",len);
-	int i,o;
+	int i,o,l = len(buf);
 	str key = NULL, value = NULL;
 	Headers retval = (head ? head :  new_headers());
-	for (i = pos; isspace(fetch_buffer(buf,i)); ++i);
-	for (; i < len; ++i) {
-		o = find_buffer(buf,i,"=");
-		key = read_str(buf,i,o-i);
+	for (i = pos; isspace(at(buf,i)); ++i);
+	for (; i < l; ++i) {
+		o = find(buf,i,"=");
+		key = from(buf,i,o-i);
 		i = o+1;
-		o = find_buffer(buf,i,"&\r\n");
-		value = read_str(buf,i,o-i);
+		o = find(buf,i,"&\r\n");
+		value = from(buf,i,o-i);
 		append_header(retval,key,value);
 		i = o;
 	}
@@ -59,18 +59,19 @@ str
 uri_encode(str s)
 {
 	str retval = NULL;
-	int i, j = 0, len = s->len;
-	for (i = 0; i < len; ++i)
-		j += is_clean_char(s->data[i]) ? 1 : 3;
-	retval = char_str(NULL,j);
+	int i, j = 0, l = len(s);
+	for (i = 0; i < l; ++i)
+		j += is_clean_char(at(s,i)) ? 1 : 3;
+	retval = blank(j);
 	j = 0;
-	for (i = 0; i < len; ++i) {
-		if (is_clean_char(s->data[i])) {
-			retval->data[j++] = s->data[i];
+	for (i = 0; i < l; ++i) {
+		char c = at(s,i);
+		if (is_clean_char(c)) {
+			set(retval,j++,c);
 		} else {
-			retval->data[j++] = '%';
-			retval->data[j++] = hex_chars[s->data[i]/16];
-			retval->data[j++] = hex_chars[s->data[i]%16];
+			set(retval,j++,'%');
+			set(retval,j++,hex_chars[c/16]);
+			set(retval,j++,hex_chars[c%16]);
 		}
 	}
 	return retval;
@@ -93,18 +94,17 @@ from_hex(char a, char b)
 str
 uri_decode(str s)
 {
-	int i, j = 0, len = s->len;
-	str retval = char_str(NULL,len);
-	for(i = 0; i < len; ++i)
-		if (s->data[i] == '+') {
-			retval->data[j++] = ' ';
-		} else if (s->data[i] == '%') {
-			retval->data[j++] = from_hex(s->data[i+1],s->data[i+2]);
+	int i, j = 0, l = len(s);
+	str retval = blank(l);
+	for(i = 0; i < l; ++i)
+		if (at(s,i) == '+') {
+			set(retval,j++,' ');
+		} else if (at(s,i) == '%') {
+			set(retval,j++,from_hex(at(s,i+1),at(s,i+2)));
 			i += 2;
 		} else {
-			retval->data[j++] = s->data[i];
+			set(retval,j++,at(s,i));
 		}
-	retval->data[j] = '\0';
-	retval->len = j;
+	retval->length = j;
 	return retval;
 }

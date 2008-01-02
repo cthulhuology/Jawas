@@ -9,12 +9,12 @@
 #include "config.h"
 #include "alloc.h"
 #include "pages.h"
+#include "str.h"
 #include "headers.h"
 #include "log.h"
 #include "uri.h"
 #include "requests.h"
 #include "responses.h"
-#include "buffers.h"
 #include "files.h"
 #include "server.h"
 #include "jsapi.h"
@@ -35,6 +35,20 @@ jmp_buf jmp;
 
 void ProcessFile(char* script);
 
+str
+js2str(JSContext* cx, jsval x)
+{
+	return copy(JS_GetStringBytes(JS_ValueToString(cx,x)),JS_GetStringLength(JS_ValueToString(cx,x)));
+}
+
+jsval
+str2js(JSContext* cx, str x)
+{
+	if (! x) return EMPTY;
+	char* t = dump(x);
+ 	return STRING_TO_JSVAL(JS_NewStringCopyN(cx,t,len(x)));
+}
+
 static JSBool
 ExitJS(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
@@ -46,18 +60,16 @@ static JSBool
 Print(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	uintN i;
-	JSString *s;
-	char* c;
+	str s;
 
 	for (i = 0; i < argc; ++i) {
-		s = JS_ValueToString(cx, argv[i]);
+		s = jsval2str(argv[i]);
 		if (!s) {
 			error("print() failed, invalid string parameter at %i",i);
 			*rval = FAILURE;
 			return JS_TRUE;
 		}
-		c = JS_GetStringBytes(s);
-		ins.buffer = write_buffer(ins.buffer, c, JS_GetStringLength(s));
+		ins.buffer = append(ins.buffer,s);
 	}
 	*rval = SUCCESS;
 	return JS_TRUE;
@@ -94,15 +106,15 @@ static JSBool
 Include(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	File fc;
-	JSString* s;
+	str s;
 	str filename;
 	if (argc != 1) {
 		error("Usage: include(filename);");
 		*rval = FAILURE;
 		return JS_TRUE;
 	}
-	s = JS_ValueToString(cx,argv[0]);
-	filename = file_path(Req->host,Str("/%s",char_str(JS_GetStringBytes(s),JS_GetStringLength(s))));
+	s = jsval2str(argv[0]);
+	filename = file_path(Req->host,Str("/%s",s));
 	fc = load(filename);
 	if (!fc) {
 		error("Failed to open file %s",filename);
@@ -118,15 +130,14 @@ static JSBool
 Use(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	File fc;
-	JSString* s;
-	str filename;
+	str s, filename;
 	if (argc != 1) {
 		error("Usage: use(filename);");
 		*rval = FAILURE;
 		return JS_TRUE;
 	}
-	s = JS_ValueToString(cx,argv[0]);
-	filename = file_path(Req->host,Str("/%s",char_str(JS_GetStringBytes(s),JS_GetStringLength(s))));
+	s = jsval2str(argv[0]);
+	filename = file_path(Req->host,Str("/%s",s));
 	fc = load(filename);
 	if (!fc) {
 		error("Failed to open file %s",filename);
@@ -145,14 +156,14 @@ Use(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 Header(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	JSString* s;
+	str s;
 	if (argc != 1) {
 		error("Usage: header(fieldname)");
 		*rval = EMPTY;
 		return JS_TRUE;	
 	}
-	s = JS_ValueToString(cx,argv[0]);
-	str head  = find_header(ins.resp->req->headers,JS_GetStringBytes(s));
+	s = jsval2str(argv[0]);
+	str head  = find_header(ins.resp->req->headers,s);
 	if (!head) {
 		*rval = EMPTY;
 		return JS_TRUE;
@@ -164,14 +175,14 @@ Header(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 Param(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	JSString* s;
+	str s;
 	if (argc != 1) {
 		error("Usage: param(variable)");
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
-	s = JS_ValueToString(cx,argv[0]);
-	str pram = find_header(ins.resp->req->query_vars,JS_GetStringBytes(s));
+	s = jsval2str(argv[0]);
+	str pram = find_header(ins.resp->req->query_vars,s);
 	if (! pram) {
 		*rval = EMPTY;
 		return JS_TRUE;
@@ -183,8 +194,7 @@ Param(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 Now(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	str n = int_str(time(NULL));
-	*rval = str2jsval(n);
+	*rval = str2jsval(Str("%i",time(NULL)));
 	return JS_TRUE;
 }
 
@@ -202,18 +212,18 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	str qstr = jsval2str(argv[0]);
 	str qry = NULL;
 	if (argc > 1) 
-		for (i = 1; i < qstr->len && j < argc; ++i)
-			if (qstr->data[i] == '?') {
+		for (i = 1; i < len(qstr) && j < argc; ++i)
+			if (at(qstr,i) == '?') {
 				++j;
 				str val = jsval2str(argv[j]);
 				debug("Value [%i] is %s",j,val);
 				val = singlequote(val);
 				debug("Single Quoted Value is %s",val);
-				qry = qry ? Str("%s%s%s",qry,sub_str(qstr,o,i),val) : Str("%s%s",sub_str(qstr,o,i),val);
+				qry = append(qry,append(from(qstr,o,i),val));
 				debug("Qry is %s",qry);
 				o = i + 1;
 			}
-	qry = qry ? Str("%s%s",qry,sub_str(qstr,o,qstr->len)) : qstr;
+	qry = append(qry,from(qstr,o,len(qstr)));
 	debug("[Query] %s",qry);
 	int res = query(qry);
 	if (res < 0) {
@@ -248,9 +258,7 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 Encode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	char* data;
 	str s;
-	Buffer tmp,buf;
 	if (argc != 1) {
 		error("Usage: encode(string)");	
 		*rval = EMPTY;
@@ -265,9 +273,7 @@ Encode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 Decode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	char* data;
 	str s;
-	Buffer tmp,buf;
 	if (argc != 1) {
 		error("Usage: encode(string)");	
 		*rval = EMPTY;
@@ -326,18 +332,18 @@ static JSBool
 ClientInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	Socket sc;
-	ins.buffer = print_buffer(ins.buffer,"<table>");
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Max Clients:</td><td> %i</td></tr>",gsci.max);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Current Clients:</td><td> %i</td></tr>",gsci.current);
-	ins.buffer = print_buffer(ins.buffer,"</table><hr /><ol>");
+	ins.buffer = append(ins.buffer,Str("<table>"));
+	ins.buffer = append(ins.buffer,Str("<tr><td>Max Clients:</td><td> %i</td></tr>",gsci.max));
+	ins.buffer = append(ins.buffer,Str("<tr><td>Current Clients:</td><td> %i</td></tr>",gsci.current));
+	ins.buffer = append(ins.buffer,Str("</table><hr /><ol>"));
 	for (sc = ins.srv->sc; sc; sc = sc->next) 
-		ins.buffer = print_buffer(ins.buffer,"<li>%i.%i.%i.%i:%i</li>",
+		ins.buffer = append(ins.buffer,Str("<li>%i.%i.%i.%i:%i</li>",
 			(0xff & sc->peer),
 			(0xff00 & sc->peer) >> 8,
 			(0xff0000 & sc->peer) >> 16,
 			(0xff000000 & sc->peer) >> 24,
-			sc->port);
-	ins.buffer = print_buffer(ins.buffer,"</ol>");
+			sc->port));
+	ins.buffer = append(ins.buffer,Str("</ol>"));
 	return JS_TRUE;
 }
 
@@ -351,15 +357,15 @@ static JSBool
 MemInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 		
-	ins.buffer = print_buffer(ins.buffer,"<table>");
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Base Address:</td><td> %p</td></tr>",gpi.baseaddr);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Free Memory:</td><td> %p</td></tr>",free_memory());
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Allocated Memory:</td><td> %p</td></tr>",alloced_memory());
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Pages Allocated:</td><td> %i</td></tr>",gpi.allocated);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Scratch Pages Allocated:</td><td> %i</td></tr>",gsi.allocated);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Freed Pages:</td><td> %i</td></tr>",gpi.frees);
-	ins.buffer = print_buffer(ins.buffer,"<tr><td>Freed Scratch Pages:</td><td> %i</td></tr>",gsi.frees);
-	ins.buffer = print_buffer(ins.buffer,"</table>");
+	ins.buffer = append(ins.buffer,Str("<table>"));
+	ins.buffer = append(ins.buffer,Str("<tr><td>Base Address:</td><td> %p</td></tr>",gpi.baseaddr));
+	ins.buffer = append(ins.buffer,Str("<tr><td>Free Memory:</td><td> %p</td></tr>",free_memory()));
+	ins.buffer = append(ins.buffer,Str("<tr><td>Allocated Memory:</td><td> %p</td></tr>",alloced_memory()));
+	ins.buffer = append(ins.buffer,Str("<tr><td>Pages Allocated:</td><td> %i</td></tr>",gpi.allocated));
+	ins.buffer = append(ins.buffer,Str("<tr><td>Scratch Pages Allocated:</td><td> %i</td></tr>",gsi.allocated));
+	ins.buffer = append(ins.buffer,Str("<tr><td>Freed Pages:</td><td> %i</td></tr>",gpi.frees));
+	ins.buffer = append(ins.buffer,Str("<tr><td>Freed Scratch Pages:</td><td> %i</td></tr>",gsi.frees));
+	ins.buffer = append(ins.buffer,Str("</table>"));
 	return JS_TRUE;
 }
 
@@ -368,12 +374,12 @@ FileInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	File fc;
 	int total = 0;
-	ins.buffer = print_buffer(ins.buffer,"<table><tr><th>Name</th><th>Hits</th><th>Size</th></tr>");
+	ins.buffer = append(ins.buffer,Str("<table><tr><th>Name</th><th>Hits</th><th>Size</th></tr>"));
 	for (fc = ins.srv->fc; fc; fc = fc->next)  {
-		ins.buffer = print_buffer(ins.buffer,"<tr><td>%c</td><td>%i</td><td>%i</td></tr>",&fc->name[cwd->len],fc->count,fc->st.st_size);
+		ins.buffer = append(ins.buffer,Str("<tr><td>%c</td><td>%i</td><td>%i</td></tr>",&fc->name[len(cwd)],fc->count,fc->st.st_size));
 		total += fc->st.st_size;
 	}
-	ins.buffer = print_buffer(ins.buffer,"<tr><td colspan=2>Total:</td><td>%i</td></tr></table>",total);
+	ins.buffer = append(ins.buffer,Str("<tr><td colspan=2>Total:</td><td>%i</td></tr></table>",total));
 	return JS_TRUE;
 }
 
@@ -381,11 +387,11 @@ static JSBool
 RequestInfoTable(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	RequestInfo ri;
-	ins.buffer = print_buffer(ins.buffer,"<table><tr><th>Request</th><th># Hits</th><th>Avg Time</th><th>PPM</th></tr>");
+	ins.buffer = append(ins.buffer,Str("<table><tr><th>Request</th><th># Hits</th><th>Avg Time</th><th>PPM</th></tr>"));
 	for (ri  = ins.srv->ri; ri; ri = ri->next) {
-		ins.buffer = print_buffer(ins.buffer, "<tr><td>http://%s%s</td><td>%i</td><td>%i&mu;s</td><td>%i</td></tr>",ri->host,ri->path,ri->hits,ri->time, 60000000 / ri->time);
+		ins.buffer = append(ins.buffer, Str("<tr><td>http://%s%s</td><td>%i</td><td>%i&mu;s</td><td>%i</td></tr>",ri->host,ri->path,ri->hits,ri->time, 60000000 / ri->time));
 	}
-	ins.buffer = print_buffer(ins.buffer,"</table>");
+	ins.buffer = append(ins.buffer,Str("</table>"));
 	return JS_TRUE;
 }
 
@@ -407,7 +413,6 @@ SaveJSON(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		return JS_TRUE;
 	}
 	jsval id_val;
-	str guid;
 	if (JS_FALSE == JS_GetProperty(ins.cx,obj,"id",&id_val)) return JS_TRUE;
 	return JS_TRUE;	
 }
@@ -453,11 +458,14 @@ LoadJSON(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	str jsn = Str("eval(%s)",fetch(0,0));
 	reset();
 	debug("Evaluating: %s",jsn);
-	if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, jsn->data, jsn->len, "jws.c", 1, &retval)) {
+	char* data = dump(jsn);
+	if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, data, len(jsn), "jws.c", 1, &retval)) {
 		error("Failed to load object %s",jsval2str(argv[0]));
 		*rval = EMPTY;
+		free(data);
 		return JS_TRUE;
 	} 
+	free(data);
 	*rval = retval;
 	return JS_TRUE;
 }
@@ -505,6 +513,7 @@ RunScript(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	int when = str_int(jsval2str(argv[2]));
 	JSObject* o = JSVAL_TO_OBJECT(argv[3]);	
 	JSIdArray* arr = JS_Enumerate(ins.cx, o);
+	debug("Run Script from now %i at %i ",when, when + time(NULL));
 	Timers t = add_timer(script,when);
 	for (i = 0; i < arr->length; ++i ) {
 		char* prop = JS_GetStringBytes(ATOM_TO_STRING(JSID_TO_ATOM(arr->vector[i])));
@@ -670,7 +679,7 @@ ImageInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	}
 	for (i = 0; props[i*2]; ++i) {
 		if (props[i*2+1])
-			value = char_str(props[i*2+1],strlen(props[i*2+1]));
+			value = copy(props[i*2+1],strlen(props[i*2+1]));
 		else
 			value = NULL;
 		if (value) JS_DefineProperty(cx,o,props[i*2]+5,str2jsval(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
@@ -803,6 +812,7 @@ static JSClass global_class = {
 static JSFunctionSpec obj_functions[] = {
 	{"json", JSON, 0 },
 	{"store", StoreJSON, 0 },
+	{"save", SaveJSON, 0 },
 	{"load", LoadJSON, 0 },
 	{0},
 };
@@ -859,7 +869,6 @@ InitParams(JSInstance* in, Headers headers)
 {
 	str x;
 	JSContext* cx = in->cx;
-	JSObject* o;
 	JSObject* arr = NULL;
 	int i,j, n;
 	if (! headers) return 0;
@@ -872,7 +881,7 @@ InitParams(JSInstance* in, Headers headers)
 			debug("Failed to set property %s",x);
 		overs(headers,j,i+1) {
 			skip_null(headers,j);
-			if (cmp_str(Key(headers,i),Key(headers,j))) {
+			if (cmp(Key(headers,i),Key(headers,j))) {
 				if (! arr) {
 					arr =  JS_NewArrayObject(in->cx,0,NULL);
 					JS_DefineElement(in->cx,arr,n,str2jsval(Value(headers,i)),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
@@ -896,10 +905,12 @@ InitScripts(JSInstance* in)
 		int rows = query(Str("SELECT func FROM scripts WHERE site = '%s' and active",in->resp->req->host));
 		for (i = 0; i < rows; ++i) {
 			str script = fetch(i,0);
-			if (JS_FALSE == JS_EvaluateScript(in->cx, in->glob, script->data, script->len, "jws.c", 1, &retval)) {
+			char* script_data = dump(script);
+			if (JS_FALSE == JS_EvaluateScript(in->cx, in->glob, script_data, len(script), "jws.c", 1, &retval)) {
 				error("Failed to compile script:");
 				error("%s",script);
 			}
+			free(script_data);
 		}	
 		reset();
 	}
@@ -918,7 +929,7 @@ InitRequest(JSInstance* in, Request req)
 				continue;
 		}
 	}
-	
+	return 0;
 }
 
 int
@@ -926,7 +937,6 @@ InitResponse(JSInstance* in, Response resp)
 {
 	int i;
 	JSContext* cx = in->cx;
-	JSObject* rq = JS_DefineObject(in->cx,in->glob,"request",NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
 	JSObject* rsp = JS_DefineObject(in->cx,in->glob,"response",NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
 	over(resp->headers,i) {
 		if (!JS_DefineProperty(in->cx,rsp,Key(resp->headers,i)->data,str2jsval(Value(resp->headers,i)),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
@@ -934,7 +944,7 @@ InitResponse(JSInstance* in, Response resp)
 				continue;
 		}
 	}
-
+	return 0;
 }
 
 int
@@ -974,39 +984,36 @@ DestroyJS(JSInstance* i)
 void
 ProcessFile(char* script)
 {
-	cstr scratch;
-	JSBool ok;
 	jsval retval;
-	int o;
-	int len = 0;
+	int o, l = 0;
+	str script_data;
 	for (o = 0; script[o]; ++o) {
 		if (!strncmp(&script[o],"<?js",4)) {
-			if (len < o)
-				ins.buffer = write_buffer(ins.buffer,&script[len],o-len);
-			len = 0;
+			if (l < o)
+				ins.buffer = append(ins.buffer,copy(&script[l],o-l));
+			l = 0;
 			if (script[o+4] == '=') {
-				while (strncmp(&script[o+len+6],"=?>",3)) ++len;
-				if (len > MAX_ALLOC_SIZE) {
+				while (strncmp(&script[o+l+6],"=?>",3)) ++l;
+				if (l > MAX_ALLOC_SIZE) {
 					error("Expression to large!");
 				
 				} else {
-					scratch = Cstr(&script[o+6],len);	
-					str tmp = Str("print(%x);",scratch);
-					scratch = Cstr(tmp->data,tmp->len);
+					script_data = Str("print(%s);",copy(&script[o+6],l));	
 				}
-				o += len + 6;
-				len = o+3;
+				o += l + 6;
+				l = o+3;
 			} else {
-				while (strncmp(&script[o+len+5],"?>",2)) ++len;
-				scratch = Cstr(&script[o+5],len-1);
-				o += len + 5;
-				len = o+2;
+				while (strncmp(&script[o+l+5],"?>",2)) ++l;
+				script_data = copy(&script[o+5],l-1);
+				o += l + 5;
+				l = o+2;
 			}
-			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, scratch->data, scratch->len, "jws.c", 1, &retval))
-				error("Failed to evaluate [%x]", scratch);
+			char* eval_script = dump(script_data);
+			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, eval_script, len(script_data), "jws.c", 1, &retval))
+				error("Failed to evaluate [%s]", script_data);
 		}
 	}
-	ins.buffer = write_buffer(ins.buffer,&script[len],o-len);
+	ins.buffer = append(ins.buffer,copy(&script[l],o-l));
 }
 
 int
@@ -1034,7 +1041,6 @@ run_script(File fc, Headers data)
 int
 jws_handler(File fc)
 {
-	Buffer tmp;
 	if (run_script(fc,NULL)) goto error;
 	if (Resp) Resp->contents = ins.buffer;
 	return Resp ? Resp->status : 0;
@@ -1044,27 +1050,22 @@ error:
 }
 
 int
-process_callback(Request req, Response resp)
+process_callback(Headers headers)
 {
 	jsval rval;
-	srv->resp = req->resp;	// set to original response
-	if (InitJS(&ins,srv,new_headers())) {
+	if (InitJS(&ins,srv,headers)) {
 		error("Failed to initialize Javascript");
 		return 1;
 	}
 	if (!setjmp(jmp)) {
-		if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, req->cb->data, req->cb->len, "jws.c", 1, &rval)) 
-				debug("Failed to evaluate script %s",req->cb);
+		char* cb_data = dump(Req->cb);
+		if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, cb_data, len(Req->cb), "jws.c", 1, &rval)) 
+				debug("Failed to evaluate script %s",Req->cb);
+		free(cb_data);
 	}
 	if (DestroyJS(&ins)) {
 		error("Failed to destroy Javascript");
 		return 1;
 	}
-	req->resp->status = 200;
-	debug("process_callback setting headers");
-	connection(req->resp->headers,"close");
-	transfer_encoding(req->resp->headers,"chunked");
-	debug("process_callback initializing writeback");
-	add_write_socket(req->resp->sc->fd,req->resp);
 	return 0;
 }

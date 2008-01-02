@@ -18,10 +18,7 @@
 int
 send_status(Socket sc, int code)
 {
-	int total = 0;
-	char* status = status_line(code);
-	total += write_socket(sc,status,strlen(status));
-	return total;
+	return write_socket(sc,status_line(code));
 }
 
 static char* server_name = SERVER_VERSION;
@@ -47,9 +44,9 @@ Response
 dechunk_response(Response resp)
 {
 	if (is_chunked(resp->headers)) {
-		Buffer hed = read_buffer(NULL,resp->contents,0,resp->body);
-		Buffer con = dechunk_buffer(resp->contents);
-		resp->contents = read_buffer(hed,con,0,length_buffer(con));
+		str hed = from(resp->contents,0,resp->body);
+		str con = dechunk(resp->contents);
+		resp->contents = append(hed,con);
 	}
 	return resp;
 }
@@ -73,7 +70,7 @@ process_response(Response resp)
 		}
 	}
 	resp->done = resp->body &&
-		(length_buffer(resp->contents) - resp->body) >= inbound_content_length(resp->contents,resp->headers);
+		(len(resp->contents) - resp->body) >= inbound_content_length(resp->contents,resp->headers);
 	return resp->done ? dechunk_response(resp) : resp;
 }
 
@@ -90,8 +87,10 @@ send_response(Response resp)
 	resp->written += resp->contents ?
 		send_contents(resp->sc,resp->contents,1):
 		send_raw_contents(resp->sc,resp->raw_contents,resp->written);
-	if (resp->written >= resp->length)
-		write_chunked_socket(resp->sc,NULL,0);
+	if (resp->written >= resp->length) {
+		debug("Writing null chunk EOF");
+		write_chunk(resp->sc,NULL,0);
+	}
 	return resp->written < resp->length;
 }
 

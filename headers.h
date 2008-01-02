@@ -7,18 +7,15 @@
 #ifndef __HEADERS_H__
 #define __HEADERS_H__
 
-#include "str.h"
-#include "buffers.h"
 #include "sockets.h"
+#include "str.h"
+#include "strings.h"
 
 #define MAX_HEADERS 250
 #define HEADERS_SIZE sizeof(struct headers_struct)
 #define over(x,y) for(y=0; y < x->nslots && y < MAX_HEADERS; ++y) 
 #define overs(x,y,z) for(y=z; y < x->nslots && y < MAX_HEADERS; ++y) 
 #define skip_null(x,y) if (x->slots[y].key == NULL) continue;
-
-#define Key(o,s) (0 <= s && s < o->nslots ? o->slots[s].key : NULL)
-#define Value(o,s) (0 <= s && s < o->nslots ? o->slots[s].value : NULL)
 
 typedef struct headers_struct*  Headers;
 struct headers_data_struct {
@@ -31,14 +28,17 @@ struct headers_struct {
 };
 
 Headers new_headers();
-Headers parse_headers(Buffer buf, int* body);
+Headers parse_headers(str buf, int* body);
 Headers append_header(Headers headers, str key, str value);
 
-str find_header(Headers headers, char* key);
+str Key(Headers headers, int slot);
+str Value(Headers headers, int slot);
+
+str find_header(Headers headers, str key);
 str list_headers(Headers kv);
 
 void dump_headers(Headers headers);
-Buffer print_headers(Buffer dst, Headers src);
+str print_headers(str dst, Headers src);
 int send_headers(Socket sc, Headers headers);
 
 Headers sort_headers(Headers kv);
@@ -53,22 +53,13 @@ Headers expires(Headers headers, const char* value);
 Headers location(Headers headers, const char* value);
 Headers server(Headers headers, const char* value);
 
-static char* Cache_Control_MSG = "Cache-Control";
-static char* Connection_MSG = "Connection";
-static char* Date_MSG = "Date";
-static char* Transfer_Encoding_MSG = "Transfer-Encoding";
-static char* Content_Length_MSG = "Content-Length";
-static char* Content_Type_MSG = "Content-Type";
-static char* Expires_MSG = "Expires";
-static char* Location_MSG = "Location";
-static char* Server_MSG = "Server";
 
 #define HEADER_FUNC(f,k) \
 Headers \
 f (Headers headers, const char* value) {\
 	int i = free_header_slot(headers);\
-	 headers->slots[i].key = char_str(k,0);\
-	 headers->slots[i].value = char_str(value,0);\
+	 headers->slots[i].key = copy(k,0);\
+	 headers->slots[i].value = copy(value,0);\
 	 return headers;\
 }
 

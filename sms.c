@@ -6,6 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
+#include "log.h"
 #include "events.h"
 #include "server.h"
 #include "database.h"
@@ -33,41 +34,40 @@ out_modem(str msg)
 {
 	int total = 0;
 	if (modem < 0) return 1;
-	while (total < msg->len)
-		total += write(modem,msg->data + total,msg->len-total);
+	str t;
+	for(t = msg; t; t = t->next)
+		total += write(modem,t->data,t->length);
 	debug("[SMS] sent %s",msg);
-	return total != msg->len;
+	return total != len(msg);
 }
 
 str
 in_modem()
 {
 	int i,delta;	
-	str retval = char_str(NULL,MAX_SMS_MESSAGE);
-	retval->len = 0;
+	str retval = blank(MAX_SMS_MESSAGE);
+	retval->length = 0;
 	for (i = 0; i < MAX_SMS_MESSAGE; ++i) {
 		char tmp;
 		delta = read(modem,&tmp,1);
 		if (delta == 0 && i == 0) return NULL;
-		retval->data[i] = '\0';
 		if (tmp == '\n') break;	
 		if (tmp != '\n' && tmp != '\r') {
-			retval->data[i] = tmp;
-			retval->len += delta;
+			set(retval,i,tmp);
+			retval->length += delta;
 		}
 	}
-	retval->data[i] = '\0';
-	if (retval->len > 0) 
+	if (retval->length > 0) 
 		debug("[SMS] read %s", retval);
-	return retval->len > 0 ? retval : NULL;	
+	return retval->length > 0 ? retval : NULL;	
 }
 
 str
 read_ok()
 {
 	str tmp, retval = NULL;
-	for (tmp = in_modem(); !tmp || !cmp_str(tmp,OK); tmp = in_modem())
-		if (tmp) retval = retval ? Str("%s%s",retval,tmp) : tmp;
+	for (tmp = in_modem(); !tmp || !cmp(tmp,OK); tmp = in_modem())
+		if (tmp) retval = append(retval,tmp);
 	return retval;
 }
 
@@ -100,7 +100,6 @@ sms_init_stack()
 int
 sms_open_modem()
 {
-	int i;
 	if (modem > 0) return 0;
 	sms_init_stack();
 	modem = open("/dev/tty.Bluetooth-Modem",O_RDWR,0600);
@@ -169,14 +168,14 @@ sms_send_msg(str index)
 str
 parse_sms_cmd(str line)
 {
-	int i;
+	int i,l = len(line);
 	str retval = NULL;
-	if (cmp_str(line,OK)) return OK;
-	if (ncmp_str(line,ERROR,5)) return ERROR;
-	if (line->data[0] != '+') return NULL;
-	for (i = 1; i < line->len && line->data[i] != ':'; ++i); 
-	if (i >= line->len) return NULL;
-	retval = char_str(line->data + 1, i - 1);
+	if (cmp(line,OK)) return OK;
+	if (ncmp(line,ERROR,5)) return ERROR;
+	if (at(line,0) != '+') return NULL;
+	for (i = 1; i < l && at(line,i) != ':'; ++i); 
+	if (i >= l) return NULL;
+	retval = from(line, 1, i - 1);
 	debug("[SMS] Found CMD %s",retval);
 	return retval;
 }
@@ -272,14 +271,14 @@ dispatch_sms_cmd(str cmd)
 	for (i = 0; cmd && sms_cmds[i].cmd; ++i) 
 		if (!strcmp(sms_cmds[i].cmd,cmd->data))
 			return sms_cmds[i].func();
+	return 0;
 }
 
 int
 sms_process_line()
 {
-	int i;
 	if (sms_open_modem()) return 1;
-	while (sms_line = in_modem()) 
+	while ((sms_line = in_modem())) 
 		dispatch_sms_cmd(parse_sms_cmd(sms_line));	
 	return 0;
 }

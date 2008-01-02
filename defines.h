@@ -7,10 +7,6 @@
 
 #define SERVER_VERSION "Jawas/1.0"
 
-#define min(x,y) (x < y ? x : y)
-#define max(x,y) (x > y ? x : y)
-#define between(a,x,b)	(x >= a && x <= b)
-
 #define RUNTIME_SIZE 8L * 1024L * 1024L
 #define CONTEXT_SIZE 8192
 #define MAX_INDEX_LEN 12

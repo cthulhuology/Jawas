@@ -49,4 +49,9 @@ void unload(int fd, str filename);
 void server_scratch();
 void client_scratch();
 
+void set_SockReqResp(Socket sc, Request rq, Response rsp);
+
+void server_scratch();
+void old_scratch();
+
 #endif

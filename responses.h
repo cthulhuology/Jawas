@@ -8,7 +8,6 @@
 #define __RESPONSE_H__
 
 #include "headers.h"
-#include "buffers.h"
 #include "requests.h"
 #include "sockets.h"
 #include "files.h"
@@ -17,7 +16,7 @@ struct response_struct {
 	Socket sc;
 	Request req;
 	Headers headers;
-	Buffer contents;
+	str contents;
 	File raw_contents;
 	int status;
 	int length;

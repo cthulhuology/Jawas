@@ -125,8 +125,6 @@ disconnect()
 void
 read_request()
 {
-	char* filename;
-	File fc;
 	client_scratch();
 	if (!process_request(Req)) {
 		old_scratch();
@@ -162,9 +160,23 @@ read_response()
 		disconnect();		
 		return;
 	}
-	Resp->done ?
-		process_callback(Req,Resp) :
+	if (Resp->done) {
+		debug("Setting response to %p from %p", Resp->req->resp, Resp);
+		Response tmp = Resp;
+		Headers hdrs = tmp->headers;
+		append_header(hdrs,Str("data"),tmp->contents);
+			
+		set_SockReqResp(NULL,NULL,Resp->req->resp);
+		process_callback(hdrs);
+		debug("process_callback setting headers");
+		connection(Resp->headers,"close");
+		transfer_encoding(Resp->headers,"chunked");
+		debug("process_callback initializing writeback");
+		close_socket(tmp->sc);
+		add_write_socket(Resp->sc->fd,Resp);
+	} else {
 		add_resp_socket(Sock->fd,Resp);
+	}
 	if (Resp->done)
 		disconnect();
 	old_scratch();
@@ -207,7 +219,7 @@ load_config(char* filename)
 	File conf = open_file(srv->fc,Str("%c",filename));
 	if (conf) {
 		srv->fc = conf;
-		return char_str(conf->data,conf->st.st_size-1);		
+		return copy(conf->data,conf->st.st_size-1);		
 	}
 	return NULL;
 }
@@ -327,7 +339,7 @@ run()
 		case NODE:
 			debug("NODE EVENT");
 			fc = (File)event_data(ec->data);
-			unload(ec->fd,char_str(fc->name,0));
+			unload(ec->fd,copy(fc->name,0));
 			break;
 		default:
 			debug("UNKNOWN EVENT");
@@ -344,7 +356,6 @@ void
 stop()
 {
 	File fc;
-	Event ec;
 	Socket sc;
 	server_scratch();
 	close(srv->http_sock);
@@ -354,7 +365,7 @@ stop()
 	srv->kq = 0;
 	srv->ec = NULL;
 	srv->numevents = 0;
-	for (fc = srv->fc; fc; fc = close_file(fc,char_str(fc->name,0)));
+	for (fc = srv->fc; fc; fc = close_file(fc,copy(fc->name,0)));
 	srv->fc = NULL;
 	for (sc = srv->sc; sc; sc = close_socket(sc));
 	srv->sc = NULL;	

@@ -8,7 +8,7 @@ ARCH := $(shell uname)
 
 LIBS = -ljs -lpq -lssl -lcrypto
 
-CFLAGS += `Wand-config --cppflags` 
+CFLAGS += -Wall `Wand-config --cppflags` 
 #CFLAGS += -foptimize-sibling-calls -fomit-frame-pointer
 
 LDFLAGS  += `Wand-config --ldflags --libs`
@@ -34,7 +34,6 @@ SOURCES = \
 alloc.c \
 amazon.c \
 auth.c \
-buffers.c \
 bsd.c \
 database.c \
 dates.c \

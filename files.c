@@ -7,6 +7,7 @@
 #include "defines.h"
 #include "alloc.h"
 #include "str.h"
+#include "log.h"
 #include "files.h"
 
 str cwd = NULL;
@@ -15,9 +16,13 @@ int file_index = 0;
 File
 open_file(File cache, str filename)
 {
-	File fc = (File)salloc(sizeof(struct file_cache_struct) + filename->len + 1);
-	memcpy(fc->name,filename->data,filename->len+1);
-	fc->fd = open(filename->data,O_RDONLY,0400);
+	str t;
+	int fl = len(filename);
+	File fc = (File)salloc(sizeof(struct file_cache_struct) + fl + 1);
+	for (t = filename; t; t = t->next)
+		memcpy(fc->name + t->pos,t->data,t->length);
+	fc->name[fl] = '\0';
+	fc->fd = open(fc->name,O_RDONLY,0400);
 	if (fc->fd < 0 || fstat(fc->fd,&fc->st)) {
 		error("Failed to open file %s",filename);
 		return NULL;
@@ -110,7 +115,7 @@ query_fd_cache(File cache, int fd)
 void
 set_cwd()
 {
-	cwd = char_str(getcwd(NULL,0),0);
+	cwd = copy(getcwd(NULL,0),0);
 }
 
 str

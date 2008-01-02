@@ -97,6 +97,7 @@ event_data(EventData ed)
 		case NODE:
 			return ed->value.file;
 	}
+	return NULL;
 }
 
 enum event_types

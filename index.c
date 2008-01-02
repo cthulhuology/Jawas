@@ -11,15 +11,24 @@
 #include "log.h"
 #include "index.h"
 
+static char* indexes[] = {
+	"/index.html",
+	"/index.jws",
+	"/index.xml",
+	NULL
+};
+
 int
 is_directory(str filename)
 {
 	struct stat st;
-	if (stat(filename->data,&st)) {
+	char* fname = dump(filename);
+	if (stat(fname,&st)) {
 		error("Failed to stat file %s",filename);
 		return 0;
 	}
-//	debug("IS_DIRECTORY Filename %s[%i] is dir ? %c",filename,filename->len, (st.st_mode&S_IFDIR ? "true" : "false"));
+	free(fname);
+	debug("IS_DIRECTORY Filename %s[%i] is dir ? %c",filename,len(filename), (st.st_mode&S_IFDIR ? "true" : "false"));
 	return st.st_mode & S_IFDIR;
 }
 
@@ -30,8 +39,12 @@ get_index(str filename)
 	int i;
 	for (i = 0; indexes[i]; ++i) {
 		str index_path = Str("%s%c",filename,indexes[i]);
-		if (!stat(index_path->data,&st)) 
+		char *fname = dump(index_path);
+		if (!stat(fname,&st)) {
+			free(fname);
 			return index_path;
+		}
+		free(fname);
 	}
 	return NULL;
 }

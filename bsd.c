@@ -6,6 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
+#include "log.h"
 #include "events.h"
 #include "server.h"
 
@@ -28,8 +29,8 @@ poll_events(Event ec, int numevents)
 	Event retval = NULL;
 	EventData data;
 	struct timespec ts = { 1, 0 };
-	cl = (!cl ? cl = malloc(sizeof(struct kevent)*255) : cl);
-	el = (!el ? el = malloc(sizeof(struct kevent)*255) : el);
+	cl = (!cl ? (struct kevent*)malloc(sizeof(struct kevent)*255) : cl);
+	el = (!el ? (struct kevent*)malloc(sizeof(struct kevent)*255) : el);
 	memset(cl,0,sizeof(struct kevent)*255);
 	memset(el,0,sizeof(struct kevent)*255);
 	for (n = 0; ec; ++n) {

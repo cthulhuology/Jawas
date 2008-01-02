@@ -7,6 +7,7 @@
 #include "include.h"
 #include "defines.h"
 #include "str.h"
+#include "log.h"
 #include "headers.h"
 #include "server.h"
 #include "jws.h"
@@ -30,9 +31,9 @@ add_timer(str file, time_t when)
 		set_scratch(timer_old_scratch);
 		return NULL;
 	}
-	retval->when = when;
-//	debug("Current type is %i",srv->time);
-//	debug("Scheduling for %i (%i from now)",when, when - srv->time);
+	retval->when = when + srv->time;
+	debug("Current time is %i",srv->time);
+	debug("Scheduling for %i (%i from now)", when + srv->time, when);
 	retval->data = new_headers();
 	append_header(retval->data,Str("timer"),Str("%p",retval));
 	srv->timers = retval;
@@ -111,8 +112,8 @@ init_timers()
 		int len = de->d_namlen;
 #endif
 		if (len < 3) continue;
-		file = char_str(&de->d_name[len - 3], 0);
-		if (len > 3 && ncmp_str(dotjs,file,3)) {
+		file = copy(&de->d_name[len - 3], 0);
+		if (len > 3 && ncmp(dotjs,file,3)) {
 		//	debug("Starting timer script %c",de->d_name);
 			set_timer_value(add_timer(Str("startup/%c",de->d_name),0),Str("started"),Str("0"));
 		}

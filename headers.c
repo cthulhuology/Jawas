@@ -8,28 +8,36 @@
 #include "defines.h"
 #include "alloc.h"
 #include "str.h"
+#include "log.h"
 #include "headers.h"
 #include "sockets.h"
 
 Headers
 new_headers()
 {
-	Headers retval;
-	retval = (Headers)salloc(HEADERS_SIZE);
-	memset(retval,0,HEADERS_SIZE);
-	return retval;
+	return (Headers)salloc(HEADERS_SIZE);
 }
 
 str
-find_header(Headers headers, char* key)
+Key(Headers header, int slot)
+{
+	return 0 <= slot && slot < header->nslots ? header->slots[slot].key : NULL;
+}
+
+str
+Value(Headers header, int slot)
+{
+	return 0 <= slot && slot < header->nslots ? header->slots[slot].value : NULL;
+}
+
+str
+find_header(Headers headers, str key)
 {
 	int i;
 	if (! headers || ! key) return NULL;
-	int len = strlen(key);
 	for (i = 0; i < headers->nslots && i < MAX_HEADERS; ++i ) {
 		if (! headers->slots[i].key) continue;
-		if (len == headers->slots[i].key->len 
-		&& !strncasecmp(headers->slots[i].key->data,key,len)) 
+		if (cmp(headers->slots[i].key,key)) 
 			return headers->slots[i].value;
 	}
 	return NULL;
@@ -42,6 +50,7 @@ free_header_slot(Headers headers)
 		return headers->nslots++;
 	error("MAX HEADERS exceeded");
 	halt;
+	return 0; // never reach here
 }
 
 Headers
@@ -54,7 +63,6 @@ append_header(Headers headers, str key, str value)
 	if (i > MAX_HEADERS) return NULL;
 	headers->slots[i].key = key;
 	headers->slots[i].value = value;
-	debug("Append headers [%s = %s]",Key(headers,i),Value(headers,i));
 	return headers;
 }
 
@@ -70,9 +78,8 @@ sort_headers(Headers kv)
 	}
 	over(retval,i) {
 		skip_null(retval,i);
-		str pivot = Key(retval,i);
 		overs(retval,j,i+1) {
-			if (lesser_str(Key(retval,j),Key(retval,i))) {
+			if (lesser(Key(retval,j),Key(retval,i))) {
 				str tmp_key = Key(retval,i);
 				str tmp_value =  Value(retval,i);
 				retval->slots[i].key = Key(retval,j);
@@ -100,65 +107,62 @@ list_headers(Headers kv)
 	return retval;
 }
 
-Buffer
-print_headers(Buffer dst, Headers src)
+str
+print_headers(str dst, Headers src)
 {
 	int i;
-	Buffer retval = dst;
+	str retval = dst;
 	over(src,i) {
 		skip_null(src,i);
-		retval = print_buffer(retval,"%s: %s\r\n",Key(src,i),Value(src,i));
+		retval = append(retval,Str("%s: %s\r\n",Key(src,i),Value(src,i)));
 	}
 	return retval;
 }
 
 Headers
-parse_headers(Buffer buf, int* body)
+parse_headers(str buf, int* body)
 {
 	char c;
-	int i,o,l,reset,count;
-	int len = length_buffer(buf);
+	int i,l,o,reset,count;
+	int lb = len(buf);
 	Headers headers = new_headers();
 	if (! headers) {
 		error("Failed to allocate new headers\n");
 		return NULL;
 	}
 	count = 0;
-	for (o = 0; o < len; ++o ) {
-		c = fetch_buffer(buf,o);
+	for (o = 0; o < lb; ++o ) {
+		c = at(buf,o);
 		if (c == '\r' || c == '\n') break;
 	}
-	if (o >= len) {
+	if (o >= lb) {
 		error("No line breaks found! Bad request\n");
 		return NULL;
 	}
-	for (i = 0; i < MAX_HEADERS && o < len; ++o) {
-		c = fetch_buffer(buf,o);
+	for (i = 0; i < MAX_HEADERS && o < lb; ++o) {
+		c = at(buf,o);
 		if (c == '\r' || c == '\n') {
 			reset = 1;
 			++count;
 			if (count > 2) {
 				*body = o+1;
-				//debug("=== BODY ===");
-				//dump_buffer(buf,*body);
-				//debug("=== DONE ===");
 				return headers;
 			}
 			continue;
 		}
 		count = 0;
 		if (reset && ! Key(headers,i)) {
-			for (l = 1; (o + l) < len && fetch_buffer(buf,o+l) != ':'; ++l);
+			for (l = 1; (o + l) < lb && at(buf,o+l) != ':'; ++l);
 			headers->nslots++;
-			headers->slots[i].key = read_str(buf,o,l);
+			headers->slots[i].key = from(buf,o,l);
 			o += l-1;
-			c = fetch_buffer(buf,o);
+			c = at(buf,o);
 		}
 		if (reset && c == ':') {
 			o += 1;
-			while(isspace(c = fetch_buffer(buf,o))) ++o;
-			for (l = 1; (o + l) < len && c != '\r' && c != '\n'; ++l) c = fetch_buffer(buf,o+l); 
-			headers->slots[i].value = read_str(buf,o,l-1);
+			while(isspace(c = at(buf,o))) ++o;
+			for (l = 1; (o + l) < lb && c != '\r' && c != '\n'; ++l) c = at(buf,o+l); 
+			headers->slots[i].value = from(buf,o,l-1);
 			debug("Headers[%i] [%s=%s]",i,Key(headers,i),Value(headers,i));
 			reset = 0;
 			o += l-1;
@@ -180,13 +184,13 @@ send_headers(Socket sc, Headers headers)
 		str key = Key(headers,i);
 		str value = Value(headers,i);
 		if (key && value) {
-			total += write_socket(sc,key->data,key->len);
-			total += write_socket(sc,": ",2);
-			total += write_socket(sc,value->data,value->len);
-			total += write_socket(sc,"\r\n",2);
+			total += write_socket(sc,key);
+			total += write_socket(sc,Str(": "));
+			total += write_socket(sc,value);
+			total += write_socket(sc,Str("\r\n"));
 		}
 	}
-	total += write_socket(sc,"\r\n",2);
+	total += write_socket(sc,Str("\r\n"));
 	return total;
 }
 

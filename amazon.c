@@ -40,7 +40,6 @@ s3_put_auth_string(str verb, str mime, str date, str bucket, str filename)
 str
 s3_put(str file, str bucket, str filename, str mime)
 {
-	int off;
 	File fc = load(file);
 	debug("Loaded file %s", file);
 	debug("MIME is %s",mime);
@@ -56,12 +55,9 @@ s3_put(str file, str bucket, str filename, str mime)
 	debug("CMD is %s",cmd);
 	if(!fork()) {
 		Socket sc = connect_socket("s3.amazonaws.com",80);
-		write_socket(sc,cmd->data,cmd->len);
-		for (off = 0; off < fc->st.st_size; off += write_socket(sc,fc->data+off,min(fc->st.st_size-off,MAX_WRITE_SIZE))) {
-			debug("Writing %i of %i",off, fc->st.st_size);
-		}
-		debug("Wrote %i of %i",off,fc->st.st_size);
-		str output = readstr_socket(sc);
+		write_socket(sc,cmd);
+		send_raw_contents(sc,fc,0);
+		str output = read_socket(sc);
 		debug("[AMAZON] %s",output);
 		close_socket(sc);
 		exit(0);
@@ -73,5 +69,5 @@ str
 s3_put_jpeg(str file, str bucket, str filename)
 {
 	str mime = Str("image/jpeg");
-	s3_put(file,bucket,filename,mime);
+	return s3_put(file,bucket,filename,mime);
 }

@@ -49,8 +49,10 @@ log_msg(int lvl, char* fmt,  ...)
 	str msg = new_str(fmt,args);
 	str now = Date();
 	msg = Str("%c [%s]: %s\n",log_msgs[lvl],now,msg);
-	write(log_fd,msg->data,msg->len);
+	char* msg_data = dump(msg);
+	write(log_fd,msg_data,len(msg));
 	fsync(log_fd);
+	free(msg_data);
 	old_log_scratch();
 }
 

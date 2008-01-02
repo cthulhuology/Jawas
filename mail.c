@@ -7,6 +7,7 @@
 #include "include.h"
 #include "defines.h"
 #include "str.h"
+#include "log.h"
 #include "sockets.h"
 #include "mail.h"
 
@@ -32,23 +33,23 @@ mail(str to, str from, str subject, str body)
 		error("Failed to connnect to STMP server");
 		return 1;
 	}
-	debug("[SMTP] %s", readstr_socket(sc));
-	write_socket(sc,hl->data,hl->len);
-	debug("[SMTP] %s", readstr_socket(sc));
-	write_socket(sc,mf->data,mf->len);
-	debug("[SMTP] %s", readstr_socket(sc));
-	write_socket(sc,rt->data,rt->len);
-	debug("[SMTP] %s", readstr_socket(sc));
-	write_socket(sc,dt->data,dt->len);	
-	debug("[SMTP] %s", readstr_socket(sc));
-	write_socket(sc,th->data,th->len);
-	write_socket(sc,sb->data,sb->len);
-	write_socket(sc,ct->data,ct->len);
-	write_socket(sc,eoh->data,eoh->len);
-	write_socket(sc,body->data,body->len);
-	write_socket(sc,dn->data,dn->len);
-	debug("[SMTP] %s", readstr_socket(sc));
-	write_socket(sc,qt->data,qt->len);	
-	debug("[SMTP] %s", readstr_socket(sc));
+	debug("[SMTP] %s", read_socket(sc));
+	write_socket(sc,hl);
+	debug("[SMTP] %s", read_socket(sc));
+	write_socket(sc,mf);
+	debug("[SMTP] %s", read_socket(sc));
+	write_socket(sc,rt);
+	debug("[SMTP] %s", read_socket(sc));
+	write_socket(sc,dt);
+	debug("[SMTP] %s", read_socket(sc));
+	write_socket(sc,th);
+	write_socket(sc,sb);
+	write_socket(sc,ct);
+	write_socket(sc,eoh);
+	write_socket(sc,body);
+	write_socket(sc,dn);
+	debug("[SMTP] %s", read_socket(sc));
+	write_socket(sc,qt);
+	debug("[SMTP] %s", read_socket(sc));
 	return 0;
 }

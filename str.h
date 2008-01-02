@@ -10,57 +10,56 @@
 #include <stdarg.h>
 #include "defines.h"
 
-typedef struct cstr_struct* cstr;
-struct cstr_struct {
-	int len;
-	const char* data;
-};
+typedef int (*test_t)(char x, char y);
 
 typedef struct str_struct* str;
 struct str_struct {
-	int len;
+	str next;
+	int length;
+	int pos;
 	char data[0];
 };
 
-cstr Cstr(const char* a, int l);
+int min(int a, int b);
+int max(int a, int b);
+int between(int a, int x, int b);
+
+str seek(str s, int pos);
+str set(str s, int pos, char c);
+char at(str s, int pos);
+int len(str s);
+str copy(const char* a, int l);
+str blank(int l);
+str clone(str s);
+str from(str s, int start, int len);
+str append(str s, str v);
+char* dump(str s);
+
+str int_str(int i);
+str hex_str(int i);
+str obj_str(void* p);
+
+int str_int(str a);
+int str_hex(str a);
+#define str_obj(a,t) (t)str_hex(a)
 
 str Str(const char* fmt, ...);
 str new_str(const char* fmt, va_list args); 
-str copy(str s);
 
-char* str_char(str);
-str char_str(const char* a, int l);
-str int_str(int a);
-str obj_str(void* a);
-str num_str(double a);
-
-#define str_int(a) (a ? strtol(a->data,NULL,0) : 0)
-#define str_num(a) (a ? strtod(a->data,NULL,0) : 0)
-#define str_obj(a,t) (t)str_int(a)
-#define type_str_func(n,t,f)\
-str \
-n (t a) { \
-	char* tmp; \
-	int len = asprintf(&tmp,f,a); \
-	str retval = char_str(tmp,len); \
-	free(tmp); \
-	return retval; \
-} \
-
-#define cmp_str(a,b) \
-	(a->len == b->len ? !strncmp(a->data,b->data,a->len) : 0)
-
-#define icmp_str(a,b) \
-	(a->len == b->len ? !strncasecmp(a->data,b->data,a->len) : 0)
-
-#define ncmp_str(a,b,n) \
-	(a->len >= n && b->len >= n ? ! strncmp(a->data,b->data,n) : 0)
-
-int lesser_str(str a, str b);
 str name_field(str line);
 str skip_fields(str line, int n);
 str dequote(str line);
-str sub_str(str s, int start, int end);
 str singlequote(str s);
+
+int cmp(str a, str b);
+int ncmp(str a, str b,int n);
+int icmp(str a, str b);
+int lesser(str a, str b);
+
+int find(str src, int pos, char* delim);
+int search(str src, int pos, str key);
+str read_line(str src, int pos);
+int skip_headers(str src, int pos);
+str dechunk(str src);
 
 #endif

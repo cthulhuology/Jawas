@@ -4,8 +4,8 @@
 // All Rights Reserved
 //
 
+#include "str.h"
 #include "headers.h"
-#include "buffers.h"
 #include "requests.h"
 #include "responses.h"
 #include "files.h"
@@ -23,7 +23,7 @@ struct js_instance_struct {
 	JSBool builtins;
 	Server srv;
 	Response resp;
-	Buffer buffer;
+	str buffer;
 	Headers query_string;
 	Database database;
 };
@@ -42,11 +42,16 @@ int DestroyJS(JSInstance* i);
 
 #define EMPTY OBJECT_TO_JSVAL(NULL)
 
-#define jsval2str(x) char_str(JS_GetStringBytes(JS_ValueToString(cx,x)),JS_GetStringLength(JS_ValueToString(cx,x)))
-#define str2jsval(x) (x ? STRING_TO_JSVAL(JS_NewString(cx,memcpy(JS_malloc(cx,x->len),x->data,x->len),x->len)) : EMPTY)
+#define jsval2str(x) js2str(cx,x)
+#define str2jsval(x) str2js(cx,x)
+
+str js2str(JSContext* cx, jsval x);
+jsval str2js(JSContext* cx, str x);
 
 #define SUCCESS BOOLEAN_TO_JSVAL(JS_FALSE)
 #define FAILURE BOOLEAN_TO_JSVAL(JS_TRUE)
+
+int process_callback(Headers headers);
 
 // Javascript Functions
 

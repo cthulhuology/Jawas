@@ -17,10 +17,10 @@
 #include "auth.h"
 
 str
-md5sum(char* data, int len)
+md5sum(char* data, int l)
 {
-	str retval = char_str(NULL,16);
-	MD5((unsigned char*)data,(unsigned long)len,(unsigned char*)retval->data);
+	str retval = blank(16);
+	MD5((unsigned char*)data,(unsigned long)l,(unsigned char*)retval->data);
 	return retval;
 }
 
@@ -42,16 +42,19 @@ str
 base64(str s)
 {
 	str retval;
+	str t;
 	BUF_MEM* ptr;
 	BIO* src;
 	BIO* dst;
 	dst = BIO_new(BIO_f_base64());
 	src = BIO_new(BIO_s_mem());
 	dst = BIO_push(dst,src);
-	BIO_write(dst,s->data,s->len);
+	for (t = s; t; t = t->next) {
+		BIO_write(dst,t->data,t->length);
+	}
 	BIO_flush(dst);
 	BIO_get_mem_ptr(dst,&ptr);
-	retval = char_str(ptr->data,ptr->length-1);
+	retval = copy(ptr->data,ptr->length-1);
 	BIO_free_all(dst);
 	return retval;
 }	
@@ -59,11 +62,17 @@ base64(str s)
 str
 hmac1(str secret, str data)
 {
-	str retval = char_str(NULL,20);
+	int sl = len(secret);
+	int dl = len(data);
+	char* secret_data = dump(secret);
+	char* data_data = dump(data);
+	str retval = blank(20);
 	HMAC_CTX ctx;
 	HMAC_CTX_init(&ctx);
-	HMAC(EVP_sha1(),secret->data,secret->len,(unsigned char*)data->data,data->len,(unsigned char*)retval->data,(unsigned int*)&retval->len);
+	HMAC(EVP_sha1(),secret_data,sl,(unsigned char*)data_data,dl,(unsigned char*)retval->data,(unsigned int*)&retval->length);
 	HMAC_CTX_cleanup(&ctx);	
+	free(secret_data);
+	free(data_data);
 	return retval;
 }
 

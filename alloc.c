@@ -6,6 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
+#include "log.h"
 #include "pages.h"
 #include "alloc.h"
 
@@ -46,6 +47,12 @@ alloc_scratch(Scratch s, int size)
 	memset(retval,0,size);
 	s->len += size;
 	return retval;
+}
+
+char*
+salloc(int size)
+{
+	return alloc_scratch(gscratch,size);
 }
 
 void

@@ -13,6 +13,7 @@
 #include "index.h"
 #include "server.h"
 #include "methods.h"
+#include "mime.h"
 #include "forms.h"
 
 MethodDispatch gdispatch[] = {
@@ -29,7 +30,7 @@ MethodDispatch gdispatch[] = {
 int
 get_method()
 {
-	File fc;
+	File fc = NULL;
 	str filename;
 	debug("GET %s%s",Req->host,Req->path);
 	filename = file_path(Req->host,Req->path);
@@ -42,13 +43,13 @@ get_method()
 int
 post_method()
 {
-	str enctype = find_header(Req->headers,"Content-Type");
+	str enctype = find_header(Req->headers,Str("Content-Type"));
 	debug("POST %s%s %s",Req->host,Req->path,enctype);
 //	debug("Enctype: %s (%p,%i)", enctype, enctype->data,enctype->len);
-//	debug("multipart? %c", (ncmp_str(enctype,Str("multipart/form-data"),19) ? "yes" : "no"));
-	Req->query_vars = enctype && ncmp_str(enctype,Str("multipart/form-data"),19) ?
+//	debug("multipart? %c", (ncmp(enctype,Str("multipart/form-data"),19) ? "yes" : "no"));
+	Req->query_vars = enctype && ncmp(enctype,Str("multipart/form-data"),19) ?
 		parse_multipart_body(Req->query_vars,enctype) :
-		parse_uri_encoded(Req->query_vars,Req->contents,Req->body,length_buffer(Req->contents)-1);
+		parse_uri_encoded(Req->query_vars,Req->contents,Req->body);
 	return get_method();
 }
 

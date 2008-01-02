@@ -7,6 +7,7 @@
 #include "include.h"
 #include "defines.h"
 #include "alloc.h"
+#include "log.h"
 #include "usage.h"
 
 int

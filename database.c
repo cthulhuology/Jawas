@@ -7,7 +7,7 @@
 #include "include.h"
 #include "defines.h"
 #include "alloc.h"
-#include "str.h"
+#include "log.h"
 #include "database.h"
 
 Database db;
@@ -27,7 +27,9 @@ int
 query(str q)
 {
 	if (db->res) reset();
-	db->res = PQexec(db->conn,str_char(q));
+	char* qry = dump(q);
+	db->res = PQexec(db->conn,qry);
+	free(qry);
 	switch(PQresultStatus(db->res)) {
 		case PGRES_EMPTY_QUERY:
 		case PGRES_COMMAND_OK:

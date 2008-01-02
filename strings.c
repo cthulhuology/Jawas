@@ -9,6 +9,16 @@
 #include "str.h"
 #include "strings.h"
 
+char* Cache_Control_MSG = "Cache-Control";
+char* Connection_MSG = "Connection";
+char* Date_MSG = "Date";
+char* Transfer_Encoding_MSG = "Transfer-Encoding";
+char* Content_Length_MSG = "Content-Length";
+char* Content_Type_MSG = "Content-Type";
+char* Expires_MSG = "Expires";
+char* Location_MSG = "Location";
+char* Server_MSG = "Server";
+
 const_str(OK);
 const_str(ERROR);
 const_str(CMSS);
@@ -27,5 +37,5 @@ init_strings()
 	init_str(CMGR);
 	init_str(CMGD);
 	init_str(CMTI);
-
+	return 0;
 }
