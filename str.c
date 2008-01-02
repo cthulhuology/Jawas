@@ -86,6 +86,7 @@ copy(const char* a, int al)
 str
 blank(int l)
 {
+	if (l == 0) return NULL;
 	return copy(NULL,l);
 }
 
@@ -276,7 +277,7 @@ name_field(str line)
 	int i, l = len(line);
 	if (!line) return NULL;
 	for (i = 0; i < l && at(line,i) != ':'; ++i);
-	return from(line, i, l - i);
+	return i < l ? from(line, i, l - i) : line;
 }
 
 str 

@@ -783,6 +783,7 @@ PostHTTP(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	int i;
 	str host = jsval2str(argv[0]);
 	str path = jsval2str(argv[1]);
+	debug("Posting to %s/%s",host,path);
 	Request req = new_request(Str("POST"),host,path);
 	
 	JSObject* o = JSVAL_TO_OBJECT(argv[2]);	
