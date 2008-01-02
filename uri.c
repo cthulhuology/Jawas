@@ -25,6 +25,7 @@ parse_uri_encoded(Headers head, str buf, int pos)
 	str key = NULL, value = NULL;
 	Headers retval = (head ? head :  new_headers());
 	for (i = pos; isspace(at(buf,i)); ++i);
+	debug("URI string [%s]",from(buf,i,l));
 	for (; i < l; ++i) {
 		o = find(buf,i,"=");
 		key = from(buf,i,o-i);
