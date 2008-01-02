@@ -19,6 +19,7 @@ static char hex_chars[] = "0123456789abcdef";
 Headers
 parse_uri_encoded(Headers head, str buf, int pos)
 {
+	debug("PARSE URI ENCODED");
 	if (!buf) return NULL;
 	int i,o,l = len(buf);
 	str key = NULL, value = NULL;
@@ -30,9 +31,11 @@ parse_uri_encoded(Headers head, str buf, int pos)
 		i = o+1;
 		o = find(buf,i,"&\r\n");
 		value = from(buf,i,o-i);
+		debug("Adding URI parsed values [%s=%s]",key,value);
 		append_header(retval,key,value);
 		i = o;
 	}
+	debug("PARSE URI ENCODED DONE");
 	return retval;
 }
 
