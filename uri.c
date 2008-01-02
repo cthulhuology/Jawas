@@ -25,14 +25,23 @@ parse_uri_encoded(Headers head, str buf, int pos)
 	str key = NULL, value = NULL;
 	Headers retval = (head ? head :  new_headers());
 	for (i = pos; isspace(at(buf,i)); ++i);
-	debug("URI string [%s]",from(buf,i,l));
+	debug("URI string [%s](%i)",from(buf,i,l),l);
 	for (; i < l; ++i) {
 		o = find(buf,i,"=");
+		if (o >= l) {
+			 debug("Key not found %i > %i",o,l);
+			 break;
+		}
 		key = from(buf,i,o-i);
 		debug("Key is (%i,%i) = [%s]",i,o,key);
 		i = o+1;
 		o = find(buf,i,"&\r\n");
-		value = from(buf,i,o-i);
+		if (o > l) {
+			debug("Value not found %i > %i",o,l);
+			value = from(buf,i,l-i);
+		} else {
+			value = from(buf,i,o-i);
+		}
 		debug("Value is (%i,%i) = [%s]",i,o,value);
 		debug("Adding URI parsed values [%s=%s]",key,value);
 		append_header(retval,key,value);
