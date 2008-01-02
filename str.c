@@ -396,7 +396,7 @@ int
 find(str src, int pos, char* delim)
 {
 	int i,j,d,l = len(src);
-	str t = seek(t,pos);
+	str t = seek(src,pos);
 	while (t) {
 		d = pos - t->pos;
 		for (i = d; i < t->length; ++i)
