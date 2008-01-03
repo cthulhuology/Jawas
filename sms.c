@@ -268,8 +268,9 @@ int
 dispatch_sms_cmd(str cmd) 
 {
 	int i;
+	int cl = len(cmd);
 	for (i = 0; cmd && sms_cmds[i].cmd; ++i) 
-		if (!strcmp(sms_cmds[i].cmd,cmd->data))
+		if (cl == strlen(sms_cmds[i].cmd) &&!strncmp(sms_cmds[i].cmd,cmd->data,cl))
 			return sms_cmds[i].func();
 	return 0;
 }

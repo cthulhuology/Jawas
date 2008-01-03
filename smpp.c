@@ -10,7 +10,7 @@ str
 SMPP(const char* fmt, ...)
 {
 	int i, j, o, l, len = strlen(fmt);
-	str retval = char_str(NULL,MAX_SMPP_MSG_SIZE);
+	str retval = blank(MAX_SMPP_MSG_SIZE);
 	va_list args;
 	va_strat(args,fmt);
 	int o = 0;

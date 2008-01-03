@@ -25,10 +25,13 @@ resize_image(str file, str width, str height)
 	max_width = str_int(width);
 	MagickWandGenesis();
 	mw = NewMagickWand();
-	if (MagickFalse == MagickReadImage(mw,file->data)) {
+	char* fname = dump(file);
+	if (MagickFalse == MagickReadImage(mw,fname)) {
 		error("Failed to read %s\n",file);
+		free(fname);
 		return NULL;
 	}
+	free(fname);
 	MagickResetIterator(mw);
 	while (MagickNextImage(mw) != MagickFalse) {
 		h = MagickGetImageHeight(mw);
@@ -61,11 +64,16 @@ rotate_image(str file, str degrees, str color)
 	MagickWandGenesis();
 	mw = NewMagickWand();
 	pw = NewPixelWand();
-	color ? PixelSetColor(pw,color->data) : PixelSetColor(pw,"black");
-	if (MagickFalse == MagickReadImage(mw,file->data)) {
+	char* clr = dump(color);
+	color ? PixelSetColor(pw,clr) : PixelSetColor(pw,"black");
+	free(clr);
+	char* fname = dump(file);
+	if (MagickFalse == MagickReadImage(mw,fname)) {
+		free(fname);
 		error("Failed to read %s\n",file);
 		return NULL;
 	}
+	free(fname);
 	MagickResetIterator(mw);
 	while (MagickNextImage(mw) != MagickFalse) {
 		MagickRotateImage(mw,pw,deg);
@@ -90,10 +98,13 @@ crop_image(str file, str width, str height)
 	max_width = str_int(width);
 	MagickWandGenesis();
 	mw = NewMagickWand();
-	if (MagickFalse == MagickReadImage(mw,file->data)) {
+	char* fname = dump(file);
+	if (MagickFalse == MagickReadImage(mw,fname)) {
+		free(fname);
 		error("Failed to read %s\n",file);
 		return NULL;
 	}
+	free(fname);
 	MagickResetIterator(mw);
 	while (MagickNextImage(mw) != MagickFalse) {
 		h = MagickGetImageHeight(mw);
@@ -109,10 +120,13 @@ crop_image(str file, str width, str height)
 		x = (w - max_width) / 2;
 		y = (h - max_height) / 2;
 		MagickCropImage(mw,max_width,max_height,x,y);
-		if (MagickFalse == MagickWriteImage(mw,retval->data)) {
+		fname = dump(retval);
+		if (MagickFalse == MagickWriteImage(mw,fname)) {
+			free(fname);
 			error("Failed to write %s\n",retval);
 			return NULL;
 		}
+		free(fname);
 	}
 	DestroyMagickWand(mw);
 	MagickWandTerminus();

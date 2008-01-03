@@ -69,10 +69,10 @@ Print(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 			*rval = FAILURE;
 			return JS_TRUE;
 		}
-		debug("Printing [%s]",s);
+		//debug("Printing [%s]",s);
 		ins.buffer = append(ins.buffer,s);
 	}
-	debug("Current buffer [%s]",ins.buffer);
+	//debug("Current buffer [%s]",ins.buffer);
 	*rval = SUCCESS;
 	return JS_TRUE;
 }
@@ -246,10 +246,13 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		}
 		for (j = 0; j < fields(); ++j) {
 			str value = fetch(i,j);
-			if (!JS_DefineProperty(cx,row,field(j)->data,str2jsval(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
+			char* param = dump(field(j));
+			if (!JS_DefineProperty(cx,row,param,str2jsval(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
 				error("Failed to apply column %c to row %i\n",field(j),i);
+				free(param);
 				continue;
 			}
+			free(param);
 		}
 	}
 	reset();
@@ -673,7 +676,9 @@ ImageInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		return JS_TRUE;	
 	}
 	str filename = jsval2str(argv[0]);
-	char** props = get_image_properties(filename->data);
+	char* fname = dump(filename);
+	char** props = get_image_properties(fname);
+	free(fname);
 	if (! props) {
 		error("image_info failed to read image properties");
 		*rval = EMPTY;
@@ -929,10 +934,13 @@ InitRequest(JSInstance* in, Request req)
 	JSContext* cx = in->cx;
 	JSObject* rq = JS_DefineObject(in->cx,in->glob,"request",NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
 	over(req->headers,i) {
-		if (!JS_DefineProperty(in->cx,rq,Key(req->headers,i)->data,str2jsval(Value(req->headers,i)),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
+		char* k = dump(Key(req->headers,i));
+		if (!JS_DefineProperty(in->cx,rq,k,str2jsval(Value(req->headers,i)),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
+				free(k);
 				error("Failed to assign property %s to request", Key(req->headers,i));
 				continue;
 		}
+		free(k);
 	}
 	return 0;
 }
@@ -944,10 +952,13 @@ InitResponse(JSInstance* in, Response resp)
 	JSContext* cx = in->cx;
 	JSObject* rsp = JS_DefineObject(in->cx,in->glob,"response",NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
 	over(resp->headers,i) {
-		if (!JS_DefineProperty(in->cx,rsp,Key(resp->headers,i)->data,str2jsval(Value(resp->headers,i)),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
+		char* k = dump(Key(resp->headers,i));
+		if (!JS_DefineProperty(in->cx,rsp,k,str2jsval(Value(resp->headers,i)),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT)) {
+				free(k);
 				error("Failed to assign property %s to response", Key(resp->headers,i));
 				continue;
 		}
+		free(k);
 	}
 	return 0;
 }
@@ -1062,6 +1073,7 @@ process_callback(str cb, Headers headers)
 		error("Failed to initialize Javascript");
 		return 1;
 	}
+	Resp->status = 200;
 	if (!setjmp(jmp)) {
 		char* cb_data = dump(cb);
 		debug("Evaluting callback %c",cb_data);
@@ -1073,8 +1085,7 @@ process_callback(str cb, Headers headers)
 		error("Failed to destroy Javascript");
 		return 1;
 	}
-	debug("Response data [%s]", Resp->contents);
-	debug("Response headers [%s]", print_headers(NULL,Resp->headers));
-	Resp->status = 200;
+	// debug("Response data [%s]", Resp->contents);
+	// debug("Response headers [%s]", print_headers(NULL,Resp->headers));
 	return 0;
 }

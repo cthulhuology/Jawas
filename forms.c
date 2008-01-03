@@ -71,7 +71,9 @@ save_contents(str src, int pos, int end)
 	str t = NULL;
 	str filename = temp_file();
 	debug("Save contents filename %s",filename);
-	int fd = open(filename->data,O_WRONLY|O_CREAT,0644);
+	char* fname = dump(filename);
+	int fd = open(fname,O_WRONLY|O_CREAT,0644);
+	free(fname);
 	if (fd < 0 ) {
 		error("Failed to open file for writing %s",filename);
 		perror("open");

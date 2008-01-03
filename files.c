@@ -59,8 +59,9 @@ File
 close_file(File fc, str filename)
 {
 	File tmp, last = NULL;		
+	int fl = len(filename);
 	for (tmp = fc; tmp; tmp = tmp->next) {
-		if (!strcmp(filename->data,tmp->name)) {
+		if (fl == strlen(tmp->name) && !strncmp(filename->data,tmp->name,fl)) {
 			if (last) {
 				last->next = tmp->next;
 				last = fc;
@@ -81,9 +82,10 @@ close_file(File fc, str filename)
 File
 query_cache(File* cache, str filename)
 {
+	int fl = len(filename);
 	File tmp, last = NULL, prior = NULL;
 	for (tmp = *cache; tmp; tmp = tmp->next) {
-		if (!strcmp(tmp->name,filename->data)) {
+		if (fl == strlen(tmp->name) && !strncmp(tmp->name,filename->data,fl)) {
 			if (last && last->count < tmp->count + 1) {
 				if (prior) { 
 					prior->next = tmp;

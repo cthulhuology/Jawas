@@ -81,12 +81,15 @@ unload(int fd, str filename)
 	Timers t;
 	server_scratch();
 	for (t = srv->timers; t; t = t->next) {
-		if (!strcmp(filename->data,t->script->name)) {
+		char* fname = dump(filename);
+		if (!strcmp(fname,t->script->name)) {
+			free(fname);
 			debug("Reloading fc %p, %s", t->script, filename);
 			reopen_file(t->script);
 			old_scratch();
 			return;
 		}
+		free(fname);
 	}
 	srv->fc = close_file(srv->fc,filename);
 	old_scratch();
@@ -161,21 +164,21 @@ read_response()
 		return;
 	}
 	if (Resp->done) {
-		debug("Setting response to %p from %p", Resp->req->resp, Resp);
+	//	debug("Setting response to %p from %p", Resp->req->resp, Resp);
 		Response tmp = Resp;
 		debug("Response contents: [%s]",tmp->contents);
 		str cb = Resp->req->cb;
 		Headers hdrs = tmp->headers;
 		append_header(hdrs,Str("data"),from(tmp->contents,tmp->body,len(tmp->contents) - tmp->body));
-		debug("Setting headers to [%s]", print_headers(NULL,hdrs));
+	//	debug("Setting headers to [%s]", print_headers(NULL,hdrs));
 		set_SockReqResp(NULL,NULL,Resp->req->resp);
 		process_callback(cb,hdrs);
-		debug("process_callback setting headers");
+	//	debug("process_callback setting headers");
 		connection(Resp->headers,"close");
 		transfer_encoding(Resp->headers,"chunked");
-		debug("Response headers are: [%s]",print_headers(NULL,Resp->headers));
-		debug("Response contents are: [%s]",Resp->contents);
-		debug("process_callback initializing writeback");
+	//	debug("Response headers are: [%s]",print_headers(NULL,Resp->headers));
+	//	debug("Response contents are: [%s]",Resp->contents);
+	//	debug("process_callback initializing writeback");
 		adopt_scratch(Resp->sc->scratch,tmp->sc->scratch);
 		tmp->sc->scratch = NULL;
 		close_socket(tmp->sc);
@@ -192,8 +195,8 @@ void
 write_response()
 {
 	client_scratch();
-	debug("Response headers are: [%s]",print_headers(NULL,Resp->headers));
-	debug("Response contents are: [%s]",Resp->contents);
+//	debug("Response headers are: [%s]",print_headers(NULL,Resp->headers));
+//	debug("Response contents are: [%s]",Resp->contents);
 	if (send_response(Resp)) {
 		old_scratch();
 		add_write_socket(Sock->fd,Resp);

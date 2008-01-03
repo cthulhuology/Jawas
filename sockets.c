@@ -221,7 +221,7 @@ read_socket(Socket sc)
 int
 write_to_socket(Socket sc,char* data, int length)
 {
-	debug("Writing [%s]",copy(data,length));
+//	debug("Writing [%s]",copy(data,length));
 	if (sc->closed) return 0;
 	int retval = sc->tls ? 
 		write_tls(sc->tls,data,length) :
@@ -249,9 +249,9 @@ write_chunk(Socket sc, char* data, int length)
 {
 	int retval = 0;
 	str header = Str("%h\r\n",length);
-	fprintf(stderr,"Writing chunk %i\n",length);
+//	fprintf(stderr,"Writing chunk %i\n",length);
 	write_to_socket(sc,header->data,header->length);
-	fprintf(stderr,"Header length %i",header->length);
+//	fprintf(stderr,"Header length %i",header->length);
 	if (data) 
 		retval = write_to_socket(sc,data,length);
 	write_to_socket(sc,"\r\n",2);
@@ -274,7 +274,7 @@ int
 send_contents(Socket sc, str buf, int chunked)
 {
 	if (!sc || !buf) return 0;
-	fprintf(stderr," Writing chunked? %i\n",chunked);
+//	fprintf(stderr," Writing chunked? %i\n",chunked);
 	return chunked ? 
 		write_chunked_socket(sc,buf) : 
 		write_socket(sc,buf);
