@@ -69,8 +69,10 @@ Print(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 			*rval = FAILURE;
 			return JS_TRUE;
 		}
+		debug("Printing [%s]",s);
 		ins.buffer = append(ins.buffer,s);
 	}
+	debug("Current buffer [%s]",ins.buffer);
 	*rval = SUCCESS;
 	return JS_TRUE;
 }
@@ -876,9 +878,11 @@ InitParams(JSInstance* in, Headers headers)
 	over(headers,i) {
 		skip_null(headers,i);
 		x = Str("$%s",Key(headers,i));
+		char* param = dump(x);
+		debug("Setting %s = [%s]",x, Value(headers,i));
 		n = 0;
 		arr = NULL;
-		if (JS_FALSE == JS_DefineProperty(in->cx,in->glob,x->data,str2jsval(Value(headers,i)),NULL, NULL,JSPROP_READONLY))
+		if (JS_FALSE == JS_DefineProperty(in->cx,in->glob,param,str2jsval(Value(headers,i)),NULL, NULL,JSPROP_READONLY))
 			debug("Failed to set property %s",x);
 		overs(headers,j,i+1) {
 			skip_null(headers,j);
@@ -891,7 +895,7 @@ InitParams(JSInstance* in, Headers headers)
 				headers->slots[j].key = NULL;
 			}
 		}
-		if (arr && JS_FALSE == JS_DefineProperty(in->cx,in->glob,x->data,OBJECT_TO_JSVAL(arr),NULL, NULL,JSPROP_READONLY))
+		if (arr && JS_FALSE == JS_DefineProperty(in->cx,in->glob,param,OBJECT_TO_JSVAL(arr),NULL, NULL,JSPROP_READONLY))
 			debug("Failed to set property %s",x);
 	}
         return 0;
@@ -953,7 +957,7 @@ InitJS(JSInstance* i, Server srv, Headers data)
 {
 	i->srv = srv;
 	i->resp = srv->resp;
-	i->buffer = NULL;
+	i->buffer = (srv->resp ? srv->resp->contents : NULL);
 	i->rt = JS_NewRuntime(RUNTIME_SIZE);
 	if (!i->rt) return 1;
 	i->cx = JS_NewContext(i->rt, CONTEXT_SIZE);
@@ -966,8 +970,8 @@ InitJS(JSInstance* i, Server srv, Headers data)
 	i->database = new_database();
 	if (!i->database) return 1;
 	InitParams(i, data ? data : i->resp->req->query_vars);
-	if (i->resp && i->resp->req) InitRequest(i,i->resp->req);
-	if (i->resp) InitResponse(i,i->resp);
+//	if (i->resp && i->resp->req) InitRequest(i,i->resp->req);
+//	if (i->resp) InitResponse(i,i->resp);
 	InitScripts(i);
 	return 0;
 }
@@ -1051,7 +1055,7 @@ error:
 }
 
 int
-process_callback(Headers headers)
+process_callback(str cb, Headers headers)
 {
 	jsval rval;
 	if (InitJS(&ins,srv,headers)) {
@@ -1059,8 +1063,9 @@ process_callback(Headers headers)
 		return 1;
 	}
 	if (!setjmp(jmp)) {
-		char* cb_data = dump(Req->cb);
-		if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, cb_data, len(Req->cb), "jws.c", 1, &rval)) 
+		char* cb_data = dump(cb);
+		debug("Evaluting callback %c",cb_data);
+		if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, cb_data, len(cb), "jws.c", 1, &rval)) 
 				debug("Failed to evaluate script %s",Req->cb);
 		free(cb_data);
 	}
@@ -1068,5 +1073,8 @@ process_callback(Headers headers)
 		error("Failed to destroy Javascript");
 		return 1;
 	}
+	debug("Response data [%s]", Resp->contents);
+	debug("Response headers [%s]", print_headers(NULL,Resp->headers));
+	Resp->status = 200;
 	return 0;
 }

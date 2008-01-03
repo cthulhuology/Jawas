@@ -453,7 +453,7 @@ dechunk(str src)
 	for (t = seek(src,pos); t; t = seek(src,pos)) {
 		str line = read_line(src,pos);	
 		debug("Line is %s",line);
-		d = str_int(Str("0x%s",line));
+		d = str_hex(line);
 		debug("Buffer Delta is %i",d);
 		retval = append(retval,from(src,pos+len(line)+2,d));
 		pos += d + len(line) + 4;

@@ -163,22 +163,28 @@ read_response()
 	if (Resp->done) {
 		debug("Setting response to %p from %p", Resp->req->resp, Resp);
 		Response tmp = Resp;
+		debug("Response contents: [%s]",tmp->contents);
+		str cb = Resp->req->cb;
 		Headers hdrs = tmp->headers;
-		append_header(hdrs,Str("data"),tmp->contents);
-			
+		append_header(hdrs,Str("data"),from(tmp->contents,tmp->body,len(tmp->contents) - tmp->body));
+		debug("Setting headers to [%s]", print_headers(NULL,hdrs));
 		set_SockReqResp(NULL,NULL,Resp->req->resp);
-		process_callback(hdrs);
+		process_callback(cb,hdrs);
 		debug("process_callback setting headers");
 		connection(Resp->headers,"close");
 		transfer_encoding(Resp->headers,"chunked");
+		debug("Response headers are: [%s]",print_headers(NULL,Resp->headers));
+		debug("Response contents are: [%s]",Resp->contents);
 		debug("process_callback initializing writeback");
+		adopt_scratch(Resp->sc->scratch,tmp->sc->scratch);
+		tmp->sc->scratch = NULL;
 		close_socket(tmp->sc);
 		add_write_socket(Resp->sc->fd,Resp);
 	} else {
 		add_resp_socket(Sock->fd,Resp);
 	}
-	if (Resp->done)
-		disconnect();
+	// if (Resp->done)
+	// 	disconnect();
 	old_scratch();
 }
 
@@ -186,6 +192,8 @@ void
 write_response()
 {
 	client_scratch();
+	debug("Response headers are: [%s]",print_headers(NULL,Resp->headers));
+	debug("Response contents are: [%s]",Resp->contents);
 	if (send_response(Resp)) {
 		old_scratch();
 		add_write_socket(Sock->fd,Resp);

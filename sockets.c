@@ -203,7 +203,7 @@ read_socket(Socket sc)
 	for (t = blank(Max_Buffer_Size); (t->length = sc->tls ? 
 			read_tls(sc->tls,t->data,Max_Buffer_Size) : 
 			read(sc->fd,t->data,Max_Buffer_Size)); sc->buf = append(sc->buf,t)) {
-		debug("Length read %i, length contents %i",t->length, len(retval));
+		debug("Length read %i [%s], length contents %i",t->length,t, len(retval));
 		if (t->length == -1 ) {
 			if (errno == EAGAIN) {
 				debug("EAGAIN");

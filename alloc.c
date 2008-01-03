@@ -56,6 +56,14 @@ salloc(int size)
 }
 
 void
+adopt_scratch(Scratch dst, Scratch src)
+{
+	Scratch c;
+	for (c = dst; c->next; c = c->next);
+	c->next = src;
+}
+
+void
 free_scratch(Scratch s)
 {
 	if (!s) return;

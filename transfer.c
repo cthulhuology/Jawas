@@ -50,5 +50,6 @@ inbound_content_length(str src, Headers headers)
 int
 outbound_content_length(str src, File fc)
 {
+	debug("outbound content lenght src is [%s]\n",src);
 	return src ? len(src) : fc ? fc->st.st_size : 0;
 }

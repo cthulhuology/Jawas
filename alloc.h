@@ -28,6 +28,7 @@ extern Scratch gscratch;
 Scratch new_scratch(Scratch n);
 void free_scratch(Scratch s);
 void set_scratch(Scratch s);
+void adopt_scratch(Scratch dst, Scratch src);
 
 char* alloc_scratch(Scratch s, int size);
 char* salloc(int size);

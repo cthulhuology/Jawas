@@ -181,7 +181,9 @@ send_request(Request req)
 {
 	debug("send_request");
 	if (! req->sc ) {
-		req->sc = connect_socket(req->host->data,req->port);
+		char* host = dump(req->host);
+		req->sc = connect_socket(host,req->port);
+		free(host);
 		if (! req->sc) {
 			error("Failed to connect to %s:%i\n",req->host,req->port);
 			return 0;

@@ -51,7 +51,7 @@ jsval str2js(JSContext* cx, str x);
 #define SUCCESS BOOLEAN_TO_JSVAL(JS_FALSE)
 #define FAILURE BOOLEAN_TO_JSVAL(JS_TRUE)
 
-int process_callback(Headers headers);
+int process_callback(str cb, Headers headers);
 
 // Javascript Functions
 
