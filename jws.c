@@ -737,8 +737,8 @@ FacebookMethod(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rva
 	for (i = 2; i < argc; i += 2)
 		kv = append_header(kv,jsval2str(argv[i]),jsval2str(argv[i+1]));
 	facebook_method(method,kv,cb);
-	*rval = SUCCESS;
-	return JS_TRUE;
+	longjmp(jmp,1);
+	return JS_TRUE; // never get here
 }
 
 static JSBool
