@@ -119,6 +119,19 @@ print_headers(str dst, Headers src)
 	return retval;
 }
 
+str
+url_encode_headers(Headers src)
+{
+	int i;
+	if (! src) return NULL;
+	str retval = Str("%s=%s",Key(src,0),Value(src,0));
+	overs(src,i,1) {
+		skip_null(src,i);
+		retval = append(retval,Str("&%s=%s",Key(src,i),Value(src,i)));
+	}
+	return retval;
+}
+
 Headers
 parse_headers(str buf, int* body)
 {

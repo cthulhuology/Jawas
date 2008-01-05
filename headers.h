@@ -39,6 +39,7 @@ str list_headers(Headers kv);
 
 void dump_headers(Headers headers);
 str print_headers(str dst, Headers src);
+str url_encode_headers(Headers src);
 int send_headers(Socket sc, Headers headers);
 
 Headers sort_headers(Headers kv);

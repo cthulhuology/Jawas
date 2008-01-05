@@ -8,8 +8,7 @@
 #define __HAVE_FACEBOOK__
 	
 void facebook_auth(str key, str secret);
-
 str facebook_login();
-str facebook_method(str method, Headers kv);
+void facebook_method(str method, Headers kv, str callback);
 
 #endif

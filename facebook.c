@@ -47,28 +47,24 @@ facebook_sig(Headers kv)
 	return retval;
 }
 
-str
-facebook_method(str method, Headers kv)
+void
+facebook_method(str method, Headers kv, str callback)
 {
-	int i;
-	str retval;
+	Request req = new_request(Str("POST"),Str("api.facebook.com"),Str("/restserver.php"));
+	
 	kv = append_header(kv,Str("method"),method);
 	kv = append_header(kv,Str("api_key"),facebook_key);
 	kv = append_header(kv,Str("sig"),facebook_sig(kv));
-	str args = Str("%s=%s",kv->slots[0].key,kv->slots[0].value);
-	overs(kv,i,1) {
-		skip_null(kv,i);
-		args = Str("%s&%s=%s",args, kv->slots[i].key,kv->slots[i].value);
-	}
+	str args = url_encode_headers(kv);
 
-	str headers = Str("Host: api.facebook.com\r\nContent-type: application/x-www-form-urlencoded\r\nUser-Agent: Jawas\r\nContent-Length: %i\r\n",len(args));
-	str post = Str("POST http://api.facebook.com/restserver.php HTTP/1.1\r\n%s\r\n%s\r\n",headers,args);
-	debug("posting to facebook\n%s",post);
-	Socket sc = connect_socket("api.facebook.com",80);
-	write_socket(sc,post);
-	retval = read_socket(sc);
-	retval = dechunk(retval);
-	close_socket(sc);
-	return retval;
+	request_headers(req,Str("Content-type"),Str("application/x-www-form-urlencded"));
+	request_headers(req,Str("User-Agent"),Str("Jawas"));
+	request_headers(req,Str("Content-Length"),Str("%i",len(args)));
+	
+	req = request_data(req,args);
+
+	request_callback(req,Resp,callback);
+
+	send_request(req);
 }
 

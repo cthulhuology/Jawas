@@ -725,18 +725,19 @@ FacebookLogin(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval
 static JSBool
 FacebookMethod(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	int i;
-	Headers kv = new_headers();	
 	if (argc < 3) {
 		*rval = FAILURE;
-		error("Usage: facebook_method(method,...)");
+		error("Usage: facebook_method(method,callback,...)");
 		return JS_TRUE;
 	}
 	str method = jsval2str(argv[0]);
-	for (i = 1; i < argc; i += 2)
+	str cb = jsval2str(argv[1]);
+	Headers kv = new_headers();	
+	int i;
+	for (i = 2; i < argc; i += 2)
 		kv = append_header(kv,jsval2str(argv[i]),jsval2str(argv[i+1]));
-	str res = facebook_method(method,kv);
-	*rval = str2jsval(res);
+	facebook_method(method,kv,cb);
+	*rval = SUCCESS;
 	return JS_TRUE;
 }
 
