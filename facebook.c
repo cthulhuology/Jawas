@@ -43,7 +43,9 @@ facebook_sig(Headers kv)
 		retval = append(retval,Str("%s=%s",Key(sorted,i), Value(sorted,i)));
 	}
 	retval = append(retval,facebook_secret);
-	retval =  md5hex(retval->data,retval->length);	
+	char* data = dump(retval);
+	retval = md5hex(data,retval->length);	
+	free(data);
 	return retval;
 }
 
