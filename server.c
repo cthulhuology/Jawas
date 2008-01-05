@@ -101,6 +101,7 @@ incoming(int fd)
 	Request req;
 	Scratch scratch = new_scratch(NULL);
 	set_scratch(scratch);
+	debug("Setting scratch to %p",gscratch);
 	srv->sc = accept_socket(srv->sc,fd,(srv->http_sock == fd ? NULL : srv->tls));
 	req = open_request(srv->sc);
 	srv->ri = start_request(srv->ri,req);
