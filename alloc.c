@@ -59,7 +59,7 @@ void
 adopt_scratch(Scratch dst, Scratch src)
 {
 	Scratch c;
-	for (c = dst; c->next; c = c->next);
+	for (c = dst; c && c->next; c = c->next);
 	c->next = src;
 }
 
