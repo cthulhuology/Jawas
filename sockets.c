@@ -163,7 +163,7 @@ connect_socket(char* host, int port)
 	retval->next = NULL;
 	retval->fd = sock;
 	retval->scratch = new_scratch(NULL);
-	debug("Socket scratch %p",retval->scratch);
+	debug("Socket %p scratch %p",retval, retval->scratch);
 	retval->buf = NULL;
 	retval->tls = NULL;
 	retval->port = port;
