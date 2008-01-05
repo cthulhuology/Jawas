@@ -44,6 +44,7 @@ facebook_sig(Headers kv)
 	}
 	retval = append(retval,facebook_secret);
 	char* data = dump(retval);
+	debug("Producing sig from %c",data);
 	retval = md5hex(data,retval->length);	
 	free(data);
 	return retval;
