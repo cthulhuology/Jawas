@@ -33,7 +33,7 @@ md5hex(char* data, int len)
         for (i = 0; i < 16; ++i) {
                 int a = (tmp->data[i] & 0xff) / 16;
                 int b = (tmp->data[i] & 0xff) % 16;
-                retval =  retval ? Str("%s%h%h",retval,a,b) : Str("%h%h",a,b);
+                retval = append(retval,Str("%h%h",a,b));
         }
         return retval;
 }
