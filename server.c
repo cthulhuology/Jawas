@@ -179,6 +179,7 @@ read_response()
 	//	debug("Response headers are: [%s]",print_headers(NULL,Resp->headers));
 	//	debug("Response contents are: [%s]",Resp->contents);
 	//	debug("process_callback initializing writeback");
+		debug("Response scratch %p Socket scratch %p",Resp->sc->scratch, tmp->sc->scratch);
 		adopt_scratch(Resp->sc->scratch,tmp->sc->scratch);
 		tmp->sc->scratch = NULL;
 		close_socket(tmp->sc);
