@@ -18,7 +18,7 @@
 int
 send_status(Socket sc, int code)
 {
-	debug("Sending status [%s]",status_line(code));
+	debug("Sending status: [%s]",status_line(code));
 	return write_socket(sc,status_line(code));
 }
 
