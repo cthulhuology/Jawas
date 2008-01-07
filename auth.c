@@ -25,10 +25,10 @@ md5sum(char* data, int l)
 }
 
 str
-md5hex(char* data, int len)
+md5hex(char* data, int l)
 {
         int i;
-        str tmp = md5sum(data,len);
+        str tmp = md5sum(data,l);
         str retval = NULL;
         for (i = 0; i < 16; ++i) {
 		fprintf(stderr, "tmp->data[i] = %x",0xff & (tmp->data[i]));
