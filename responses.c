@@ -29,7 +29,7 @@ new_response(Request req)
 	Response resp = (Response)salloc(sizeof(struct response_struct));
 	resp->req = req;
 	resp->sc = req->sc;
-	resp->headers = NULL;
+	resp->headers = new_headers();
 	resp->status = 200;
 	resp->contents = NULL;
 	resp->raw_contents = NULL;
