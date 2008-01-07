@@ -222,7 +222,7 @@ read_socket(Socket sc)
 int
 write_to_socket(Socket sc,char* data, int length)
 {
-//	debug("Writing [%s]",copy(data,length));
+	debug("Writing [%s]",copy(data,length));
 	if (sc->closed) return 0;
 	int retval = sc->tls ? 
 		write_tls(sc->tls,data,length) :
@@ -240,7 +240,7 @@ write_socket(Socket sc, str buf)
 	str t;
 	int retval = 0;
 	if (! sc) return 0;
-	for (t = buf; t; t = buf->next) 
+	for (t = buf; t; t = t->next) 
 		retval += write_to_socket(sc,t->data,t->length);
 	return retval;
 }
