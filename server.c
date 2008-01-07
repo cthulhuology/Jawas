@@ -144,6 +144,10 @@ read_request()
 			dispatch_method(parse_method(Req)) :
 			error_handler(400);
 		if (Resp->status > 0) {
+			if (!Resp->headers) {
+				error("Missing headers, adding new ones");
+				Resp->headers = new_headers();
+			}
 			connection(Resp->headers,"close");
 			transfer_encoding(Resp->headers,"chunked");
 			add_write_socket(Sock->fd,Resp);
@@ -168,7 +172,7 @@ read_response()
 	//	debug("Setting response to %p from %p", Resp->req->resp, Resp);
 		Response tmp = Resp;
 		debug("Response contents: [%s]",tmp->contents);
-		str cb = Resp->req->cb;
+		str cb = tmp->req->cb;
 		Headers hdrs = tmp->headers;
 		append_header(hdrs,Str("data"),from(tmp->contents,tmp->body,len(tmp->contents) - tmp->body));
 	//	debug("Setting headers to [%s]", print_headers(NULL,hdrs));
