@@ -63,7 +63,7 @@ facebook_method(str method, Headers kv, str callback)
 
 	request_headers(req,Str("Content-type"),Str("application/x-www-form-urlencded"));
 	request_headers(req,Str("User-Agent"),Str("Jawas"));
-	//request_headers(req,Str("Content-Length"),Str("%i",len(args)));
+	request_headers(req,Str("Content-Length"),Str("%i",len(args)));
 	
 	req = request_data(req,args);
 
