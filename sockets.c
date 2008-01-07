@@ -183,6 +183,7 @@ close_socket(Socket sc)
 	remove_epoll(sc->fd);
 #endif
 	close(sc->fd);
+	socket_notice(sc,"Freeing scratch for socket");
 	free_scratch(sc->scratch);
 	--gsci.current;
 	return retval;

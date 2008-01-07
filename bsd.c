@@ -52,7 +52,7 @@ poll_events(Event ec, int numevents)
 		retval = queue_event(retval,el[n].ident,event_type(data),el[n].flags == EV_EOF ? EOF : NONE,event_data(data));
 	}
 done:
-	free_scratch(tmp); // Done with old event scratch freeing
+//	free_scratch(tmp); // Done with old event scratch freeing
 	return retval;
 }
 
