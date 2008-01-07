@@ -60,7 +60,7 @@ process_response(Response resp)
 {
 	debug("process_response");
 	resp->contents = read_socket(resp->sc);
-	// debug("resp->contents [%s]", resp->contents);
+	debug("resp->contents [%s]", resp->contents);
 	if (! resp->contents) {
 		error("No response contents on Response <%p>\n",resp);
 		return NULL;
@@ -80,31 +80,31 @@ process_response(Response resp)
 int
 send_response(Response resp)
 {
-//	debug("response length %i",resp->length);
-//	debug("Response headers are: [%s]",print_headers(NULL,resp->headers));
-//	debug("Response contents are: [%s]",resp->contents);
+	debug("response length %i",resp->length);
+	debug("Response headers are: [%s]",print_headers(NULL,resp->headers));
+	debug("Response contents are: [%s]",resp->contents);
 	if (resp->length < 0) {
 		resp->length = outbound_content_length(resp->contents,resp->raw_contents);
-	//	debug("Outbound content length %i",resp->length);
+		debug("Outbound content length %i",resp->length);
 		server(resp->headers,server_name);
-	//	debug("Set server name [%c]",server_name);	
+		debug("Set server name [%c]",server_name);	
 		send_status(resp->sc,resp->status);
-	//	debug("Sent status [%i]",resp->status);
+		debug("Sent status [%i]",resp->status);
 		send_headers(resp->sc,resp->headers);
-	//	debug("Resp  headers [%s]",print_headers(NULL,resp->headers));
-	//	debug("Response contents [%s]", resp->contents);
+		debug("Resp  headers [%s]",print_headers(NULL,resp->headers));
+		debug("Response contents [%s]", resp->contents);
 		return resp->contents || resp->raw_contents;
 	}
-//	debug("Writing response contents [%s]",resp->contents);
+	debug("Writing response contents [%s]",resp->contents);
 	resp->written += resp->contents ?
 		send_contents(resp->sc,resp->contents,1):
 		send_raw_contents(resp->sc,resp->raw_contents,resp->written);
-//	debug("Wrote %i",resp->written);
+	debug("Wrote %i",resp->written);
 	if (resp->written >= resp->length) {
-//		debug("Writing null chunk EOF");
+		debug("Writing null chunk EOF");
 		write_chunk(resp->sc,NULL,0);
 	}
-//	debug("Done? %c", (resp->written >= resp->length) ? "yes" : "now");
+	debug("Done? %c", (resp->written >= resp->length) ? "yes" : "now");
 	return resp->written < resp->length;
 }
 
