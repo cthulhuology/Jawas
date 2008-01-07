@@ -1082,6 +1082,7 @@ process_callback(str cb, Headers headers)
 				debug("Failed to evaluate script %s",Req->cb);
 		free(cb_data);
 	}
+	Resp->contents = ins.buffer;
 	if (DestroyJS(&ins)) {
 		error("Failed to destroy Javascript");
 		return 1;

@@ -82,7 +82,7 @@ send_response(Response resp)
 {
 	debug("response length %i",resp->length);
 	debug("Response headers are: [%s]",print_headers(NULL,resp->headers));
-	debug("Response contents are: [%s]",resp->contents);
+	debug("Response contents are: %i [%s]",len(resp->contents),resp->contents);
 	if (resp->length < 0) {
 		resp->length = outbound_content_length(resp->contents,resp->raw_contents);
 		debug("Outbound content length %i",resp->length);
