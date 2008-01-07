@@ -46,7 +46,7 @@ facebook_sig(Headers kv)
 	debug("FB SIG HEADERS is [%s]",retval);
 	char* data = dump(retval);
 	debug("Producing sig from [%c]",data);
-	retval = md5hex(data,retval->length);	
+	retval = md5hex(data,len(retval));	
 	free(data);
 	return retval;
 }
