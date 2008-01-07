@@ -59,13 +59,13 @@ facebook_method(str method, Headers kv, str callback)
 	kv = append_header(kv,Str("sig"),facebook_sig(kv));
 	str args = url_encode_headers(kv);
 
-	Request req = new_request(Str("GET"),Str("api.facebook.com"),Str("/restserver.php?%s",args));
+	Request req = new_request(Str("POST"),Str("api.facebook.com"),Str("/restserver.php?"));
 
 	request_headers(req,Str("Content-type"),Str("application/x-www-form-urlencded"));
 	request_headers(req,Str("User-Agent"),Str("Jawas"));
-	request_headers(req,Str("Content-Length"),Str("%i",0));
+	//request_headers(req,Str("Content-Length"),Str("%i",len(args)));
 	
-//	req = request_data(req,args);
+	req = request_data(req,args);
 
 	request_callback(req,Resp,callback);
 
