@@ -67,11 +67,12 @@ adopt_scratch(Scratch dst, Scratch src)
 void
 free_scratch(Scratch s)
 {
-	if (!s) return;
-	if (s->next) free_scratch(s->next);	
-	if (free_page((Page)s)) {
-		++gsi.frees;
-	}
+	debug("Pretend to free scratch!");
+//	if (!s) return;
+//	if (s->next) free_scratch(s->next);	
+//	if (free_page((Page)s)) {
+//		++gsi.frees;
+//	}
 }
 
 void
