@@ -28,11 +28,13 @@ str
 md5hex(char* data, int l)
 {
         int i;
-        str tmp = md5sum(data,l);
+	fprintf(stderr,"MD5HEX data [%s] %i",data,l);
+	char* tmp = calloc(16,1);
+	MD5((unsigned char*)data,(unsigned long)l,(unsigned char*)tmp);
         str retval = NULL;
         for (i = 0; i < 16; ++i) {
-		fprintf(stderr, "tmp->data[i] = %x",0xff & (tmp->data[i]));
-		retval = append(retval,Str("%h%h", (0x0f0 & tmp->data[i]) >> 4, 0x0f & tmp->data[i]));
+		fprintf(stderr, "tmp[%i] = %x",i,0x0ff & (tmp[i]));
+		retval = append(retval,Str("%h%h", (0x0f0 & tmp[i]) >> 4, 0x0f & tmp[i]));
 		debug("Retval is [%s]",retval);
         }
 	debug("MD5HEX is %s",retval);
