@@ -209,6 +209,7 @@ send_request(Request req)
 	if (req->contents) {
 		debug("send_request sending contents");
 		req->written += send_contents(req->sc,req->contents,0);
+		debug("sent %i of %i", req->written, len(req->contents));
 	}
 //	if (req->written >= req->length)
 //		write_chunk(req->sc,NULL,0);
