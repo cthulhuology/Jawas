@@ -158,10 +158,10 @@ hex_str(int i)
 	t = i / 16;	
 	for(l = 1; t; t = t / 16) ++l;
 	str retval = blank(l);
-	for (t = i; l; t = t / 16) 
-		set(retval,--l, between(10,t % 16,15) ?
-			t % 16 - 10 + 'a':
-			t % 16 + '0');	
+	for (t = i; l; t = t >> 4) 
+		set(retval,--l, between(10,t & 0x0f,15) ?
+			(0x0f & t) + 'a' - 10:
+			(t & 0x0f) + '0');	
 	return retval;
 }
 
