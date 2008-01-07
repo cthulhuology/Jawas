@@ -155,7 +155,7 @@ str
 hex_str(int i)
 {
 	int t, l;
-	t = i / 10;	
+	t = i / 16;	
 	for(l = 1; t; t = t / 16) ++l;
 	str retval = blank(l);
 	for (t = i; l; t = t / 16) 
