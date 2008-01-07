@@ -198,22 +198,22 @@ send_request(Request req)
 		debug("Sending: %s",cmd);
 		write_socket(req->sc,cmd);
 		request_headers(req,Str("Host"),req->host);
-		request_headers(req,Str("Transfer-Encoding"),Str("chunked"));
+	//	request_headers(req,Str("Transfer-Encoding"),Str("chunked"));
 		send_headers(req->sc,req->headers);
 		debug("Sent headers %s",print_headers(NULL,req->headers));
 		req->length = outbound_content_length(req->contents,NULL);	
 		debug("send_request contents? %i", req->contents != NULL);
-		if (req->contents == NULL) 	
-			write_chunk(req->sc,NULL,0);
+	//	if (req->contents == NULL) 	
+	//		write_chunk(req->sc,NULL,0);
 		return req->contents != NULL;
 	}
 	if (req->contents) {
 		debug("send_request sending contents");
-		req->written += send_contents(req->sc,req->contents,1);
+		req->written += send_contents(req->sc,req->contents,0);
 		debug("sent %i of %i", req->written, len(req->contents));
 	}
-	if (req->written >= req->length)
-		write_chunk(req->sc,NULL,0);
+//	if (req->written >= req->length)
+//		write_chunk(req->sc,NULL,0);
 	debug("send_request more? %i", req->written < req->length);
 	return req->written < req->length;
 }
