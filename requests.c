@@ -195,11 +195,12 @@ send_request(Request req)
 	if (req->length < 0) {
 		debug("send_request sending request");
 		str cmd = Str("%s %s HTTP/1.1\r\n",req->method,req->path);
-		debug("Fetching: %s",cmd);
+		debug("Sending: %s",cmd);
 		write_socket(req->sc,cmd);
 		request_headers(req,Str("Host"),req->host);
 	//	request_headers(req,Str("Transfer-Encoding"),Str("chunked"));
 		send_headers(req->sc,req->headers);
+		debug("Sent headers %s",print_headers(NULL,req->headers));
 		req->length = outbound_content_length(req->contents,NULL);	
 		debug("send_request contents? %i", req->contents != NULL);
 	//	if (req->contents == NULL) 	

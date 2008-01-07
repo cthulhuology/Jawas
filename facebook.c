@@ -59,7 +59,7 @@ facebook_method(str method, Headers kv, str callback)
 	kv = append_header(kv,Str("sig"),facebook_sig(kv));
 	str args = url_encode_headers(kv);
 
-	Request req = new_request(Str("POST"),Str("api.facebook.com"),Str("/restserver.php?"));
+	Request req = new_request(Str("POST"),Str("api.facebook.com"),Str("/restserver.php"));
 
 	request_headers(req,Str("Content-type"),Str("application/x-www-form-urlencded"));
 	request_headers(req,Str("User-Agent"),Str("Jawas"));

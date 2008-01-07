@@ -275,7 +275,7 @@ int
 send_contents(Socket sc, str buf, int chunked)
 {
 	if (!sc || !buf) return 0;
-//	fprintf(stderr," Writing chunked? %i\n",chunked);
+	fprintf(stderr," Writing chunked? %i\n",chunked);
 	return chunked ? 
 		write_chunked_socket(sc,buf) : 
 		write_socket(sc,buf);
