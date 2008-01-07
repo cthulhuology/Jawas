@@ -31,8 +31,8 @@ md5hex(char* data, int len)
         str tmp = md5sum(data,len);
         str retval = NULL;
         for (i = 0; i < 16; ++i) {
-		fprintf(stderr, "tmp->data[i] = %x",tmp->data[i]);
-		retval = append(retval,Str("%h%h", tmp->data[i]/16, tmp->data[i]%16));
+		fprintf(stderr, "tmp->data[i] = %x",0xff & (tmp->data[i]));
+		retval = append(retval,Str("%h%h", 0xff & (tmp->data[i]/16), 0xff & (tmp->data[i]%16)));
 		debug("Retval is [%s]",retval);
         }
 	debug("MD5HEX is %s",retval);
