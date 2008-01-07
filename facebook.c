@@ -61,7 +61,7 @@ facebook_method(str method, Headers kv, str callback)
 
 	Request req = new_request(Str("POST"),Str("api.facebook.com"),Str("/restserver.php"));
 
-	request_headers(req,Str("Content-type"),Str("application/x-www-form-urlencded"));
+	request_headers(req,Str("Content-type"),Str("application/x-www-form-urlencoded"));
 	request_headers(req,Str("User-Agent"),Str("Jawas"));
 	request_headers(req,Str("Content-Length"),Str("%i",len(args)));
 	
