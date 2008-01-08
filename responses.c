@@ -87,6 +87,12 @@ send_response(Response resp)
 	if (resp->length < 0) {
 		resp->length = outbound_content_length(resp->contents,resp->raw_contents);
 		debug("Outbound content length %i",resp->length);
+		if (!Resp->headers) {
+			error("Missing headers, adding new ones");
+			Resp->headers = new_headers();
+		}
+		connection(Resp->headers,"close");
+		transfer_encoding(Resp->headers,"chunked");
 		server(resp->headers,server_name);
 		debug("Set server name [%c]",server_name);	
 		send_status(resp->sc,resp->status);

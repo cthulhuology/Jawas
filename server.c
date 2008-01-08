@@ -144,13 +144,10 @@ read_request()
 			dispatch_method(parse_method(Req)) :
 			error_handler(400);
 		if (Resp->status > 0) {
-			if (!Resp->headers) {
-				error("Missing headers, adding new ones");
-				Resp->headers = new_headers();
-			}
-			connection(Resp->headers,"close");
-			transfer_encoding(Resp->headers,"chunked");
 			add_write_socket(Sock->fd,Resp);
+		}
+		if (Resp->status == 0) {
+			debug("Response pending processing!");	
 		}
 	} else {
 		add_read_socket(Sock->fd,Req);
@@ -178,16 +175,17 @@ read_response()
 	//	debug("Setting headers to [%s]", print_headers(NULL,hdrs));
 		set_SockReqResp(NULL,NULL,Resp->req->resp);
 		process_callback(cb,hdrs);
-	//	debug("process_callback setting headers");
+		debug("process_callback setting headers");
 		connection(Resp->headers,"close");
 		transfer_encoding(Resp->headers,"chunked");
-	//	debug("Response headers are: [%s]",print_headers(NULL,Resp->headers));
-	//	debug("Response contents are: [%s]",Resp->contents);
-	//	debug("process_callback initializing writeback");
+		debug("Response headers are: [%s]",print_headers(NULL,Resp->headers));
+		debug("Response contents are: [%s]",Resp->contents);
+		debug("process_callback initializing writeback");
 		debug("Response scratch %p Socket scratch %p",Resp->sc->scratch, tmp->sc->scratch);
 		adopt_scratch(Resp->sc->scratch,tmp->sc->scratch);
 		tmp->sc->scratch = NULL;
 		close_socket(tmp->sc);
+		debug("ADDING RESPONSE STATUS %i",Resp->status);
 		add_write_socket(Resp->sc->fd,Resp);
 	} else {
 		add_resp_socket(Sock->fd,Resp);
@@ -201,8 +199,7 @@ void
 write_response()
 {
 	client_scratch();
-//	debug("Response headers are: [%s]",print_headers(NULL,Resp->headers));
-//	debug("Response contents are: [%s]",Resp->contents);
+	debug("Writing response %p",Resp);
 	if (send_response(Resp)) {
 		old_scratch();
 		add_write_socket(Sock->fd,Resp);

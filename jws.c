@@ -737,6 +737,7 @@ FacebookMethod(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rva
 	for (i = 2; i < argc; i += 2)
 		kv = append_header(kv,jsval2str(argv[i]),jsval2str(argv[i+1]));
 	facebook_method(method,kv,cb);
+	ins.resp->status = 0;
 	longjmp(jmp,1);
 	return JS_TRUE; // never get here
 }
@@ -1074,7 +1075,6 @@ process_callback(str cb, Headers headers)
 		error("Failed to initialize Javascript");
 		return 1;
 	}
-	Resp->status = 200;
 	if (!setjmp(jmp)) {
 		char* cb_data = dump(cb);
 		debug("Evaluting callback %c",cb_data);
@@ -1083,6 +1083,7 @@ process_callback(str cb, Headers headers)
 		free(cb_data);
 	}
 	Resp->contents = ins.buffer;
+	Resp->status = 200;
 	if (DestroyJS(&ins)) {
 		error("Failed to destroy Javascript");
 		return 1;
