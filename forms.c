@@ -101,8 +101,6 @@ parse_multipart_body(Headers headers, str enctype)
 {
 	str dstname;
 	int i, e, n, l = len(Req->contents);
-//	debug("Body is ");
-//	dump_srcfer(Req->contents,Req->body);
 	str boundary = find_boundary(enctype);
 	debug("Boundary: %s", boundary);
 	if (!boundary) {
@@ -113,25 +111,22 @@ parse_multipart_body(Headers headers, str enctype)
 	for (i = search(Req->contents,Req->body,boundary); 
 		i < l;
 		i = n + bl) {
-		debug(">> %i",i);
 		n = search(Req->contents,i+1,boundary);
-		debug("<< %i",n);
-		if (n-i < 4000) debug("Contents [%s]",from(Req->contents,i,n-i));
-		else debug("Contents exceed string size");
+		debug("Content area [%s]",from(Req->contents,i,n-i));
 		str srcname = parse_name(Req->contents,i);
 		if (! srcname) {
 			i = skip_content_headers(Req->contents,i);
-			debug(">> %i",i);
 			continue;
 		}
-		debug("srcname = %s",srcname);
 		e = skip_content_headers(Req->contents,i);
-		debug(">>== %i",e);
-		if (is_file(Req->contents,i,e))
+		if (is_file(Req->contents,i,e)) {
+			debug("%s is a file",srcname);
 			dstname = save_contents(Req->contents,e,n-2);
-		else
-			dstname = from(Req->contents,e,n-2);
-		debug("dstname = %s",dstname);
+		} else {
+			debug("%s is a form value",srcname);
+			dstname = from(Req->contents,e,n-2-e);
+		}
+		debug("[%s] = [%s]",srcname,dstname);
 		headers = append_header(headers,srcname,dstname);
 	}
 	return headers;
