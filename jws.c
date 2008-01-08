@@ -221,11 +221,11 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 				debug("Value [%i] is %s",j,val);
 				val = singlequote(val);
 				debug("Single Quoted Value is %s",val);
-				qry = append(qry,append(from(qstr,o,i),val));
+				qry = append(qry,append(from(qstr,o,i-o),val));
 				debug("Qry is %s",qry);
 				o = i + 1;
 			}
-	qry = append(qry,from(qstr,o,len(qstr)));
+	qry = append(qry,from(qstr,o,len(qstr)-o));
 	debug("[Query] %s",qry);
 	int res = query(qry);
 	if (res < 0) {
