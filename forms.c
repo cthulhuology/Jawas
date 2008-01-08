@@ -23,6 +23,7 @@ find_boundary(str enc)
 		debug("TMP %s",t);
 		if (ncmp(Str("boundary="),t,9)) {
 			t = from(enc, i + 9, el - (i+9));
+			debug("Boundary is %s",t);
 			return Str("--%s",t);
 		}
 	}
