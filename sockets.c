@@ -282,9 +282,9 @@ send_contents(Socket sc, str buf, int chunked)
 }
 
 int
-write_raw_chunked_socket(Socket sc, char *data, int length)
+write_raw_socket(Socket sc, char* data, int length)
 {
-	int retval = write_chunk(sc,data,length);		
+	int retval = write_to_socket(sc,data,length);
 	if (retval < 0) {
 		retval = 0;
 		sc->closed = 1;
@@ -293,10 +293,23 @@ write_raw_chunked_socket(Socket sc, char *data, int length)
 }
 
 int
-send_raw_contents(Socket sc, File fc, int off)
+write_raw_chunked_socket(Socket sc, char *data, int length)
+{
+	int retval = write_chunk(sc,data,length);
+	if (retval < 0) {
+		retval = 0;
+		sc->closed = 1;
+	}
+	return retval;
+}
+
+int
+send_raw_contents(Socket sc, File fc, int off, int chunked)
 {
 	if (!sc || !fc) return 0;
-	return write_raw_chunked_socket(sc,fc->data+off,min(fc->st.st_size-off,MAX_WRITE_SIZE));
+	return chunked ? 
+		write_raw_chunked_socket(sc,fc->data+off,min(fc->st.st_size-off,MAX_WRITE_SIZE)) :
+		write_raw_socket(sc,fc->data +off,min(fc->st.st_size-off,MAX_WRITE_SIZE));
 }
 
 int

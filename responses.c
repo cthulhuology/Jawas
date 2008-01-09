@@ -105,7 +105,7 @@ send_response(Response resp)
 	debug("Writing response contents [%s]",resp->contents);
 	resp->written += resp->contents ?
 		send_contents(resp->sc,resp->contents,1):
-		send_raw_contents(resp->sc,resp->raw_contents,resp->written);
+		send_raw_contents(resp->sc,resp->raw_contents,resp->written,1);
 	debug("Wrote %i",resp->written);
 	if (resp->written >= resp->length) {
 		debug("Writing null chunk EOF");

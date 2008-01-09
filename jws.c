@@ -584,8 +584,8 @@ S3Auth(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 S3Put(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	if (argc != 4) {
-		error("Usage: s3_put(file,bucket,filename,mime)");
+	if (argc != 5) {
+		error("Usage: s3_put(file,bucket,filename,mime,callback)");
 		*rval = FAILURE;
 		return JS_TRUE;
 	}
@@ -594,26 +594,11 @@ S3Put(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	str bucket = jsval2str(argv[1]); 
 	str filename = jsval2str(argv[2]);
 	str mime = jsval2str(argv[3]);
-	s3_put(file,bucket,filename,mime);
-	*rval = SUCCESS;
-	return JS_TRUE;
-}
-
-static JSBool
-S3PutJPEG(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	if (argc != 3) {
-		error("Usage: s3_put_jpeg(file,bucket,filename)");
-		*rval = FAILURE;
-		return JS_TRUE;
-	}
-	
-	str file = jsval2str(argv[0]);
-	str bucket = jsval2str(argv[1]); 
-	str filename = jsval2str(argv[2]);
-	s3_put_jpeg(file,bucket,filename);
-	*rval = SUCCESS;
-	return JS_TRUE;
+	str cb = jsval2str(argv[4]);
+	s3_put(file,bucket,filename,mime,cb);
+	ins.resp->status = 0;
+	longjmp(jmp,1);
+	return JS_TRUE; // never get here
 }
 
 static JSBool
@@ -859,7 +844,6 @@ static JSFunctionSpec glob_functions[] = {
 	{"running", ListScripts, 0 },
 	{"s3_auth", S3Auth, 0 }, 
 	{"s3_put",S3Put, 0},
-	{"s3_put_jpeg",S3PutJPEG, 0},
 	{"image_info",ImageInfo, 0},
 	{"resize_image",ResizeImage, 0},
 	{"rotate_image",RotateImage, 0},

@@ -30,6 +30,7 @@ new_request(str method, str host, str path)
 		retval->headers = new_headers();
 		retval->query_vars = new_headers();
 		retval->contents = NULL;
+		retval->raw_contents = NULL;
 		retval->resp = NULL;
 		retval->cb = NULL;
 		retval->body = 0;
@@ -59,6 +60,13 @@ request_data(Request req, str text)
 {
 	if (len(text) > 0) 
 		req->contents = append(req->contents,text);
+	return req;
+}
+
+Request
+request_file(Request req, File fc)
+{
+	req->raw_contents = fc;
 	return req;
 }
 
@@ -105,6 +113,7 @@ process_request(Request req)
 str
 parse_host()
 {
+	if (!Req || !Req->headers) return 0;
 	str host = find_header(Req->headers,Str("Host"));
 	if (! host && Sock->host) {
 		debug("USING SOCKET HOST");
@@ -112,7 +121,8 @@ parse_host()
 	}
 	if (! host) return NULL;
 	if (! Sock->host) Sock->host = host;
-	return Req->host = host;
+	Req->host = host;
+	return Req->host;
 }
 
 str
@@ -123,7 +133,8 @@ parse_method()
 	if (!tmp) return NULL;
 	for (i=0;isspace(at(tmp,i));++i);	// skip errorenous spaces
 	for (l = 1; !isspace(at(tmp,i+l)); ++l);
-	return from(tmp,i,l);
+	Req->method = from(tmp,i,l);
+	return Req->method;
 }
 
 str
@@ -198,19 +209,21 @@ send_request(Request req)
 		debug("Sending: %s",cmd);
 		write_socket(req->sc,cmd);
 		request_headers(req,Str("Host"),req->host);
-	//	request_headers(req,Str("Transfer-Encoding"),Str("chunked"));
 		send_headers(req->sc,req->headers);
 		debug("Sent headers %s",print_headers(NULL,req->headers));
-		req->length = outbound_content_length(req->contents,NULL);	
-		debug("send_request contents? %i", req->contents != NULL);
-	//	if (req->contents == NULL) 	
-	//		write_chunk(req->sc,NULL,0);
-		return req->contents != NULL;
+		req->length = outbound_content_length(req->contents,req->raw_contents);	
+		debug("send_request contents? %i", req->contents != NULL || req->raw_contents != NULL);
+		return req->contents != NULL || req->raw_contents != NULL ;
 	}
-	if (req->contents) {
+	if (req->contents || req->raw_contents) {
 		debug("send_request sending contents");
-		req->written += send_contents(req->sc,req->contents,0);
-		debug("sent %i of %i", req->written, len(req->contents));
+		if (req->contents) {
+			req->written += send_contents(req->sc,req->contents,0);
+			debug("sent %i of %i", req->written, len(req->contents));
+		} else if (req->raw_contents) {
+			req->written += send_raw_contents(req->sc,req->raw_contents,req->written,0);
+			debug("sent %i of %i", req->written, req->raw_contents->st.st_size);
+		}
 	}
 //	if (req->written >= req->length)
 //		write_chunk(req->sc,NULL,0);

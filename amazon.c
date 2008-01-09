@@ -37,9 +37,10 @@ s3_put_auth_string(str verb, str mime, str date, str bucket, str filename)
 	return Str("AWS %s:%s",s3_key,base64(hmac1(s3_secret,sts)));
 }
 
-str
-s3_put(str file, str bucket, str filename, str mime)
+void
+s3_put(str file, str bucket, str filename, str mime, str callback)
 {
+	debug("S3 PUT");
 	File fc = load(file);
 	debug("Loaded file %s", file);
 	debug("MIME is %s",mime);
@@ -51,23 +52,20 @@ s3_put(str file, str bucket, str filename, str mime)
 	debug("AUTH is %s", auth);
 	str size = Str("%i",fc->st.st_size);
 	debug("Size is %s",size);
-	str cmd = Str("PUT /%s HTTP/1.1\r\nx-amz-acl: public-read\r\nContent-Type: %s\r\nContent-Length: %s\r\nHost: %s.s3.amazonaws.com\r\nDate: %s\r\nAuthorization: %s\r\n\r\n", filename, mime,size,bucket,date,auth);
-	debug("CMD is %s",cmd);
-	if(!fork()) {
-		Socket sc = connect_socket("s3.amazonaws.com",80);
-		write_socket(sc,cmd);
-		send_raw_contents(sc,fc,0);
-		str output = read_socket(sc);
-		debug("[AMAZON] %s",output);
-		close_socket(sc);
-		exit(0);
-	}
-	return cmd;
-}
 
-str
-s3_put_jpeg(str file, str bucket, str filename)
-{
-	str mime = Str("image/jpeg");
-	return s3_put(file,bucket,filename,mime);
+	Request req = new_request(Str("PUT"), Str("%s.s3.amazonaws.com",bucket),Str("/%s",filename));	
+
+	request_headers(req,Str("x-amz-acl"),Str("public-read"));
+	request_headers(req,Str("Content-Type"),mime);
+	request_headers(req,Str("Content-Length"),size);
+	request_headers(req,Str("Date"),date);
+	request_headers(req,Str("Authorization"),auth);
+
+	request_file(req,fc);
+	
+	request_callback(req,Resp,callback);
+
+	send_request(req);
+
+	debug("S3 PUT DONE");
 }

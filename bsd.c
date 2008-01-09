@@ -28,7 +28,7 @@ poll_events(Event ec, int numevents)
 	set_scratch(escratch);
 	Event retval = NULL;
 	EventData data;
-	struct timespec ts = { 1, 0 };
+	struct timespec ts = { 0, 100000000 };
 	cl = (!cl ? (struct kevent*)malloc(sizeof(struct kevent)*255) : cl);
 	el = (!el ? (struct kevent*)malloc(sizeof(struct kevent)*255) : el);
 	memset(cl,0,sizeof(struct kevent)*255);

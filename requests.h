@@ -19,6 +19,7 @@ struct request_struct {
 	Headers headers;
 	Headers query_vars;
 	str contents;	
+	File raw_contents;
 	Usage usage;
 	Response resp;
 	str cb;
@@ -43,7 +44,9 @@ struct request_info_struct {
 
 Request new_request(str method, str host, str path);
 Request request_headers(Request req, str key, str value);
+
 Request request_data(Request req, str text);
+Request request_file(Request req, File fc);
 
 Request open_request(Socket sc);
 Request process_request(Request req);

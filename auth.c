@@ -14,6 +14,7 @@
 #include "include.h"
 #include "defines.h"
 #include "str.h"
+#include "log.h"
 #include "auth.h"
 
 str

@@ -140,8 +140,10 @@ read_request()
 		Sock->buf = NULL;
 		Resp = new_response(Req);
 		parse_path(Req);	
-		Resp->status = parse_host(Req) ?
-			dispatch_method(parse_method(Req)) :
+		str host = parse_host(Req);
+		str method = parse_method(Req);
+		Resp->status = host && method ?
+			dispatch_method(method) :
 			error_handler(400);
 		if (Resp->status > 0) {
 			add_write_socket(Sock->fd,Resp);

@@ -32,6 +32,7 @@ get_method()
 {
 	File fc = NULL;
 	str filename;
+	if (! Req || !Req->host || !Req->path) return error_handler(404);
 	debug("GET %s%s",Req->host,Req->path);
 	filename = file_path(Req->host,Req->path);
 	fc = is_directory(filename) ? 
