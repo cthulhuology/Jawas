@@ -1,0 +1,49 @@
+JAWAS - Just Another Web Application Server
+
+Copyright (C) 2009 David J. Goehrig  <dave@nexttolast.com>
+
+-----------------------------------------------------------------------------------------------------
+This webserver is released under the AGPL, see the file COPYING.txt for details.
+-----------------------------------------------------------------------------------------------------
+
+About Jawas
+
+Jawas was started around 6 years ago as a project to develop a new general purpose web application
+server for the development of a wide variety of online games.  It has been in production for 6 years
+now, and has been used by quite a few projects.  It uses a modified version of the SpiderMonkey engine
+to provide Javascript scripting on the backend.  Currently, Jawas is geared towards running on
+Mac OS X and FreeBSD.  Linux support is iffy.
+
+Building Jawas
+
+	make
+
+Running Jawas
+
+To run jawas, simply create a directory that contains your websites:
+
+	mkdir -p ~/websites/www.mydomain.com
+
+Place your files in there. And then run jawas from that root directory:
+
+	cd ~/websites && jawasd
+
+Jawas always attempts to keep itself alive if you run it with the -d detach flag:
+
+	cd ~/websites && jawasd -d
+
+Contributing to Jawas
+
+The version of code released under the AGPL has been stripped of a number of features built for specific
+clients.   As such, some of the functionality of the production version is currently missing.  If you
+would like to contribute code, please email me a patch at:
+
+	dave@nexttolast.com
+
+If I like your style, I'll add you to the git repository at:
+
+	git://github.com/cthulhuology/Jawas.git
+
+Happy Coding
+
+	Dave Goehrig <dave@nexttolast.com>
