@@ -33,7 +33,7 @@
 JSInstance ins;
 jmp_buf jmp;
 
-void ProcessFile(char* script);
+void ProcessFile(File fc);
 
 str
 js2str(JSContext* cx, jsval x)
@@ -123,7 +123,7 @@ Include(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		*rval = FAILURE;
 		return JS_TRUE;
 	}
-	ProcessFile(fc->data);
+	ProcessFile(fc);
 	*rval = SUCCESS;
 	return JS_TRUE;
 }
@@ -984,38 +984,26 @@ DestroyJS(JSInstance* i)
 }
 
 void
-ProcessFile(char* script)
+EvalFile(File fc)
 {
 	jsval retval;
-	int o, l = 0;
-	str script_data;
-	for (o = 0; script[o]; ++o) {
-		if (!strncmp(&script[o],"<?js",4)) {
-			if (l < o)
-				ins.buffer = append(ins.buffer,copy(&script[l],o-l));
-			l = 0;
-			if (script[o+4] == '=') {
-				while (strncmp(&script[o+l+6],"=?>",3)) ++l;
-				if (l > MAX_ALLOC_SIZE) {
-					error("Expression to large!");
-				
-				} else {
-					script_data = Str("print(%s);",copy(&script[o+6],l));	
-				}
-				o += l + 6;
-				l = o+3;
-			} else {
-				while (strncmp(&script[o+l+5],"?>",2)) ++l;
-				script_data = copy(&script[o+5],l-1);
-				o += l + 5;
-				l = o+2;
-			}
-			char* eval_script = dump(script_data);
-			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, eval_script, len(script_data), "jws.c", 1, &retval))
-				error("Failed to evaluate [%s]", script_data);
+	for (int i = 0; fc->parsed[i].kind; ++i) {
+		switch(fc->parsed[i].kind) {
+		case TEXT:
+			ins.buffer = append(ins.buffer,copy(&fc->data[fc->parsed[i].offset],fc->parsed[i].length));
+			break;
+		case SCRIPT:
+		case EMIT:
+			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, &fc->data[fc->parsed[i].offset], fc->parsed[i].length, "jws.c", 1, &retval))
+				error("Failed to evaluate [%s]", copy(&fc->data[fc->parsed[i].offset],fc->parsed[i].length));
 		}
 	}
-	ins.buffer = append(ins.buffer,copy(&script[l],o-l));
+}
+
+void
+ProcessFile(File fc)
+{
+	EvalFile(fc->parsed ? fc : parse_file(fc));
 }
 
 int
@@ -1028,7 +1016,7 @@ run_script(File fc, Headers data)
 	}
 	if (!setjmp(jmp)) {
 		if (Resp)
-			ProcessFile(fc->data);
+			ProcessFile(fc);
 		else 
 			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, fc->data, fc->st.st_size, "jws.c", 1, &rval)) 
 				debug("Failed to evaluate script %c",fc->name);

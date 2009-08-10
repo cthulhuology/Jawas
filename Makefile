@@ -8,7 +8,7 @@ ARCH := $(shell uname)
 
 LIBS = -ljs -lpq -lssl -lcrypto
 
-CFLAGS += -Wall `Wand-config --cppflags` 
+CFLAGS += --std=c99 -Wall `Wand-config --cppflags`
 #CFLAGS += -foptimize-sibling-calls -fomit-frame-pointer
 
 LDFLAGS  += `Wand-config --ldflags --libs`

@@ -56,12 +56,11 @@ lookup_mimetype(char* filename)
 int
 mimetype_handler(File fc)
 {
-	MimeTypes* mt;
 	if (!fc)  {
 		error("File not found 404");
 		return error_handler(404);
 	}
-	mt = lookup_mimetype(fc->name);
-	content_type(Resp->headers, mt->type.data);
-	return mt->handler(fc);
+	if (!fc->mime) fc->mime = lookup_mimetype(fc->name);
+	content_type(Resp->headers, fc->mime->type.data);
+	return fc->mime->handler(fc);
 }

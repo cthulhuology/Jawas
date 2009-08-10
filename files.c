@@ -34,6 +34,8 @@ open_file(File cache, str filename)
 	}
 	fc->next = cache;
 	fc->count = 0;
+	fc->parsed = NULL;
+	fc->mime = NULL;
 	return fc;
 }
 
@@ -112,6 +114,38 @@ query_fd_cache(File cache, int fd)
 		if (tmp->fd == fd)
 			return tmp;
 	return NULL;
+}
+
+int
+mark_file(File fc, int i, int t, int o, int l)
+{
+	fc->parsed[i].kind = t;
+	fc->parsed[i].offset = o;
+	fc->parsed[i].length = l;
+	return ++i;
+}
+
+File
+parse_file(File fc)
+{
+	char* script = fc->data;
+	int o = 0, l = 0, i = 0, e = 0;
+	if (fc->parsed) return fc;
+	fc->parsed = (Parsed)salloc(MAX_ALLOC_SIZE);
+	memset(fc->parsed,0,MAX_ALLOC_SIZE);
+	for (o = 0; script[o] && o < fc->st.st_size; ++o) {
+		if (!strncmp(&script[o],"<?js",4)) {
+			if (l < o) i = mark_file(fc,i,TEXT,l,o-l);
+			l = 0;
+			e = script[o+4] == '=' ? 1 : 0;
+			while (strncmp(&script[o+l+5+e],e ? "=?>" : "?>",2+e)) ++l;
+			i = mark_file(fc,i,SCRIPT+e,o+5+e,l);
+			o += l + 5 + e;
+			l = o+2+e;
+		}
+	}
+	mark_file(fc,i,TEXT,l,o-l);
+	return fc;
 }
 
 void
