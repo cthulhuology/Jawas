@@ -153,7 +153,6 @@ connect_socket(char* host, int port)
 		saddr.sin_port = htons(port);
 		saddr.sin_addr = *list[i];
 		saddr.sin_family = AF_INET;
-		debug("Connecting to %c",inet_ntoa(*list[i]));
 		timeout.it_interval.tv_usec = 0;
 		timeout.it_interval.tv_sec = 0;
 		timeout.it_value.tv_usec = 0;
@@ -189,7 +188,6 @@ connect_socket(char* host, int port)
 	retval->next = NULL;
 	retval->fd = sock;
 	retval->scratch = new_scratch(NULL);
-//	debug("Socket %p scratch %p",retval, retval->scratch);
 	retval->buf = NULL;
 	retval->tls = NULL;
 	retval->port = port;
@@ -244,7 +242,6 @@ read_socket(Socket sc)
 int
 write_to_socket(Socket sc,char* data, int length)
 {
-//	debug("Writing [%s]",copy(data,length));
 	if (sc->closed) return 0;
 	int retval = sc->tls ? 
 		write_tls(sc->tls,data,length) :

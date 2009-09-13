@@ -70,10 +70,8 @@ Print(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 			*rval = FAILURE;
 			return JS_TRUE;
 		}
-		//debug("Printing [%s]",s);
 		ins.buffer = append(ins.buffer,s);
 	}
-	//debug("Current buffer [%s]",ins.buffer);
 	*rval = SUCCESS;
 	return JS_TRUE;
 }
@@ -219,11 +217,8 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 			if (at(qstr,i) == '?') {
 				++j;
 				str val = jsval2str(argv[j]);
-				debug("Value [%i] is %s",j,val);
 				val = singlequote(val);
-				debug("Single Quoted Value is %s",val);
 				qry = append(qry,append(from(qstr,o,i-o),val));
-				debug("Qry is %s",qry);
 				o = i + 1;
 			}
 	qry = append(qry,from(qstr,o,len(qstr)-o));
@@ -405,7 +400,6 @@ static JSBool
 JSON(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	str jsn = json(cx,obj);
-	debug("JSON value %s",jsn);
 	*rval = str2jsval(jsn);
 	return JS_TRUE;
 }
@@ -439,7 +433,6 @@ StoreJSON(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		id = jsval2str(argv[0]);
 		qstr = Str("UPDATE object SET data = '%s' WHERE id = %s",json(cx,obj),guid);
 	}
-	debug("Executing query %s",qstr);
 	int res = query(qstr);
 	reset();
 	if (res < 0) {
@@ -463,7 +456,6 @@ LoadJSON(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	}
 	str jsn = Str("eval(%s)",fetch(0,0));
 	reset();
-	debug("Evaluating: %s",jsn);
 	char* data = dump(jsn);
 	if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, data, len(jsn), "jws.c", 1, &retval)) {
 		error("Failed to load object %s",jsval2str(argv[0]));
@@ -519,7 +511,6 @@ RunScript(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	int when = str_int(jsval2str(argv[2]));
 	JSObject* o = JSVAL_TO_OBJECT(argv[3]);	
 	JSIdArray* arr = JS_Enumerate(ins.cx, o);
-	debug("Run Script from now %i at %i ",when, when + time(NULL));
 	Timers t = add_timer(script,when);
 	for (i = 0; i < arr->length; ++i ) {
 		char* prop = JS_GetStringBytes(ATOM_TO_STRING(JSID_TO_ATOM(arr->vector[i])));
@@ -540,9 +531,7 @@ StopScript(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		return JS_TRUE;
 	}
 	str tid = jsval2str(argv[0]);
-	debug("Cancelling timer recieved timer_id:  %s", tid);
 	Timers t = str_obj(tid,Timers);
-	debug("Cancelling timer %p",t);
 	cancel_timer(t);
 	*rval = SUCCESS;
 	return JS_TRUE;
@@ -809,12 +798,8 @@ Hmac1(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	}
 	str sec = jsval2str(argv[0]);
 	str data = jsval2str(argv[1]);
-	debug("Secret [%s]",sec);
-	debug("Data [%s]",data);
 	str out = hmac1(sec,data);
-	debug("Output [%s]",hex(out));
 	*rval = str2jsval(out);
-	debug("This is not a test");
 	return JS_TRUE;
 }
 
@@ -828,7 +813,6 @@ Hex(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	}
 	str data = jsval2str(argv[0]);
 	str out = hex(data);
-	debug("out [%s]",out);
 	*rval = str2jsval(out);
 	return JS_TRUE;
 }
@@ -844,7 +828,6 @@ Base64(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	}
 	str data = jsval2str(argv[0]);
 	str out = base64(data);
-	debug("out [%s]",out);
 	*rval = str2jsval(out);
 	return JS_TRUE;
 }
@@ -1092,7 +1075,5 @@ process_callback(str cb, Headers headers)
 		error("Failed to destroy Javascript");
 		return 1;
 	}
-	// debug("Response data [%s]", Resp->contents);
-	// debug("Response headers [%s]", print_headers(NULL,Resp->headers));
 	return 0;
 }

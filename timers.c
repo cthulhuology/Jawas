@@ -32,8 +32,6 @@ add_timer(str file, time_t when)
 		return NULL;
 	}
 	retval->when = when + srv->time;
-	debug("Current time is %i",srv->time);
-	debug("Scheduling for %i (%i from now)", when + srv->time, when);
 	retval->data = new_headers();
 	append_header(retval->data,Str("timer"),Str("%p",retval));
 	srv->timers = retval;
@@ -114,7 +112,6 @@ init_timers()
 		if (len < 3) continue;
 		file = copy(&de->d_name[len - 3], 0);
 		if (len > 3 && ncmp(dotjs,file,3)) {
-		//	debug("Starting timer script %c",de->d_name);
 			set_timer_value(add_timer(Str("startup/%c",de->d_name),0),Str("started"),Str("0"));
 		}
 	}

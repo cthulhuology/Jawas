@@ -115,10 +115,7 @@ parse_host()
 {
 	if (!Req || !Req->headers) return 0;
 	str host = find_header(Req->headers,Str("Host"));
-	if (! host && Sock->host) {
-		debug("USING SOCKET HOST");
-		host = Sock->host;
-	}
+	if (! host && Sock->host) host = Sock->host;
 	if (! host) return NULL;
 	if (! Sock->host) Sock->host = host;
 	Req->host = host;
@@ -166,7 +163,6 @@ start_request(RequestInfo ri, Request req) {
 RequestInfo
 end_request(RequestInfo ri, Request req) {
 	RequestInfo tmp;
-	// debug("Ending request %p",req);
 	stop_usage(req->usage);
 	dump_usage(req->usage);
 	for (tmp = ri; tmp; tmp = tmp->next) {
@@ -191,7 +187,6 @@ end_request(RequestInfo ri, Request req) {
 int
 send_request(Request req)
 {
-	debug("send_request");
 	if (! req->sc ) {
 		char* host = dump(req->host);
 		req->sc = connect_socket(host,req->port);
@@ -200,36 +195,24 @@ send_request(Request req)
 			error("Failed to connect to %s:%i\n",req->host,req->port);
 			return 0;
 		}
-		debug("send_request connected, scheduling write");
 		add_req_socket(req->sc->fd,req);
 		return 0;
 	}
 	if (req->length < 0) {
-		debug("send_request sending request");
 		str cmd = Str("%s %s HTTP/1.1\r\n",req->method,req->path);
-		debug("Sending: %s",cmd);
 		write_socket(req->sc,cmd);
 		request_headers(req,Str("Host"),req->host);
-	///	request_headers(req,Str("Content-Length"),req->length);
 		send_headers(req->sc,req->headers);
-		debug("Sent headers %s",print_headers(NULL,req->headers));
 		req->length = outbound_content_length(req->contents,req->raw_contents);	
-		debug("send_request contents? %i", req->contents != NULL || req->raw_contents != NULL);
 		return req->contents != NULL || req->raw_contents != NULL ;
 	}
-	if (req->contents || req->raw_contents) {
-		debug("send_request sending contents [%s]",req->contents);
-		if (req->contents) {
-			req->written += send_contents(req->sc,req->contents,0);
-			debug("sent %i of %i", req->written, len(req->contents));
-		} else if (req->raw_contents) {
-			req->written += send_raw_contents(req->sc,req->raw_contents,req->written,0);
-			debug("sent %i of %i", req->written, req->raw_contents->st.st_size);
-		}
-	}
-//	if (req->written >= req->length)
-//		write_chunk(req->sc,NULL,0);
-	debug("send_request more? %i", req->written < req->length);
+	req->written += req->contents ?
+			send_contents(req->sc,req->contents,0) :
+		req->raw_contents ?
+			send_raw_contents(req->sc,req->raw_contents,req->written,0):
+			0;
+	if (is_chunked(req->headers) && req->written >= req->length)
+		write_chunk(req->sc,NULL,0);
 	return req->written < req->length;
 }
 

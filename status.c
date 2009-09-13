@@ -59,11 +59,9 @@ static char* http_version = "HTTP/1.1";
 int
 find_status_code(int code)
 {
-	int i;
-//	debug("finding status of code %i", code);
-	for (i = 0; stati[i].code; ++i) {
-		if (stati[i].code == code) return i;
-	}
+	for (int i = 0; stati[i].code; ++i)
+		if (stati[i].code == code)
+			return i;
 	return find_status_code(500);
 }
 
@@ -71,9 +69,8 @@ str
 status_line(int code)
 {
 	int i = find_status_code(code);
-	if (stati[i].len == 0) {
+	if (stati[i].len == 0)
 		stati[i].len = strlen(stati[i].reason);
-	}
 	return Str("%c %c",http_version,stati[i].reason);
 }
 

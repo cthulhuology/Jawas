@@ -298,7 +298,6 @@ skip_fields(str line, int n)
 	if (! line) return NULL;
 	if (n == 0) {
 		for(i = 0; i < l && at(line,i) != ':'; ++i);
-		debug("Skipped to field %s",from(line, i, l - i));
 		for (++i; i< l && isspace(at(line,i)); ++i);
 		if (i < l)
 			return from(line, i, l - i);
@@ -441,19 +440,14 @@ str
 dechunk(str src)
 {
 	int d = 0;
-	str t, retval = NULL;
+	str retval = NULL;
 	int pos = skip_headers(src,0);
-	for (t = seek(src,pos); t; t = seek(src,pos)) {
+	for (str t = seek(src,pos); t; t = seek(src,pos)) {
 		str line = read_line(src,pos);	
-		debug("Line is %s",line);
 		d = str_hex(line);
-		debug("Buffer Delta is %i",d);
 		retval = append(retval,from(src,pos+len(line)+2,d));
 		pos += d + len(line) + 4;
-		if (d == 0) {
-			debug("Done reading");
-			return retval;
-		}
+		if (d == 0) return retval;
 	}
 	return retval;
 }
@@ -461,10 +455,9 @@ dechunk(str src)
 char*
 dump(str s)
 {
-	str t;
 	int l = len(s);
 	char* retval = (char*)calloc(1,l + 1);
-	for (t = s; t; t = t->next) 	
+	for (str t = s; t; t = t->next)
 		memcpy(retval + t->pos, t->data, t->length);
 	retval[l] = '\0';
 	return retval;
