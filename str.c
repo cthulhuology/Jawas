@@ -30,12 +30,10 @@ between(int a, int x, int b)
 str
 seek(str s, int pos)
 {
-	if (! s) return NULL;
-	if (pos >= s->pos && pos < s->pos + s->length) 
-		return s;
-	return seek(s->next,pos);
+	return	(! s) ? NULL :
+		(pos >= s->pos && pos < s->pos + s->length) ? s :
+		seek(s->next,pos);
 }
-
 
 str
 set(str s, int pos, char c)
@@ -206,14 +204,13 @@ str_hex(str a)
 	int i;
 	int retval = 0;
 	for (i = 0; i < len(a); ++i) 
-		if (between('0',at(a,i),'9'))
-			retval = retval * 16 + at(a,i) - '0'; 
-		else if (between('a',at(a,i),'f')) 
-			retval = retval * 16 + at(a,i) - 'a' + 10; 
-		else if (between('A',at(a,i),'F')) 
-			retval = retval * 16 + at(a,i) - 'A' + 10; 
-		else
-			return retval;
+		retval = (between('0',at(a,i),'9')) ?
+			retval * 16 + at(a,i) - '0' :
+		(between('a',at(a,i),'f')) ?
+			retval * 16 + at(a,i) - 'a' + 10 :
+		(between('A',at(a,i),'F')) ?
+			retval * 16 + at(a,i) - 'A' + 10 :
+			retval;
 	return retval;
 }
 
@@ -325,8 +322,7 @@ dequote(str line)
 int
 fncmp(str a, str b, int n, test_t func)
 {
-	int i;
-	for (i = 0; i < n; ++i) 
+	for (int i = 0; i < n; ++i)
 		if (func(at(a,i),at(b,i)))
 			return 0;
 	return 1;
