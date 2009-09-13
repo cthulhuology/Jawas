@@ -138,10 +138,12 @@ parse_file(File fc)
 			if (l < o) i = mark_file(fc,i,TEXT,l,o-l);
 			l = 0;
 			e = script[o+4] == '=' ? 1 : 0;
-			while (strncmp(&script[o+l+5+e],e ? "=?>" : "?>",2+e)) ++l;
-			i = mark_file(fc,i,SCRIPT+e,o+5+e,l);
-			o += l + 5 + e;
-			l = o+2+e;
+			while (o+l+5+e < fc->st.st_size && strncmp(&script[o+l+5+e],e ? "=?>" : "?>",2+e)) ++l;
+			if (o+l+5+e < fc->st.st_size) {
+				i = mark_file(fc,i,SCRIPT+e,o+5+e,l);
+				o += l + 5 + e;
+				l = o+2+e;
+			}
 		}
 	}
 	mark_file(fc,i,TEXT,l,o-l);
@@ -151,7 +153,7 @@ parse_file(File fc)
 void
 set_cwd()
 {
-	cwd = copy(getcwd(NULL,0),0);
+	cwd = ref(getcwd(NULL,0),strlen(getcwd(NULL,0)));
 }
 
 str

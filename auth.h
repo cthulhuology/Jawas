@@ -8,6 +8,7 @@
 #ifndef __HAVE_AUTH_H__
 #define __HAVE_AUTH_H__
 
+str hex(str data);
 str md5sum(char* data, int len);
 str md5hex(char* data, int len);
 str base64(str s);

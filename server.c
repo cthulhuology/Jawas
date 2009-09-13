@@ -84,7 +84,7 @@ unload(int fd, str filename)
 		char* fname = dump(filename);
 		if (!strcmp(fname,t->script->name)) {
 			free(fname);
-			debug("Reloading fc %p, %s", t->script, filename);
+//			debug("Reloading fc %p, %s", t->script, filename);
 			reopen_file(t->script);
 			old_scratch();
 			return;
@@ -96,17 +96,25 @@ unload(int fd, str filename)
 }
 
 void
-incoming(int fd)
+resume(Socket sc)
 {
 	Request req;
-	Scratch scratch = new_scratch(NULL);
-	set_scratch(scratch);
-	debug("Setting scratch to %p",gscratch);
-	srv->sc = accept_socket(srv->sc,fd,(srv->http_sock == fd ? NULL : srv->tls));
 	req = open_request(srv->sc);
 	srv->ri = start_request(srv->ri,req);
 	add_read_socket(srv->sc->fd,req);
+	reset_socket(srv->sc);
+	socket_notice(srv->sc,"Reset");
+}
+
+void
+incoming(int fd)
+{
+	Scratch scratch = new_scratch(NULL);
+	set_scratch(scratch);
+//	debug("Setting scratch to %p",gscratch);
+	srv->sc = accept_socket(srv->sc,fd,(srv->http_sock == fd ? NULL : srv->tls));
 	socket_notice(srv->sc,"Connected");
+	resume(srv->sc);
 }
 
 void
@@ -174,20 +182,21 @@ read_response()
 		str cb = tmp->req->cb;
 		Headers hdrs = tmp->headers;
 		append_header(hdrs,Str("data"),from(tmp->contents,tmp->body,len(tmp->contents) - tmp->body));
+		append_header(hdrs,Str("status"),from(tmp->contents,9,3));
 	//	debug("Setting headers to [%s]", print_headers(NULL,hdrs));
 		set_SockReqResp(NULL,NULL,Resp->req->resp);
 		process_callback(cb,hdrs);
 		debug("process_callback setting headers");
 		connection(Resp->headers,"close");
-		transfer_encoding(Resp->headers,"chunked");
-		debug("Response headers are: [%s]",print_headers(NULL,Resp->headers));
-		debug("Response contents are: [%s]",Resp->contents);
-		debug("process_callback initializing writeback");
-		debug("Response scratch %p Socket scratch %p",Resp->sc->scratch, tmp->sc->scratch);
+//		transfer_encoding(Resp->headers,"chunked");
+//		debug("Response headers are: [%s]",print_headers(NULL,Resp->headers));
+//		debug("Response contents are: [%s]",Resp->contents);
+//		debug("process_callback initializing writeback");
+//		debug("Response scratch %p Socket scratch %p",Resp->sc->scratch, tmp->sc->scratch);
 		adopt_scratch(Resp->sc->scratch,tmp->sc->scratch);
 		tmp->sc->scratch = NULL;
 		close_socket(tmp->sc);
-		debug("ADDING RESPONSE STATUS %i",Resp->status);
+//		debug("ADDING RESPONSE STATUS %i",Resp->status);
 		add_write_socket(Resp->sc->fd,Resp);
 	} else {
 		add_resp_socket(Sock->fd,Resp);
@@ -209,22 +218,23 @@ write_response()
 	}
 	old_scratch();
 	srv->ri = end_request(srv->ri,Resp->req);
+//	resume(srv->sc);
 	disconnect();
 }
 
 void
 write_request()
 {
-	debug("write_request");
+//	debug("write_request");
 	client_scratch();
 	if (send_request(Req)) {
 		old_scratch();
-		debug("Rescheduling for another request");
+//		debug("Rescheduling for another request");
 		add_req_socket(Sock->fd,Req);
 		return;
 	}
 	old_scratch();
-	debug("Adding response sock");
+//	debug("Adding response sock");
 	add_resp_socket(Sock->fd,new_response(Req));
 	debug("write_request done");
 }
@@ -318,42 +328,42 @@ run()
 		start_usage(srv->usage);
 		set_SockReqResp(NULL,NULL,NULL);
 		if (ec->fd == 0) continue;
-		debug("ec->type %i on ec->fd %i",ec->type,ec->fd);
+//		debug("ec->type %i on ec->fd %i",ec->type,ec->fd);
 		if (external_port(ec->fd)) {
 			incoming(ec->fd);
 			continue;
 		}
 		switch (ec->type) {
 		case READ:
-			debug("READ EVENT");
+//			debug("READ EVENT");
 			set_SockReqResp(NULL,(Request)event_data(ec->data),NULL);
 			closed_socket(Sock,"Read failed") ?
 				disconnect():
 				read_request();
 			break;
 		case WRITE:
-			debug("WRITE EVENT");
+//			debug("WRITE EVENT");
 			set_SockReqResp(NULL,NULL,(Response)event_data(ec->data));
 			closed_socket(Sock,"Write failed") ?
 				disconnect() :
 				write_response();
 			break;
 		case REQ:
-			debug("REQ EVENT");
+//			debug("REQ EVENT");
 			set_SockReqResp(NULL,(Request)event_data(ec->data),NULL);
 			closed_socket(Sock,"Request failed") ?
 				disconnect() :
 				write_request();
 			break;	
 		case RESP:
-			debug("RESP EVENT");
+//			debug("RESP EVENT");
 			set_SockReqResp(NULL,NULL,(Response)event_data(ec->data));
 			closed_socket(Sock,"Response failed") ?
 				disconnect() :
 				read_response();
 			break;	
 		case NODE:
-			debug("NODE EVENT");
+//			debug("NODE EVENT");
 			fc = (File)event_data(ec->data);
 			unload(ec->fd,copy(fc->name,0));
 			break;

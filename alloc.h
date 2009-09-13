@@ -7,6 +7,8 @@
 #ifndef __HAVE_ALLOC_H__
 #define __HAVE_ALLOC_H__
 
+#include "include.h"
+
 #define MAX_ALLOC_SIZE (getpagesize() - sizeof(struct scratch_struct))
 
 typedef struct scratch_struct* Scratch;

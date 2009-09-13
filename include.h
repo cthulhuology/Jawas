@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <arpa/inet.h>
+#include <netinet/tcp.h>
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>

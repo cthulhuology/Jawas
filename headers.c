@@ -99,8 +99,8 @@ list_headers(Headers kv)
 	int i;
 	over(kv,i) {
 		skip_null(kv,i);
-		debug("i is %i",i);
-		debug("retval is %p",retval);
+	//	debug("i is %i",i);
+	//	debug("retval is %p",retval);
 		retval = retval ? Str("%s, %s : %s", retval, kv->slots[i].key, kv->slots[i].value)
 				: Str("%s : %s", kv->slots[i].key,kv->slots[i].value); 
 	}
@@ -176,7 +176,7 @@ parse_headers(str buf, int* body)
 			while(isspace(c = at(buf,o))) ++o;
 			for (l = 1; (o + l) < lb && c != '\r' && c != '\n'; ++l) c = at(buf,o+l); 
 			headers->slots[i].value = from(buf,o,l-1);
-			debug("Headers[%i] [%s=%s]",i,Key(headers,i),Value(headers,i));
+	//		debug("Headers[%i] [%s=%s]",i,Key(headers,i),Value(headers,i));
 			reset = 0;
 			o += l-1;
 			++i;

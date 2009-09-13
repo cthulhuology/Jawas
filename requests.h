@@ -53,7 +53,6 @@ Request process_request(Request req);
 
 int send_request(Request req);
 int request_content_length(Request req);
-void close_request(Request req);
 void request_callback(Request req, Response resp, str cb);
 
 str parse_method();

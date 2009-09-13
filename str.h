@@ -17,7 +17,8 @@ struct str_struct {
 	str next;
 	int length;
 	int pos;
-	char data[0];
+	char* data;
+	char contents[0];
 };
 
 int min(int a, int b);
@@ -28,6 +29,7 @@ str seek(str s, int pos);
 str set(str s, int pos, char c);
 char at(str s, int pos);
 int len(str s);
+str ref(const char* a, int l);
 str copy(const char* a, int l);
 str blank(int l);
 str clone(str s);
@@ -49,7 +51,6 @@ str new_str(const char* fmt, va_list args);
 str name_field(str line);
 str skip_fields(str line, int n);
 str dequote(str line);
-str singlequote(str s);
 
 int cmp(str a, str b);
 int ncmp(str a, str b,int n);

@@ -63,12 +63,24 @@ len(str s)
 }
 
 str
+ref(const char* a, int al)
+{
+	str retval = (str)salloc(sizeof(struct str_struct));
+	retval->data = (char*)a;
+	retval->length = al;
+	retval->pos = 0;
+	retval->next = NULL;
+	return retval;
+}
+
+str
 copy(const char* a, int al)
 {
 	str t = NULL, retval = NULL;
 	int l;
 	for (l = al ? al : strlen(a) ; l > Max_Buffer_Size; l -= Max_Buffer_Size) {
 		retval = (str)salloc(Max_Buffer_Size + sizeof(struct str_struct));	
+		retval->data = retval->contents;
 		if (a) memcpy(retval->data,a + l - Max_Buffer_Size, Max_Buffer_Size);
 		retval->length = Max_Buffer_Size;
 		retval->pos = l - Max_Buffer_Size;
@@ -76,6 +88,7 @@ copy(const char* a, int al)
 		t = retval;
 	}
 	retval = (str)salloc(l + sizeof(struct str_struct));
+	retval->data = retval->contents;
 	if (a) memcpy(retval->data,a,l);
 	retval->pos = 0;
 	retval->length = l;
@@ -95,6 +108,7 @@ clone(str s)
 {
 	if (!s) return NULL;
 	str retval = (str)salloc(s->length + sizeof(struct str_struct));
+	retval->data = retval->contents;
 	memcpy(retval->data,s->data,s->length);
 	retval->length = s->length;
 	retval->pos = s->pos;
@@ -277,7 +291,7 @@ name_field(str line)
 	int i, l = len(line);
 	if (!line) return NULL;
 	for (i = 0; i < l && at(line,i) != ':'; ++i);
-	return i < l ? from(line, i, l - i) : line;
+	return i < l ? from(line, 0, i) : line;
 }
 
 str 
@@ -307,23 +321,6 @@ dequote(str line)
 	for (j = i+1; j < l && at(line,j) != '"'; ++j);
 	return from(line, i + 1, j - i - 1);
 } 
-
-str
-singlequote(str s)
-{
-	int i,o = 0, l = len(s);
-	str retval = NULL;
-	for (i = 0; i < l; ++i) {
-		if (at(s,i) == '\'') {
-			retval = retval ? append(retval,from(s,o,i)) : append(retval,Str("%s''",from(s,o,i)));
-			debug("Retval: [%s]", retval);
-			o = i + 1;
-		}
-	}
-	retval = retval ? append(retval,from(s,o,i)) : s;
-	debug("Singlequote %s is %s",s,retval);
-	return retval;
-}
 
 int
 fncmp(str a, str b, int n, test_t func)

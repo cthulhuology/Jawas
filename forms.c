@@ -80,15 +80,15 @@ save_contents(str src, int pos, int end)
 		perror("open");
 		return filename;	
 	}
-	debug("Writing [%i,%i)",pos,end);
+//	debug("Writing [%i,%i)",pos,end);
 	for (t = seek(src,pos); t && t->pos < end; t = seek(src,pos)) {
 		delta = pos - t->pos;
 		if (end <= t->length + t->pos)  {
-			debug("A. Writing chunk [%i,%i]",delta + t->pos, end);
+//			debug("A. Writing chunk [%i,%i]",delta + t->pos, end);
 			write(fd,&t->data[delta],end - t->pos - delta);
 			break; // done
 		} else {
-			debug("B. Writing chunk [%i,%i]",delta + t->pos, t->pos + t->length);
+//			debug("B. Writing chunk [%i,%i]",delta + t->pos, t->pos + t->length);
 			write(fd,&t->data[delta],t->length - delta);
 			pos = t->pos + t->length;
 		}

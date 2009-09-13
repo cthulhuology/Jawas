@@ -28,17 +28,23 @@ md5sum(char* data, int l)
 str
 md5hex(char* data, int l)
 {
-        int i;
 	fprintf(stderr,"MD5HEX data [%s] %i",data,l);
 	char* tmp = calloc(16,1);
 	MD5((unsigned char*)data,(unsigned long)l,(unsigned char*)tmp);
+	return hex(copy(tmp,16));
+}
+
+str
+hex(str data)
+{
+        int i;
         str retval = NULL;
-        for (i = 0; i < 16; ++i) {
-		fprintf(stderr, "tmp[%i] = %x",i,0x0ff & (tmp[i]));
-		retval = append(retval,Str("%h%h", (0x0f0 & tmp[i]) >> 4, 0x0f & tmp[i]));
+        for (i = 0; i < data->length; ++i) {
+		fprintf(stderr, "data->data[%i] = %x",i,0x0ff & (data->data[i]));
+		retval = append(retval,Str("%h%h", (0x0f0 & data->data[i]) >> 4, 0x0f & data->data[i]));
 		debug("Retval is [%s]",retval);
         }
-	debug("MD5HEX is %s",retval);
+	debug("HEX is %s",retval);
         return retval;
 }
 
@@ -70,13 +76,13 @@ hmac1(str secret, str data)
 	int dl = len(data);
 	char* secret_data = dump(secret);
 	char* data_data = dump(data);
-	str retval = blank(20);
+	str retval = blank(4090);
 	HMAC_CTX ctx;
 	HMAC_CTX_init(&ctx);
 	HMAC(EVP_sha1(),secret_data,sl,(unsigned char*)data_data,dl,(unsigned char*)retval->data,(unsigned int*)&retval->length);
-	HMAC_CTX_cleanup(&ctx);	
-	free(secret_data);
-	free(data_data);
+//	HMAC_CTX_cleanup(&ctx);
+//	free(secret_data);
+//	free(data_data);
 	return retval;
 }
 

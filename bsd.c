@@ -16,8 +16,8 @@
 
 extern Scratch escratch;
 
-struct kevent* cl = NULL;
-struct kevent* el = NULL;
+struct kevent cl[255];
+struct kevent el[255];
 
 Event
 poll_events(Event ec, int numevents)
@@ -29,10 +29,8 @@ poll_events(Event ec, int numevents)
 	Event retval = NULL;
 	EventData data;
 	struct timespec ts = { 0, 100000000 };
-	cl = (!cl ? (struct kevent*)malloc(sizeof(struct kevent)*255) : cl);
-	el = (!el ? (struct kevent*)malloc(sizeof(struct kevent)*255) : el);
-	memset(cl,0,sizeof(struct kevent)*255);
-	memset(el,0,sizeof(struct kevent)*255);
+	memset(cl,0,sizeof(cl));
+	memset(el,0,sizeof(el));
 	for (n = 0; ec; ++n) {
 		cl[n].ident = ec->fd;
 		cl[n].filter = (ec->type == READ || ec->type == RESP ? EVFILT_READ :
@@ -42,7 +40,6 @@ poll_events(Event ec, int numevents)
 		cl[n].fflags = (ec->type == NODE ? NODE_FLAGS : 0);
 		cl[n].data = 0;
 		cl[n].udata = ec->data;
-		debug("[kevent %i on %i]",cl[n].filter,cl[n].ident);
 		ec = ec->next;
 	}
 	n = kevent(KQ,cl,n,el,numevents, &ts);

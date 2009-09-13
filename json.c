@@ -9,6 +9,8 @@
 #include "jsstr.h"
 #include "jsatom.h"
 #include "headers.h"
+#include "server.h"
+#include "defines.h"
 
 str
 json(JSContext* cx, JSObject* obj)
@@ -39,4 +41,10 @@ json(JSContext* cx, JSObject* obj)
 		}
 	}
 	return Str("{ %s }", list_headers(kv));	
+}
+
+Headers
+parse_json(Headers hd, str buf, int pos)
+{
+	return append_header(hd,Str("json"),from(buf,pos,len(buf)-pos));
 }

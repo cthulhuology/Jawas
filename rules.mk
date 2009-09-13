@@ -45,3 +45,8 @@ install :
 	sudo cp jawas.sh /usr/local/etc/rc.d/jawas
 	sudo mkdir -p /usr/local/sbin
 	sudo cp jawas /usr/local/sbin
+
+.PHONY:
+db:
+	psql -U jawas jawas_dev < database.sql
+	psql -U jawas jawas < database.sql

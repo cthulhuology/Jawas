@@ -35,7 +35,7 @@ new_event_data(enum event_types type, void* udata)
 Event
 queue_event(Event ec, int fd, enum event_types type, enum event_flags flag, void* udata)
 {
-	debug("Queuing %i",type);
+//	debug("Queuing %i",type);
 	if (! escratch) escratch = new_scratch(NULL);
 	Event retval = (Event)alloc_scratch(escratch,sizeof(struct event_cache_struct));
 	retval->fd = fd;
@@ -103,7 +103,7 @@ event_data(EventData ed)
 enum event_types
 event_type(EventData ed)
 {
-	debug("EventData <%p> type %i",ed,ed->type);
+//	debug("EventData <%p> type %i",ed,ed->type);
 	return ed->type;
 }
 

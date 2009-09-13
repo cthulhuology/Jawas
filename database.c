@@ -89,6 +89,7 @@ new_database()
 {
 	Database retval = (Database)salloc(sizeof(struct database_struct));
 	retval->conn = PQconnectdb(DB_CONNECT_STRING);
+	if (PQstatus(retval->conn) != CONNECTION_OK) error("Failed to connect to database %c",DB_CONNECT_STRING);
 	retval->res = NULL;
 	set_database(retval);
 	return retval;
@@ -108,3 +109,13 @@ close_database(Database d)
 	d->res = NULL;
 }
 
+str
+singlequote(str s)
+{
+	int err = 0;
+	str retval = blank(len(s)*2);
+	retval->length = PQescapeStringConn(db->conn,retval->data,s->data,len(s),&err);
+	debug("Singlequote %s is %s",s,retval);
+	if (err) error("Failed to escape string %s",s);
+	return retval;
+}

@@ -8,6 +8,7 @@
 #define __HAVE_DATABASE_H__
 
 #include "libpq-fe.h"
+#include "str.h"
 
 typedef struct database_struct* Database;
 struct database_struct {
@@ -22,6 +23,7 @@ str field(int i);
 str fetch(int row, int col);
 str db_error();
 void reset();
+str singlequote(str s);
 
 Database new_database();
 void set_database(Database d);

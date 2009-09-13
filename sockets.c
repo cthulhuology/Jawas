@@ -38,15 +38,29 @@ nonblock(int fd)
 }
 
 int
-set_timeout(Socket sc)
+keepalive(int fd)
+{
+	int value = 1 ;
+	return setsockopt(fd,SOL_SOCKET,SO_KEEPALIVE,&value,sizeof(int));
+}
+
+int
+nodelay(int fd)
+{
+	int value = 1;
+	return setsockopt(fd,IPPROTO_TCP,TCP_NODELAY,&value,sizeof(int));
+}
+
+int
+set_timeout(int fd, size_t seconds)
 {
 	struct itimerval timeout;
 	timeout.it_interval.tv_usec = 0;
 	timeout.it_interval.tv_sec = 0;
 	timeout.it_value.tv_usec = 0;
-	timeout.it_value.tv_sec = SOCKET_CONNECT_TIMEOUT;
-	return setsockopt(sc->fd,SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(struct itimerval))
-		&& setsockopt(sc->fd,SOL_SOCKET,SO_SNDTIMEO,&timeout,sizeof(struct itimerval));
+	timeout.it_value.tv_sec = seconds;
+	return setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(struct itimerval))
+		&& setsockopt(fd,SOL_SOCKET,SO_SNDTIMEO,&timeout,sizeof(struct itimerval));
 }
 
 int
@@ -78,6 +92,16 @@ open_socket(int  port)
 }
 
 Socket
+resume_socket(Socket sc)
+{
+	sc->host = NULL;
+	sc->buf = NULL;
+	sc->scratch = gscratch;
+	sc->closed = 0;
+	return sc;
+}
+
+Socket
 accept_socket(Socket sc, int fd, TLSInfo tls)
 {
 	Socket retval;
@@ -89,20 +113,19 @@ accept_socket(Socket sc, int fd, TLSInfo tls)
 		return NULL;
 	}
 	nonblock(sock);
+	keepalive(sock);
+	nodelay(sock);
+	set_timeout(sock,SOCKET_CONNECT_TIMEOUT);
 	retval = (Socket)salloc(sizeof(struct socket_cache_struct));
-	retval->host = NULL;
 	retval->tls = (tls ? open_tls(tls,sock) : NULL);
-	retval->buf = NULL;
 	retval->next = sc;
 	retval->fd = sock;
 	retval->peer = saddr.sin_addr.s_addr;
 	retval->port = saddr.sin_port;
-	retval->scratch = gscratch;
-	retval->closed = 0;
 	++gsci.current;
 	++gsci.total;
 	gsci.max = max(gsci.current,gsci.max);
-	return retval;
+	return resume_socket(retval);
 }
 
 Socket
@@ -159,11 +182,14 @@ connect_socket(char* host, int port)
 	}
 	if (!connected) return NULL;
 	nonblock(sock);
+	nodelay(sock);
+	keepalive(sock);
+	set_timeout(sock,SOCKET_CONNECT_TIMEOUT);
 	retval = (Socket)salloc(sizeof(struct socket_cache_struct));
 	retval->next = NULL;
 	retval->fd = sock;
 	retval->scratch = new_scratch(NULL);
-	debug("Socket %p scratch %p",retval, retval->scratch);
+//	debug("Socket %p scratch %p",retval, retval->scratch);
 	retval->buf = NULL;
 	retval->tls = NULL;
 	retval->port = port;
@@ -200,15 +226,11 @@ reset_socket(Socket sc)
 str
 read_socket(Socket sc)
 {
-	str retval = sc->buf,t;
-	for (t = blank(Max_Buffer_Size); (t->length = sc->tls ? 
-			read_tls(sc->tls,t->data,Max_Buffer_Size) : 
+	for (str t = blank(Max_Buffer_Size); (t->length = sc->tls ?
+			read_tls(sc->tls,t->data,Max_Buffer_Size) :
 			read(sc->fd,t->data,Max_Buffer_Size)); sc->buf = append(sc->buf,t)) {
-		debug("Length read %i [%s], length contents %i",t->length,t, len(retval));
 		if (t->length == -1 ) {
 			if (errno == EAGAIN) {
-				debug("EAGAIN");
-				debug("Length of sc buf %i",len(sc->buf));
 				return sc->buf;
 			} else {
 				error("ERROR %i occured", errno);
@@ -222,7 +244,7 @@ read_socket(Socket sc)
 int
 write_to_socket(Socket sc,char* data, int length)
 {
-	debug("Writing [%s]",copy(data,length));
+//	debug("Writing [%s]",copy(data,length));
 	if (sc->closed) return 0;
 	int retval = sc->tls ? 
 		write_tls(sc->tls,data,length) :

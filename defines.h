@@ -11,7 +11,7 @@
 #define CONTEXT_SIZE 8192
 #define MAX_INDEX_LEN 12
 #define MAX_WRITE_SIZE getpagesize() 
-#define SOCKET_CONNECT_TIMEOUT 1
+#define SOCKET_CONNECT_TIMEOUT 10
 
 #define Max_Buffer_Size 4000
 

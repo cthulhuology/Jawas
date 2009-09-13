@@ -168,6 +168,7 @@ end_request(RequestInfo ri, Request req) {
 	RequestInfo tmp;
 	// debug("Ending request %p",req);
 	stop_usage(req->usage);
+	dump_usage(req->usage);
 	for (tmp = ri; tmp; tmp = tmp->next) {
 		if(cmp(tmp->host,req->host))
 			if (cmp(tmp->path,req->path)) {
@@ -209,6 +210,7 @@ send_request(Request req)
 		debug("Sending: %s",cmd);
 		write_socket(req->sc,cmd);
 		request_headers(req,Str("Host"),req->host);
+	///	request_headers(req,Str("Content-Length"),req->length);
 		send_headers(req->sc,req->headers);
 		debug("Sent headers %s",print_headers(NULL,req->headers));
 		req->length = outbound_content_length(req->contents,req->raw_contents);	
@@ -216,7 +218,7 @@ send_request(Request req)
 		return req->contents != NULL || req->raw_contents != NULL ;
 	}
 	if (req->contents || req->raw_contents) {
-		debug("send_request sending contents");
+		debug("send_request sending contents [%s]",req->contents);
 		if (req->contents) {
 			req->written += send_contents(req->sc,req->contents,0);
 			debug("sent %i of %i", req->written, len(req->contents));

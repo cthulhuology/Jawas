@@ -15,6 +15,7 @@
 #include "methods.h"
 #include "mime.h"
 #include "forms.h"
+#include "json.h"
 
 MethodDispatch gdispatch[] = {
 	{ 3, "GET", get_method },
@@ -49,7 +50,9 @@ post_method()
 //	debug("Enctype: %s (%p,%i)", enctype, enctype->data,enctype->len);
 //	debug("multipart? %c", (ncmp(enctype,Str("multipart/form-data"),19) ? "yes" : "no"));
 	Req->query_vars = enctype && ncmp(enctype,Str("multipart/form-data"),19) ?
-		parse_multipart_body(Req->query_vars,enctype) :
+			parse_multipart_body(Req->query_vars,enctype) :
+		enctype && ncmp(enctype,Str("text/json"),9) ?
+			parse_json(Req->query_vars,Req->contents,Req->body):
 		parse_uri_encoded(Req->query_vars,Req->contents,Req->body);
 	return get_method();
 }

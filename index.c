@@ -13,6 +13,8 @@
 
 static char* indexes[] = {
 	"/index.html",
+	"/index.shtml",
+	"/index.svg",
 	"/index.jws",
 	"/index.xml",
 	NULL
@@ -28,7 +30,6 @@ is_directory(str filename)
 		return 0;
 	}
 	free(fname);
-	debug("IS_DIRECTORY Filename %s[%i] is dir ? %c",filename,len(filename), (st.st_mode&S_IFDIR ? "true" : "false"));
 	return st.st_mode & S_IFDIR;
 }
 

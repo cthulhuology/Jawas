@@ -29,11 +29,12 @@
 #include "jws.h"
 #include "json.h"
 #include "sms.h"
+#include "auth.h"
 
 JSInstance ins;
 jmp_buf jmp;
 
-void ProcessFile(File fc);
+void EvalFile(File fc);
 
 str
 js2str(JSContext* cx, jsval x)
@@ -123,7 +124,7 @@ Include(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		*rval = FAILURE;
 		return JS_TRUE;
 	}
-	ProcessFile(fc);
+	EvalFile(fc);
 	*rval = SUCCESS;
 	return JS_TRUE;
 }
@@ -798,6 +799,62 @@ PostHTTP(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	return JS_TRUE; // never get here
 }
 
+static JSBool
+Hmac1(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 2) {
+		error("Usage: hmac1(secret,data)");
+		*rval = EMPTY;
+		return JS_TRUE;
+	}
+	str sec = jsval2str(argv[0]);
+	str data = jsval2str(argv[1]);
+	debug("Secret [%s]",sec);
+	debug("Data [%s]",data);
+	str out = hmac1(sec,data);
+	debug("Output [%s]",hex(out));
+	*rval = str2jsval(out);
+	debug("This is not a test");
+	return JS_TRUE;
+}
+
+static JSBool
+Hex(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 1) {
+		error("Usage: hex(data)");
+		*rval = EMPTY;
+		return JS_TRUE;
+	}
+	str data = jsval2str(argv[0]);
+	str out = hex(data);
+	debug("out [%s]",out);
+	*rval = str2jsval(out);
+	return JS_TRUE;
+}
+
+
+static JSBool
+Base64(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (argc != 1) {
+		error("Usage: base64(data)");
+		*rval = EMPTY;
+		return JS_TRUE;
+	}
+	str data = jsval2str(argv[0]);
+	str out = base64(data);
+	debug("out [%s]",out);
+	*rval = str2jsval(out);
+	return JS_TRUE;
+}
+
+static JSBool
+MD5Sum(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	return JS_TRUE;
+}
+
 static JSClass global_class = {
 	"global", 0,
 	JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub,
@@ -855,6 +912,10 @@ static JSFunctionSpec glob_functions[] = {
 	{"sms_read_ack", SMSReadACK, 0},
 	{"send_sms", SendSMS, 0},
 	{"post", PostHTTP, 0},
+	{"md5sum", MD5Sum, 0 },
+	{"hmac1", Hmac1, 0 },
+	{"base64", Base64, 0},
+	{"hex",Hex,0},
 	{0},
 };
 
@@ -890,27 +951,6 @@ InitParams(JSInstance* in, Headers headers)
 			debug("Failed to set property %s",x);
 	}
         return 0;
-}
-
-int
-InitScripts(JSInstance* in)
-{
-	int i;
-	jsval retval;
-	if (in && in->resp && in->resp->req && in->resp->req->host) {
-		int rows = query(Str("SELECT func FROM scripts WHERE site = '%s' and active",in->resp->req->host));
-		for (i = 0; i < rows; ++i) {
-			str script = fetch(i,0);
-			char* script_data = dump(script);
-			if (JS_FALSE == JS_EvaluateScript(in->cx, in->glob, script_data, len(script), "jws.c", 1, &retval)) {
-				error("Failed to compile script:");
-				error("%s",script);
-			}
-			free(script_data);
-		}	
-		reset();
-	}
-	return 0;
 }
 
 int
@@ -967,9 +1007,6 @@ InitJS(JSInstance* i, Server srv, Headers data)
 	i->database = new_database();
 	if (!i->database) return 1;
 	InitParams(i, data ? data : i->resp->req->query_vars);
-//	if (i->resp && i->resp->req) InitRequest(i,i->resp->req);
-//	if (i->resp) InitResponse(i,i->resp);
-	InitScripts(i);
 	return 0;
 }
 
@@ -987,10 +1024,11 @@ void
 EvalFile(File fc)
 {
 	jsval retval;
+	if (!fc->parsed) parse_file(fc);
 	for (int i = 0; fc->parsed[i].kind; ++i) {
 		switch(fc->parsed[i].kind) {
 		case TEXT:
-			ins.buffer = append(ins.buffer,copy(&fc->data[fc->parsed[i].offset],fc->parsed[i].length));
+			ins.buffer = append(ins.buffer,ref(&fc->data[fc->parsed[i].offset],fc->parsed[i].length));
 			break;
 		case SCRIPT:
 		case EMIT:
@@ -998,12 +1036,6 @@ EvalFile(File fc)
 				error("Failed to evaluate [%s]", copy(&fc->data[fc->parsed[i].offset],fc->parsed[i].length));
 		}
 	}
-}
-
-void
-ProcessFile(File fc)
-{
-	EvalFile(fc->parsed ? fc : parse_file(fc));
 }
 
 int
@@ -1016,7 +1048,7 @@ run_script(File fc, Headers data)
 	}
 	if (!setjmp(jmp)) {
 		if (Resp)
-			ProcessFile(fc);
+			EvalFile(fc);
 		else 
 			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, fc->data, fc->st.st_size, "jws.c", 1, &rval)) 
 				debug("Failed to evaluate script %c",fc->name);
