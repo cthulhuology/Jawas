@@ -341,14 +341,21 @@ closed_socket(Socket sc, char* msg)
 	return 0;
 }
 
+str
+socket_peer(Socket sc)
+{
+	return Str("%i.%i.%i.%i:%i",
+		(0xff & sc->peer),
+		(0xff00 & sc->peer) >> 8,
+		(0xff0000 & sc->peer) >> 16,
+		(0xff000000 & sc->peer) >> 24,
+		sc->port);
+}
+
 void
 socket_notice(Socket sc, char* msg)
 {
-	notice("Socket <%p> %i.%i.%i.%i:%i %c\n",
-		srv->sc,
-		(0xff & srv->sc->peer),
-		(0xff00 & srv->sc->peer) >> 8,
-		(0xff0000 & srv->sc->peer) >> 16,
-		(0xff000000 & srv->sc->peer) >> 24,
-		srv->sc->port, msg);
+	notice("Socket <%p> %s %c\n", sc, socket_peer(sc), msg);
 }
+
+

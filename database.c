@@ -113,6 +113,7 @@ str
 singlequote(str s)
 {
 	int err = 0;
+	if (len(s) == 0) return s;
 	str retval = blank(len(s)*2);
 	retval->length = PQescapeStringConn(db->conn,retval->data,s->data,len(s),&err);
 	debug("Singlequote %s is %s",s,retval);

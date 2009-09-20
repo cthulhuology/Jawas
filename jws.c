@@ -838,6 +838,17 @@ MD5Sum(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	return JS_TRUE;
 }
 
+int randfd = 0;
+static JSBool
+Random(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
+{
+	if (!randfd) randfd = open("/dev/random",O_RDONLY);
+	str data = blank(12);
+	read(randfd,data->data,12);
+	*rval = str2jsval(hex(data));
+	return JS_TRUE;
+}
+
 static JSClass global_class = {
 	"global", 0,
 	JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub,
@@ -899,6 +910,7 @@ static JSFunctionSpec glob_functions[] = {
 	{"hmac1", Hmac1, 0 },
 	{"base64", Base64, 0},
 	{"hex",Hex,0},
+	{"rnd",Random,0},
 	{0},
 };
 

@@ -51,5 +51,6 @@ Socket reset_socket(Socket sc);
 Socket close_socket(Socket sc);
 int closed_socket(Socket sc, char* msg);
 void socket_notice(Socket sc, char* msg);
+str socket_peer(Socket sc);
 
 #endif

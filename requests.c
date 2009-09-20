@@ -103,6 +103,7 @@ process_request(Request req)
 			error("No request headers on request %i\n",req);
 			return NULL;
 		}
+		append_header(req->headers, Str("peer"),socket_peer(req->sc));
 	}
 	if (req->body) {
 		req->done = (len(req->contents) - req->body) >= inbound_content_length(req->contents,req->headers);
@@ -207,7 +208,7 @@ send_request(Request req)
 		return req->contents != NULL || req->raw_contents != NULL ;
 	}
 	req->written += req->contents ?
-			send_contents(req->sc,req->contents,0) :
+			send_contents(req->sc,req->contents,is_chunked(req->headers)) :
 		req->raw_contents ?
 			send_raw_contents(req->sc,req->raw_contents,req->written,0):
 			0;
