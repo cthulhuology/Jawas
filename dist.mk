@@ -2,7 +2,7 @@
 # dist.mk
 #
 
-TARGETS +=  apu
+TARGETS +=  evangelizmo.com
 
 commit :
 	git commit -a
@@ -10,7 +10,7 @@ commit :
 .PHONY: $(TARGETS)
 $(TARGETS): commit
 	git push $@
-	ssh $@ "cd $(SITE)/Jawas && git pull /usr/pub/git/jawas.git && gmake && jawas stop $(PROD) && jawas start $(PROD)"
+	ssh $@ "cd ~/Jawas && git pull && gmake && sudo jawas stop $(PROD) && cp jawasd /usr/local/Jawas/  &&sudo jawas start $(PROD)"
 
 .PHONY: dev
 dev:
