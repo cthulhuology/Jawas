@@ -200,6 +200,7 @@ write_response()
 	if (send_response(Resp)) {
 		old_scratch();
 		add_write_socket(Sock->fd,Resp);
+		fprintf(stderr,"Continuing\n");
 		return;
 	}
 	old_scratch();

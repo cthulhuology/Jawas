@@ -7,7 +7,7 @@
 #ifndef __HAVE_DATABASE_H__
 #define __HAVE_DATABASE_H__
 
-#include "libpq-fe.h"
+#include <libpq-fe.h>
 #include "str.h"
 
 typedef struct database_struct* Database;

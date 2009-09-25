@@ -114,7 +114,7 @@ accept_socket(Socket sc, int fd, TLSInfo tls)
 	}
 	nonblock(sock);
 	keepalive(sock);
-	nodelay(sock);
+//	nodelay(sock);
 	set_timeout(sock,SOCKET_CONNECT_TIMEOUT);
 	retval = (Socket)salloc(sizeof(struct socket_cache_struct));
 	retval->tls = (tls ? open_tls(tls,sock) : NULL);
@@ -181,7 +181,7 @@ connect_socket(char* host, int port)
 	}
 	if (!connected) return NULL;
 	nonblock(sock);
-	nodelay(sock);
+//	nodelay(sock);
 	keepalive(sock);
 	set_timeout(sock,SOCKET_CONNECT_TIMEOUT);
 	retval = (Socket)salloc(sizeof(struct socket_cache_struct));
@@ -246,6 +246,7 @@ write_to_socket(Socket sc,char* data, int length)
 	int retval = sc->tls ? 
 		write_tls(sc->tls,data,length) :
 		write(sc->fd,data,length);
+	fprintf(stderr,"Writting %d data at %p with result %d\n",length,data,retval);
 	if (retval < 0) {
 		sc->closed = 1;
 		return 0;
@@ -269,7 +270,7 @@ write_chunk(Socket sc, char* data, int length)
 {
 	int retval = 0;
 	str header = Str("%h\r\n",length);
-//	fprintf(stderr,"Writing chunk %i\n",length);
+	fprintf(stderr,"Writing chunk %i\n",length);
 	write_to_socket(sc,header->data,header->length);
 //	fprintf(stderr,"Header length %i",header->length);
 	if (data) 

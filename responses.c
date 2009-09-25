@@ -91,6 +91,7 @@ send_response(Response resp)
 	resp->written += resp->contents ?
 		send_contents(resp->sc,resp->contents,1):
 		send_raw_contents(resp->sc,resp->raw_contents,resp->written,1);
+	fprintf(stderr,"written %d length %d\n",resp->written,resp->length);
 	if (resp->written >= resp->length)
 		write_chunk(resp->sc,NULL,0);
 	return resp->written < resp->length;

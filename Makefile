@@ -20,7 +20,7 @@ ifeq ($(ARCH),Darwin)
 endif
 ifeq ($(ARCH),FreeBSD)
 	CFLAGS += -ggdb -DXP_UNIX  -DFREEBSD
-	INCLUDES = -Ijs -Ijs/FreeBSD_DBG.OBJ -I/usr/local/include/postgresql/server/libpq/
+	INCLUDES = -Ijs -Ijs/FreeBSD_DBG.OBJ -I/usr/local/include/
 	LDFLAGS += -Ljs/FreeBSD_DBG.OBJ/
 endif
 ifeq ($(ARCH),Linux)
