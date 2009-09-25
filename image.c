@@ -12,6 +12,7 @@
 int
 img_handler(File fc)
 {
+	append_header(Resp->headers,Str("Cache-Control"),Str("max-age=3600, public"));
 	Resp->raw_contents = fc;		
 	return 200;
 }

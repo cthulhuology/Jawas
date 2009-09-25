@@ -10,6 +10,7 @@
 #include "server.h"
 #include "jws.h"
 #include "image.h"
+#include "script.h"
 #include "status.h"
 #include "mime.h"
 
@@ -20,8 +21,8 @@ static MimeTypes mime_types[] = {
 	{ {3, "xml"},  { 8, "text/xml"                }, jws_handler },
 	{ {3, "txt"},  {10, "text/plain"              }, jws_handler },
 	{ {3, "svg"},  {13, "image/svg+xml"           }, jws_handler },
-	{ {3, "css"},  { 8, "text/css"                }, img_handler },
-	{ {2, "js" },  {24, "application/x-javascript"}, img_handler },
+	{ {3, "css"},  { 8, "text/css"                }, script_handler },
+	{ {2, "js" },  {24, "application/x-javascript"}, script_handler },
 	{ {3, "ico"},  {12, "image/x-icon"            }, img_handler },
 	{ {3, "jpg"},  {10, "image/jpeg"              }, img_handler },
 	{ {3, "png"},  { 9, "image/png"               }, img_handler },
@@ -34,6 +35,8 @@ static MimeTypes mime_types[] = {
 	{ {2, "ps" },  {22, "application/postscript"  }, img_handler },
 	{ {3, "eps"},  {22, "application/postscript"  }, img_handler },
 	{ {3, "swf"},  {29, "application/x-shockwave-flash"}, img_handler },
+	{ {3, "ttf"},  {24, "application/octet-stream"}, img_handler },
+	{ {3, "otf"},  {24, "application/octet-stream"}, img_handler },
 	{ {0, NULL },  {24, "application/octet-stream"}, img_handler },
 };
 
