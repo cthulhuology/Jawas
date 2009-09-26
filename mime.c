@@ -10,6 +10,7 @@
 #include "server.h"
 #include "jws.h"
 #include "image.h"
+#include "script.h"
 #include "status.h"
 #include "mime.h"
 
@@ -20,8 +21,8 @@ static MimeTypes mime_types[] = {
 	{ {3, "xml"},  { 8, "text/xml"                }, jws_handler },
 	{ {3, "txt"},  {10, "text/plain"              }, jws_handler },
 	{ {3, "svg"},  {13, "image/svg+xml"           }, jws_handler },
-	{ {3, "css"},  { 8, "text/css"                }, img_handler },
-	{ {2, "js" },  {24, "application/x-javascript"}, img_handler },
+	{ {3, "css"},  { 8, "text/css"                }, script_handler },
+	{ {2, "js" },  {24, "application/x-javascript"}, script_handler },
 	{ {3, "ico"},  {12, "image/x-icon"            }, img_handler },
 	{ {3, "jpg"},  {10, "image/jpeg"              }, img_handler },
 	{ {3, "png"},  { 9, "image/png"               }, img_handler },

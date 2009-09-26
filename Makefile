@@ -54,6 +54,7 @@ mime.c \
 pages.c \
 requests.c \
 responses.c \
+script.c \
 server.c \
 signals.c \
 sms.c \
