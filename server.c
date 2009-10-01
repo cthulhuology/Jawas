@@ -137,10 +137,12 @@ read_request()
 {
 	client_scratch();
 	if (!process_request(Req)) {
+		add_read_socket(Sock->fd,Req);
 		old_scratch();
-		error("Failed to read request\n");
-		disconnect();
 		return;
+	//	error("Failed to read request\n");
+	//	disconnect();
+	//	return;
 	}
 	if (Req->done) {
 		Sock->buf = NULL;

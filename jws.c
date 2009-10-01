@@ -222,7 +222,6 @@ Query(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 				o = i + 1;
 			}
 	qry = append(qry,from(qstr,o,len(qstr)-o));
-	debug("[Query] %s",qry);
 	int res = query(qry);
 	if (res < 0) {
 		*rval = str2jsval(db_error());
