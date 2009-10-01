@@ -22,12 +22,14 @@ void
 signal_handler(int sig)
 {
 	error("Received signal %i\n",sig);
+	Resp->sc->closed = 1;
 }
 
 void
 socket_signal_handlers()
 {
-	signal(SIGPIPE,SIG_IGN);
+	debug("Setting socket signal handlers");
+	signal(SIGPIPE,signal_handler);
 }
 
 int

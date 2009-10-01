@@ -20,6 +20,7 @@ int log_level = LOG_LEVEL;
 const int max_log_lvl = 2;
 char* log_msgs[] =  {
 	"[ERROR]",
+	"[DB]",
 	"[NOTICE]",
 	"[DEBUG]",
 	NULL

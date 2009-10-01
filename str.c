@@ -138,7 +138,7 @@ append(str s, str v)
 {
 	str t;
 	int pos;
-	if (! s) return clone(v);
+	if (! s) return v->length > MAX_ALLOC_SIZE ? v: clone(v);
 	for (t = s; t->next; t = t->next);
 	t->next = clone(v); 
 	pos = t->pos + t->length;

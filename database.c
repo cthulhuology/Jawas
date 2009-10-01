@@ -17,7 +17,7 @@ guid()
 {
 	db->res = PQexec(db->conn,"SELECT nextval('guid_seq')");
 	str retval = PQresultStatus(db->res) != PGRES_TUPLES_OK ?  NULL : Str("%c",PQgetvalue(db->res,0,0));
-	if (!retval) error("[DB] %c",PQresultErrorMessage(db->res));	
+	if (!retval) dblog("%c",PQresultErrorMessage(db->res));
 	PQclear(db->res);
 	db->res = NULL;
 	return retval;
@@ -28,6 +28,7 @@ query(str q)
 {
 	if (db->res) reset();
 	char* qry = dump(q);
+	dblog("%s",q);
 	db->res = PQexec(db->conn,qry);
 	free(qry);
 	switch(PQresultStatus(db->res)) {
@@ -42,7 +43,7 @@ query(str q)
 		case PGRES_NONFATAL_ERROR:
 		case PGRES_FATAL_ERROR:
 		default:
-			error("[DB] %s failed %c", q, PQresultErrorMessage(db->res));
+			dblog("%s failed %c", q, PQresultErrorMessage(db->res));
 			PQclear(db->res);
 			db->res = NULL;
 	}
@@ -89,7 +90,7 @@ new_database()
 {
 	Database retval = (Database)salloc(sizeof(struct database_struct));
 	retval->conn = PQconnectdb(DB_CONNECT_STRING);
-	if (PQstatus(retval->conn) != CONNECTION_OK) error("Failed to connect to database %c",DB_CONNECT_STRING);
+	if (PQstatus(retval->conn) != CONNECTION_OK) dblog("Failed to connect to database %c",DB_CONNECT_STRING);
 	retval->res = NULL;
 	set_database(retval);
 	return retval;
@@ -117,6 +118,6 @@ singlequote(str s)
 	str retval = blank(len(s)*2);
 	retval->length = PQescapeStringConn(db->conn,retval->data,s->data,len(s),&err);
 	debug("Singlequote %s is %s",s,retval);
-	if (err) error("Failed to escape string %s",s);
+	if (err) dblog("Failed to escape string %s",s);
 	return retval;
 }
