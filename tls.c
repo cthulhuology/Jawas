@@ -7,6 +7,7 @@
 #include "include.h"
 #include "defines.h"
 #include "alloc.h"
+#include "str.h"
 #include "log.h"
 #include "tls.h"
 
@@ -31,9 +32,20 @@ init_tls(char* keyfile, char* password)
 	tls->err = BIO_new_fp(stderr,BIO_NOCLOSE);	
 	tls->method = SSLv23_method();
 	tls->ctx = SSL_CTX_new(tls->method);
-	if (!SSL_CTX_use_certificate_file(tls->ctx,keyfile,SSL_FILETYPE_PEM)) {
-		error("Failed to use certificate chain file %c\n",keyfile);
+	DIR* d = opendir("certs");
+	struct dirent* de;
+	if (! d) {
+		error("Failed to find certs directory");
 		return NULL;
+	}
+	while (NULL != (de = readdir(d))) {
+		if (de->d_namlen < 4) continue;
+		str certfile = Str("certs/%c",de->d_name);
+		debug("Loading cert %s",certfile);
+		if (!SSL_CTX_use_certificate_file(tls->ctx,certfile->data,SSL_FILETYPE_PEM)) {
+			error("Failed to use certificate chain file %c\n",keyfile);
+			return NULL;
+		}
 	}
 	SSL_CTX_set_default_passwd_cb(tls->ctx,password_callback);
 	SSL_CTX_set_default_passwd_cb_userdata(tls->ctx,tls);
