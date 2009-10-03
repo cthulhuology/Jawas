@@ -39,7 +39,9 @@ init_tls(char* keyfile, char* password)
 		return NULL;
 	}
 	while (NULL != (de = readdir(d))) {
+		if (de->d_namlen < 4) continue;
 		str certfile = Str("certs/%c",de->d_name);
+		debug("Loading cert %s",certfile);
 		if (!SSL_CTX_use_certificate_file(tls->ctx,certfile->data,SSL_FILETYPE_PEM)) {
 			error("Failed to use certificate chain file %c\n",keyfile);
 			return NULL;
