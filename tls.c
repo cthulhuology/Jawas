@@ -38,14 +38,13 @@ init_tls(char* keyfile, char* password)
 		error("Failed to find certs directory");
 		return NULL;
 	}
-	while (NULL != (de = readdir(d))) {
-		if (de->d_namlen < 4) continue;
-		str certfile = Str("certs/%c",de->d_name);
-		debug("Loading cert %s",certfile);
-		if (!SSL_CTX_use_certificate_file(tls->ctx,certfile->data,SSL_FILETYPE_PEM)) {
-			error("Failed to use certificate chain file %c\n",keyfile);
-			return NULL;
-		}
+	if (!SSL_CTX_load_verify_locations(tls->ctx,"certs.pem",NULL)) {
+		error("Failed to use certificate chain file certs/%c\n",de->d_name);
+		return NULL;
+	}
+	if (!SSL_CTX_use_certificate_file(tls->ctx,keyfile,SSL_FILETYPE_PEM)) {
+		error("Failed to use certificate chain file %c\n",keyfile);
+		return NULL;
 	}
 	SSL_CTX_set_default_passwd_cb(tls->ctx,password_callback);
 	SSL_CTX_set_default_passwd_cb_userdata(tls->ctx,tls);
