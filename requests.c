@@ -37,6 +37,7 @@ new_request(str method, str host, str path)
 		retval->done = 0;
 		retval->written = 0;
 		retval->length = -1;
+		retval->retries = 0;
 	}
 	return retval;
 }
@@ -95,6 +96,8 @@ process_request(Request req)
 	req->contents = read_socket(req->sc);
 	if (!req->contents) {
 		error("No request contents on request %i\n",req);
+		++req->retries;
+		debug("retries %i",req->retries);
 		return NULL;
 	}
 	if (!req->body) {

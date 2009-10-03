@@ -12,6 +12,7 @@
 #define MAX_INDEX_LEN 12
 #define MAX_WRITE_SIZE getpagesize() *  256
 #define SOCKET_CONNECT_TIMEOUT 10
+#define MAX_RETRIES 20
 
 #define Max_Buffer_Size 4000
 

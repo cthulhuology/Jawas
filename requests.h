@@ -31,6 +31,7 @@ struct request_struct {
 	int done;
 	int written;
 	int length;
+	int retries;
 };
 
 typedef struct request_info_struct* RequestInfo;

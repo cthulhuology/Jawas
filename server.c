@@ -121,6 +121,7 @@ disconnect()
 	Socket tmp,last;
 	last = NULL;
 	server_scratch();
+	socket_notice(Sock,"Closing");
 	for (tmp = srv->sc; tmp; tmp = tmp->next) {
 		if (tmp == Sock)  {
 			socket_notice(Sock,"Disconnected");
@@ -137,13 +138,17 @@ read_request()
 {
 	client_scratch();
 	if (!process_request(Req)) {
-		add_read_socket(Sock->fd,Req);
 		old_scratch();
+		debug("Request retries %i vs %i",Req->retries, MAX_RETRIES);
+		if (Req->retries < MAX_RETRIES)  {
+			add_read_socket(Sock->fd,Req);
+			return;
+		}
+		error("Failed to read request\n");
+		disconnect();
 		return;
-	//	error("Failed to read request\n");
-	//	disconnect();
-	//	return;
 	}
+	Req->retries = 0;
 	if (Req->done) {
 		Sock->buf = NULL;
 		Resp = new_response(Req);
