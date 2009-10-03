@@ -20,7 +20,7 @@
 #define DB_CONNECT_STRING "dbname=jawas user=jawas"
 #define SERVER_PORT "80"
 #define TLS_SERVER_PORT "443"
-#define TLS_PASSWORD "whatawonderfulworld"
+#define TLS_PASSWORD "thisisthewaytheworldends"
 #define TLS_KEYFILE "/usr/local/Jawas/server.pem"
 #define MAILHOST "mail.nexttolast.com"
 #define PAGE_GUARD 0
