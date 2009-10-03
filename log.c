@@ -17,7 +17,7 @@ Scratch log_scratch_pad = NULL;
 int log_fd = 2;
 int log_level = LOG_LEVEL;
 
-const int max_log_lvl = 2;
+const int max_log_lvl = 3;
 char* log_msgs[] =  {
 	"[ERROR]",
 	"[DB]",
