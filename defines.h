@@ -10,7 +10,7 @@
 #define RUNTIME_SIZE 8L * 1024L * 1024L
 #define CONTEXT_SIZE 8192
 #define MAX_INDEX_LEN 12
-#define MAX_WRITE_SIZE getpagesize() *  256
+#define MAX_WRITE_SIZE 1500
 #define SOCKET_CONNECT_TIMEOUT 10
 #define MAX_RETRIES 20
 

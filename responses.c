@@ -88,12 +88,16 @@ send_response(Response resp)
 		send_headers(resp->sc,resp->headers);
 		return resp->contents || resp->raw_contents;
 	}
+	if (resp->written >= resp->length) {
+		write_chunk(resp->sc,NULL,0);
+		debug("Wrote end");
+		return 0;
+	}
 	resp->written += resp->contents ?
 		send_contents(resp->sc,resp->contents,1):
 		send_raw_contents(resp->sc,resp->raw_contents,resp->written,1);
 	fprintf(stderr,"written %d length %d\n",resp->written,resp->length);
-	if (resp->written >= resp->length)
-		write_chunk(resp->sc,NULL,0);
-	return resp->written < resp->length;
+	fprintf(stderr,"written >= length %s\n",resp->written >= resp->length ? "yes" : "no");
+	return resp->written <= resp->length;
 }
 

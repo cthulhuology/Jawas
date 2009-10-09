@@ -28,7 +28,7 @@ md5sum(char* data, int l)
 str
 md5hex(char* data, int l)
 {
-	fprintf(stderr,"MD5HEX data [%s] %i",data,l);
+//	fprintf(stderr,"MD5HEX data [%s] %i",data,l);
 	char* tmp = calloc(16,1);
 	MD5((unsigned char*)data,(unsigned long)l,(unsigned char*)tmp);
 	return hex(copy(tmp,16));
@@ -40,11 +40,11 @@ hex(str data)
         int i;
         str retval = NULL;
         for (i = 0; i < data->length; ++i) {
-		fprintf(stderr, "data->data[%i] = %x",i,0x0ff & (data->data[i]));
+//		fprintf(stderr, "data->data[%i] = %x",i,0x0ff & (data->data[i]));
 		retval = append(retval,Str("%h%h", (0x0f0 & data->data[i]) >> 4, 0x0f & data->data[i]));
-		debug("Retval is [%s]",retval);
+	//	debug("Retval is [%s]",retval);
         }
-	debug("HEX is %s",retval);
+//	debug("HEX is %s",retval);
         return retval;
 }
 
