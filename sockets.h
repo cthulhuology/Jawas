@@ -39,7 +39,7 @@ int nonblock(int fd);
 
 int open_socket(int port);
 Socket accept_socket(Socket sc, int fd, TLSInfo tls);
-Socket connect_socket(char* host, int port);
+Socket connect_socket(char* host, int port, int ssl);
 Socket resume_socket(Socket sc);
 int send_contents(Socket sc, str buf, int chunked);
 int send_raw_contents(Socket sc, File fc, int off, int chunked);

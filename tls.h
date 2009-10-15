@@ -26,9 +26,14 @@ struct tls_socket_struct {
 };
 
 TLSInfo init_tls(char* keyfile, char* password);
+TLSInfo client_tls(char* certs);
 TLSSocket open_tls(TLSInfo tls, int fd);
 int read_tls(TLSSocket ts, char* data, int len);
 int write_tls(TLSSocket ts, char* data, int len);
 void close_tls(TLSSocket ts);
+int accept_tls(TLSSocket sc);
+int check_tls(TLSSocket sc);
+int connect_tls(TLSSocket sc);
+
 
 #endif

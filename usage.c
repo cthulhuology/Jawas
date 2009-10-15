@@ -48,10 +48,10 @@ stop_usage(Usage u)
 void
 dump_usage(Usage u)
 {
-	debug("USAGE: %c",u->type ? "Server" : "Request");
-	notice("Requests: %i", u->requests);
-	notice("Avg Time: %iµs", u->time);
-	notice("Window Size: %i",u->hits);
+//	debug("USAGE: %c",u->type ? "Server" : "Request");
+//	notice("Requests: %i", u->requests);
+//	notice("Avg Time: %iµs", u->time);
+//	notice("Window Size: %i",u->hits);
 	debug("Total Time: %iµs", timediff(&u->end.ru_utime,&u->start.ru_utime) + timediff(&u->end.ru_stime,&u->start.ru_stime));
 	debug("\tUser Time: %iµs", timediff(&u->end.ru_utime,&u->start.ru_utime));
 	debug("\tSystem Time: %iµs", timediff(&u->end.ru_stime,&u->start.ru_stime));

@@ -38,6 +38,7 @@ new_request(str method, str host, str path)
 		retval->written = 0;
 		retval->length = -1;
 		retval->retries = 0;
+		retval->ssl = 0;
 	}
 	return retval;
 }
@@ -112,6 +113,13 @@ process_request(Request req)
 		req->done = (len(req->contents) - req->body) >= inbound_content_length(req->contents,req->headers);
 	}
 	return req->done ? dechunk_request(req) : req;
+}
+
+void
+use_ssl(Request req)
+{
+	debug("Setting request to SSL mode");
+	req->ssl = 1;
 }
 
 str
@@ -193,7 +201,7 @@ send_request(Request req)
 {
 	if (! req->sc ) {
 		char* host = dump(req->host);
-		req->sc = connect_socket(host,req->port);
+		req->sc = connect_socket(host,req->port,req->ssl);
 		free(host);
 		if (! req->sc) {
 			error("Failed to connect to %s:%i\n",req->host,req->port);

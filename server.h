@@ -24,6 +24,7 @@ struct server_struct {
 	File fc;
 	Socket sc;
 	TLSInfo tls;
+	TLSInfo tls_client;
 	Scratch scratch;
 	Timers timers;
 	time_t time;

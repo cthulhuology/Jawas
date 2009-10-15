@@ -207,7 +207,7 @@ write_response()
 	if (send_response(Resp)) {
 		old_scratch();
 		add_write_socket(Sock->fd,Resp);
-		fprintf(stderr,"Continuing\n");
+	//	fprintf(stderr,"Continuing\n");
 		return;
 	}
 	old_scratch();
@@ -258,6 +258,7 @@ serve(int port, int tls_port)
 	srv->http_sock = open_socket(port);
 	srv->tls_sock = open_socket(tls_port);
 	srv->tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
+	srv->tls_client = client_tls("certs");
 	srv->usage = new_usage(1);
 	srv->ec = NULL;
 	srv->fc = NULL;

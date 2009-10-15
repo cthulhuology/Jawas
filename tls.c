@@ -32,14 +32,8 @@ init_tls(char* keyfile, char* password)
 	tls->err = BIO_new_fp(stderr,BIO_NOCLOSE);	
 	tls->method = SSLv23_method();
 	tls->ctx = SSL_CTX_new(tls->method);
-	DIR* d = opendir("certs");
-	struct dirent* de;
-	if (! d) {
-		error("Failed to find certs directory");
-		return NULL;
-	}
 	if (!SSL_CTX_load_verify_locations(tls->ctx,"certs.pem",NULL)) {
-		error("Failed to use certificate chain file certs/%c\n",de->d_name);
+		error("Failed to use certificate chain file certs.pem");
 		return NULL;
 	}
 	if (!SSL_CTX_use_certificate_file(tls->ctx,keyfile,SSL_FILETYPE_PEM)) {
@@ -55,6 +49,23 @@ init_tls(char* keyfile, char* password)
 	return tls;
 }
 
+TLSInfo
+client_tls(char* certs) 
+{
+	TLSInfo tls = (TLSInfo)salloc(sizeof(struct tls_struct));
+	if (!tls) return tls;
+	tls->pass_len = 0;
+	tls->err = BIO_new_fp(stderr,BIO_NOCLOSE);	
+	tls->method = SSLv23_method();
+	tls->ctx = SSL_CTX_new(tls->method);
+	debug("Loading SSL Certs directory");
+	if (!SSL_CTX_load_verify_locations(tls->ctx,NULL,certs)) {
+		error("Failed to load certs directory");
+		return NULL;
+	}
+	return tls;	
+}
+
 TLSSocket
 open_tls(TLSInfo tls, int fd)
 {
@@ -64,8 +75,43 @@ open_tls(TLSInfo tls, int fd)
 	retval->ssl = SSL_new(tls->ctx);
 	retval->bio = BIO_new_socket(fd,BIO_NOCLOSE);
 	SSL_set_bio(retval->ssl,retval->bio,retval->bio);
-	SSL_accept(retval->ssl);
 	return retval;
+}
+
+int
+connect_tls(TLSSocket sc)
+{
+	int retval = SSL_connect(sc->ssl);
+	debug("SSL_connect returns %i",retval);
+	switch(SSL_get_error(sc->ssl,retval)) {
+		case SSL_ERROR_ZERO_RETURN: error("[SSL] connection closed"); break;
+		case SSL_ERROR_WANT_CONNECT: error("[SSL] incomplete connection"); break;
+		case SSL_ERROR_WANT_X509_LOOKUP: error("[SSL] no client cert callback"); break;
+		case SSL_ERROR_SYSCALL: error("[SSL] system error"); break;
+		case SSL_ERROR_SSL: error("[SSL] protocol error"); break;
+		default: break;
+	}
+	return retval < 0;
+}
+
+int
+check_tls(TLSSocket sc) 
+{
+	if (SSL_get_verify_result(sc->ssl) != X509_V_OK) {
+		error("SSL certificate not valid");
+		return 1;
+	}
+	str host = blank(256);
+	X509* cert = SSL_get_peer_certificate(sc->ssl);
+	X509_NAME_get_text_by_NID(X509_get_subject_name(cert),NID_commonName,host->data, 256); 
+	debug("Common Name: %s",host);
+	return 0;
+}
+
+int
+accept_tls(TLSSocket sc) 
+{
+	return SSL_accept(sc->ssl);
 }
 
 int
