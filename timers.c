@@ -57,18 +57,22 @@ update_timers()
 	time_t now = time(NULL);
 	if (now == srv->time) return;
 	srv->time = now;
+//	debug("Update Timers %i",now);
 	t = srv->timers;
 	srv->timers = NULL;
 	while (t) {
 		if (t->when <= srv->time) {
+//			debug("Running %p for time %i",t,t->when);
 			timer_old_scratch = gscratch;
 			set_scratch(t->scratch);
 			run_script(t->script,t->data);
+//			debug("Ran script for timer %p",t);
 			set_scratch(timer_old_scratch);
 			x = t;
 			t = t->next;
 			free_scratch(x->scratch);
 		} else  {
+//			debug("Queing %p for time %i",t,t->when);
 			x = t;
 			t = t->next;
 			x->next = srv->timers;

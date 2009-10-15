@@ -13,6 +13,7 @@
 #include "timers.h"
 #include "hostnames.h"
 #include "server.h"
+#include "tls.h"
 
 #ifdef LINUX 
 	extern void remove_epoll(int fd);
@@ -129,7 +130,7 @@ accept_socket(Socket sc, int fd, TLSInfo tls)
 }
 
 Socket
-connect_socket(str host, int port)
+connect_socket(str host, int port,int ssl)
 {
 	Socket retval;
 	int i;
@@ -162,7 +163,7 @@ connect_socket(str host, int port)
 		break;
 	}
 	if (!connected) return NULL;
-	nonblock(sock);
+//	nonblock(sock);
 //	nodelay(sock);
 	keepalive(sock);
 	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
@@ -171,11 +172,23 @@ connect_socket(str host, int port)
 	retval->fd = sock;
 	retval->scratch = new_scratch(NULL);
 	retval->buf = NULL;
-	retval->tls = NULL;
 	retval->port = port;
 	retval->host = Str("%c",host);
 	retval->peer = (int)Address.sin_addr.s_addr;
 	retval->closed = 0;
+	if (ssl) {
+		retval->tls = open_tls(srv->tls_client,sock);
+		if (connect_tls(retval->tls)) {
+			error("[SSL] Failed to make secure connection");
+			return NULL;
+		}
+		if (check_tls(retval->tls)) {
+			error("[SSL] Failed to check remote certificates");
+			return NULL;
+		}
+	} else {
+		retval->tls = NULL;
+	}
 	return retval;
 }
 

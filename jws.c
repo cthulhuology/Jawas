@@ -115,7 +115,7 @@ Include(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		return JS_TRUE;
 	}
 	s = jsval2str(argv[0]);
-	filename = file_path(Req->host,Str("/%s",s));
+	filename = file_path(Req ? Req->host : Str("localhost"),Str("/%s",s));
 	fc = load(filename);
 	if (!fc) {
 		error("Failed to open file %s",filename);
@@ -138,7 +138,7 @@ Use(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		return JS_TRUE;
 	}
 	s = jsval2str(argv[0]);
-	filename = file_path(Req->host,Str("/%s",s));
+	filename = file_path(Req ? Req->host : Str("localhost"),Str("/%s",s));
 	fc = load(filename);
 	if (!fc) {
 		error("Failed to open file %s",filename);
@@ -758,18 +758,19 @@ SendSMS(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 PostHTTP(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	if (argc != 5) {
-		error("Usage: post(host,path,headers,data,callback)");
+	if (argc != 6) {
+		error("Usage: post(proto,host,path,headers,data,callback)");
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
 	int i;
-	str host = jsval2str(argv[0]);
-	str path = jsval2str(argv[1]);
+	str proto = jsval2str(argv[0]);
+	str host = jsval2str(argv[1]);
+	str path = jsval2str(argv[2]);
 	debug("Posting to %s/%s",host,path);
 	Request req = new_request(Str("POST"),host,path);
-	
-	JSObject* o = JSVAL_TO_OBJECT(argv[2]);	
+	if (icmp(Str("https"),proto)) use_ssl(req);
+	JSObject* o = JSVAL_TO_OBJECT(argv[3]);
 	JSIdArray* arr = JS_Enumerate(ins.cx, o);
 	for (i = 0; i < arr->length; ++i ) {
 		char* prop = JS_GetStringBytes(ATOM_TO_STRING(JSID_TO_ATOM(arr->vector[i])));
@@ -777,12 +778,12 @@ PostHTTP(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		JS_GetProperty(ins.cx,o,prop,&value);
 		request_headers(req,Str("%c",prop),jsval2str(value));
 	}
-	str body = jsval2str(argv[3]);
+	str body = jsval2str(argv[4]);
 	req = request_data(req,body);
-	str callback = jsval2str(argv[4]);
+	str callback = jsval2str(argv[5]);
 	request_callback(req,ins.resp,callback);
 	send_request(req);
-	ins.resp->status = 0;
+	if (ins.resp) ins.resp->status = 0;
 	longjmp(jmp,1);
 	return JS_TRUE; // never get here
 }
