@@ -10,6 +10,8 @@
 #include "str.h"
 #include "log.h"
 #include "sockets.h"
+#include "timers.h"
+#include "hostnames.h"
 #include "server.h"
 
 #ifdef LINUX 
@@ -54,34 +56,31 @@ nodelay(int fd)
 }
 
 int
-set_timeout(int fd, size_t seconds)
+socket_timeout(int fd, size_t seconds)
 {
-	struct itimerval timeout;
-	timeout.it_interval.tv_usec = 0;
-	timeout.it_interval.tv_sec = 0;
-	timeout.it_value.tv_usec = 0;
-	timeout.it_value.tv_sec = seconds;
-	return setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(struct itimerval))
-		&& setsockopt(fd,SOL_SOCKET,SO_SNDTIMEO,&timeout,sizeof(struct itimerval));
+	timeout(seconds,0);
+	return setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,&Timeout,sizeof(Timeout))
+		&& setsockopt(fd,SOL_SOCKET,SO_SNDTIMEO,&Timeout,sizeof(Timeout));
+}
+
+int
+new_socket(int stream)
+{
+	int fd = socket(AF_INET,stream ? SOCK_STREAM : SOCK_DGRAM,0);
+	if (0 > fd) return -1;
+	return fd;
 }
 
 int
 open_socket(int  port)
 {
 	int one = 1;
-	struct sockaddr_in addr;
-	int fd = socket(AF_INET,SOCK_STREAM,0);
+	int fd = new_socket(1);
 	if (0 > fd) return -1;
 	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&one,sizeof(one));
-	memset(&addr,0,sizeof(addr));
-#ifndef LINUX
-	addr.sin_len = sizeof(struct sockaddr_in);
-#endif
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
-	addr.sin_addr.s_addr = INADDR_ANY;
+	attachTo((IPAddress)0,port);
 	notice("Bind to port %i\n",port);	
-	if (bind(fd,(struct sockaddr*)&addr,sizeof(struct sockaddr_in))) {
+	if (bind(fd,(struct sockaddr*)&Address,sizeof(Address))) {
 		error("Failed to bind to port %i\n",port);	
 		close(fd);
 		return -1;
@@ -107,9 +106,8 @@ Socket
 accept_socket(Socket sc, int fd, TLSInfo tls)
 {
 	Socket retval;
-	struct sockaddr_in saddr;
-	socklen_t slen = sizeof(struct sockaddr_in);
-	int sock = accept(fd,(struct sockaddr*)&saddr,&slen);
+	Address_len = sizeof(Address);
+	int sock = accept(fd,(struct sockaddr*)&Address,(socklen_t*)&Address_len);
 	if (sock < 1) {
 		error("[JAWAS] failed to accept socket");
 		return NULL;
@@ -117,13 +115,13 @@ accept_socket(Socket sc, int fd, TLSInfo tls)
 	nonblock(sock);
 	keepalive(sock);
 //	nodelay(sock);
-	set_timeout(sock,SOCKET_CONNECT_TIMEOUT);
+	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
 	retval = (Socket)salloc(sizeof(struct socket_cache_struct));
 	retval->tls = (tls ? open_tls(tls,sock) : NULL);
 	retval->next = sc;
 	retval->fd = sock;
-	retval->peer = saddr.sin_addr.s_addr;
-	retval->port = saddr.sin_port;
+	retval->peer = Address.sin_addr.s_addr;
+	retval->port = Address.sin_port;
 	++gsci.current;
 	++gsci.total;
 	gsci.max = max(gsci.current,gsci.max);
@@ -131,38 +129,24 @@ accept_socket(Socket sc, int fd, TLSInfo tls)
 }
 
 Socket
-connect_socket(char* host, int port)
+connect_socket(str host, int port)
 {
 	Socket retval;
 	int i;
-	struct hostent* hst = gethostbyname(host);;
-	struct sockaddr_in saddr;
-	struct in_addr **list;
-	socklen_t slen = sizeof(struct sockaddr_in);
-	struct itimerval timeout;
-	int sock = socket(AF_INET,SOCK_STREAM,0);
+	IPAddress* ipaddrs = lookup(host);
+	int sock = new_socket(1);
 	if (sock < 1) {	
 		error("[JAWAS] failed to create socket");
 		return NULL;
 	}
-	if (!hst) {
-		error("[JAWAS] failed to lookup %s",host);
-		return NULL;
-	}
-	list = (struct in_addr**)hst->h_addr_list;
 	int connected = 0; 
-	for (i = 0; list[i]; ++i) {
-		saddr.sin_port = htons(port);
-		saddr.sin_addr = *list[i];
-		saddr.sin_family = AF_INET;
-		timeout.it_interval.tv_usec = 0;
-		timeout.it_interval.tv_sec = 0;
-		timeout.it_value.tv_usec = 0;
-		timeout.it_value.tv_sec = SOCKET_CONNECT_TIMEOUT;
-		if (setitimer(0, &timeout, &timeout))
-			error("Failed to set timeout");
+	for (i = 0; ipaddrs[i]; ++i) {
+		debug("Connecting to socket %s",ipaddress(ipaddrs[i],port));
+		attachTo(ipaddrs[i],port);
+		timeout(SOCKET_CONNECT_TIMEOUT,0);
+		timer();
 		connected = 1;
-		if (connect(sock,(struct sockaddr*)&saddr,slen)) {
+		if (connect(sock,(struct sockaddr*)&Address,Address_len)) {
 			if (srv->alarm) {
 				error("[JAWAS] socket conect timeout!");
 				srv->alarm = 0;
@@ -173,19 +157,15 @@ connect_socket(char* host, int port)
 			continue;
 		}
 		srv->alarm = 0;
-		timeout.it_interval.tv_usec = 0;
-		timeout.it_interval.tv_sec = 0;
-		timeout.it_value.tv_usec = 0;
-		timeout.it_value.tv_sec = 0;
-		if (setitimer(0,&timeout,&timeout)) 
-			error("Failed to clear timeout");
+		timeout(0,0);
+		timer();
 		break;
 	}
 	if (!connected) return NULL;
 	nonblock(sock);
 //	nodelay(sock);
 	keepalive(sock);
-	set_timeout(sock,SOCKET_CONNECT_TIMEOUT);
+	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
 	retval = (Socket)salloc(sizeof(struct socket_cache_struct));
 	retval->next = NULL;
 	retval->fd = sock;
@@ -194,7 +174,7 @@ connect_socket(char* host, int port)
 	retval->tls = NULL;
 	retval->port = port;
 	retval->host = Str("%c",host);
-	retval->peer = (int)saddr.sin_addr.s_addr;
+	retval->peer = (int)Address.sin_addr.s_addr;
 	retval->closed = 0;
 	return retval;
 }
@@ -245,10 +225,7 @@ int
 write_to_socket(Socket sc,char* data, int length)
 {
 	if (sc->closed) return 0;
-	int retval = sc->tls ? 
-		write_tls(sc->tls,data,length) :
-		write(sc->fd,data,length);
-//	fprintf(stderr,"Writting %d data at %p with result %d\n",length,data,retval);
+	int retval = sc->tls ? write_tls(sc->tls,data,length) : write(sc->fd,data,length);
 	if (retval < 0) {
 		sc->closed = 1;
 		return 0;
@@ -272,11 +249,8 @@ write_chunk(Socket sc, char* data, int length)
 {
 	int retval = 0;
 	str header = Str("%h\r\n",length);
-//	fprintf(stderr,"Writing chunk %i\n",length);
 	write_to_socket(sc,header->data,header->length);
-//	fprintf(stderr,"Header length %i",header->length);
-	if (data) 
-		retval = write_to_socket(sc,data,length);
+	if (data) retval = write_to_socket(sc,data,length);
 	write_to_socket(sc,"\r\n",2);
 	return retval;
 }
@@ -290,6 +264,7 @@ write_chunked_socket(Socket sc, str buf)
 	int i, l = len(buf);
 	for (i = 0; i < l; i += MAX_WRITE_SIZE)
 		retval += write_chunk(sc,data + i,min(MAX_WRITE_SIZE,l-i));
+	free(data);
 	return retval;
 }
 
@@ -345,14 +320,20 @@ closed_socket(Socket sc, char* msg)
 }
 
 str
-socket_peer(Socket sc)
+ipaddress(IPAddress addr, int port)
 {
 	return Str("%i.%i.%i.%i:%i",
-		(0xff & sc->peer),
-		(0xff00 & sc->peer) >> 8,
-		(0xff0000 & sc->peer) >> 16,
-		(0xff000000 & sc->peer) >> 24,
-		sc->port);
+		(0xff & addr),
+		(0xff00 & addr) >> 8,
+		(0xff0000 & addr) >> 16,
+		(0xff000000 & addr) >> 24,
+		port);
+}
+
+str
+socket_peer(Socket sc)
+{
+	ipaddress(sc->peer,sc->port);
 }
 
 void
@@ -361,4 +342,26 @@ socket_notice(Socket sc, char* msg)
 	notice("Socket <%p> %s %c\n", sc, socket_peer(sc), msg);
 }
 
+void
+socket_attach(Socket sc, IPAddress peer, int port)
+{
+	sc->peer = peer;
+	sc->port = port;
+}
 
+size_t
+socket_send(Socket sc, str msg)
+{
+	attachTo(sc->peer,sc->port);
+	return sendto(sc->fd,msg->data,msg->length,0,(struct sockaddr *)&Address,sizeof(Address));
+}
+
+str
+socket_recv(Socket sc)
+{
+	str retval = blank(MAX_ALLOC_SIZE);
+	attachTo(sc->peer,sc->port);
+	Address_len = sizeof(Address);
+	retval->length = recvfrom(sc->fd, retval->data, retval->length, 0, (struct sockaddr *)&Address, (socklen_t *)&Address_len);
+	return retval;
+}

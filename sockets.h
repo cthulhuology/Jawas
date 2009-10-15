@@ -11,6 +11,7 @@
 #include "str.h"
 #include "tls.h"
 #include "files.h"
+#include "hostnames.h"
 
 typedef struct socket_cache_struct* Socket;
 struct socket_cache_struct {
@@ -39,7 +40,7 @@ int nonblock(int fd);
 
 int open_socket(int port);
 Socket accept_socket(Socket sc, int fd, TLSInfo tls);
-Socket connect_socket(char* host, int port);
+Socket connect_socket(str host, int port);
 Socket resume_socket(Socket sc);
 int send_contents(Socket sc, str buf, int chunked);
 int send_raw_contents(Socket sc, File fc, int off, int chunked);
@@ -52,5 +53,11 @@ Socket close_socket(Socket sc);
 int closed_socket(Socket sc, char* msg);
 void socket_notice(Socket sc, char* msg);
 str socket_peer(Socket sc);
+int socket_timeout(int fd, size_t seconds);
+
+void socket_attach(Socket sc, IPAddress peer, int port);
+size_t socket_send(Socket sc, str msg);
+str socket_recv(Socket sc);
+str ipaddress(IPAddress addr, int port);
 
 #endif

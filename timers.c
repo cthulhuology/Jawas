@@ -116,3 +116,19 @@ init_timers()
 		}
 	}
 }
+
+struct itimerval Timeout;
+void
+timeout(int seconds, int useconds) {
+	Timeout.it_interval.tv_usec = 0;
+	Timeout.it_interval.tv_sec = 0;
+	Timeout.it_value.tv_usec = useconds;
+	Timeout.it_value.tv_sec = seconds;
+}
+
+void
+timer()
+{
+	if (setitimer(0, &Timeout, &Timeout))
+		error("Failed to set timeout");
+}

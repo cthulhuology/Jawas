@@ -26,4 +26,8 @@ void cancel_timer(Timers t);
 void update_timers();
 void init_timers();
 
+extern struct itimerval Timeout;
+void timeout(int seconds, int useconds);
+void timer();
+
 #endif

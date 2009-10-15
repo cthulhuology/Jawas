@@ -42,6 +42,7 @@ facebook.c \
 files.c \
 forms.c \
 headers.c \
+hostnames.c \
 image.c \
 index.c \
 json.c \
