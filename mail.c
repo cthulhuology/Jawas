@@ -28,7 +28,7 @@ mail(str to, str from, str subject, str body)
 	str sb = Str("Subject: %s\r\n", subject);
 	str ct = Str("Content-Type: text/plain\r\n");
 
-	Socket sc = connect_socket(MAILHOST,25);
+	Socket sc = connect_socket(Str(MAILHOST),25,0);
 	if (! sc) {
 		error("Failed to connnect to STMP server");
 		return 1;

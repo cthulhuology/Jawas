@@ -32,6 +32,7 @@ struct request_struct {
 	int written;
 	int length;
 	int retries;
+	int ssl;
 };
 
 typedef struct request_info_struct* RequestInfo;
@@ -52,12 +53,14 @@ Request request_file(Request req, File fc);
 Request open_request(Socket sc);
 Request process_request(Request req);
 
+void use_ssl(Request req);
+
 int send_request(Request req);
 int request_content_length(Request req);
 void request_callback(Request req, Response resp, str cb);
 
 str parse_method();
-str parse_host();
+str parse_host(Request req, str host);
 str parse_path();
 
 RequestInfo start_request(RequestInfo ri, Request req);

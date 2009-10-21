@@ -78,18 +78,7 @@ load(str filename)
 void
 unload(int fd, str filename)
 {
-	Timers t;
 	server_scratch();
-	for (t = srv->timers; t; t = t->next) {
-		char* fname = dump(filename);
-		if (!strcmp(fname,t->script->name)) {
-			free(fname);
-			reopen_file(t->script);
-			old_scratch();
-			return;
-		}
-		free(fname);
-	}
 	srv->fc = close_file(srv->fc,filename);
 	old_scratch();
 }
@@ -102,7 +91,6 @@ resume(Socket sc)
 	srv->ri = start_request(srv->ri,req);
 	add_read_socket(srv->sc->fd,req);
 	reset_socket(srv->sc);
-	socket_notice(srv->sc,"Reset");
 }
 
 void
@@ -111,7 +99,6 @@ incoming(int fd)
 	Scratch scratch = new_scratch(NULL);
 	set_scratch(scratch);
 	srv->sc = accept_socket(srv->sc,fd,(srv->http_sock == fd ? NULL : srv->tls));
-	socket_notice(srv->sc,"Connected");
 	resume(srv->sc);
 }
 
@@ -121,10 +108,8 @@ disconnect()
 	Socket tmp,last;
 	last = NULL;
 	server_scratch();
-	socket_notice(Sock,"Closing");
 	for (tmp = srv->sc; tmp; tmp = tmp->next) {
 		if (tmp == Sock)  {
-			socket_notice(Sock,"Disconnected");
 			last ? 
 				(last->next = close_socket(Sock)) :
 				(srv->sc = close_socket(Sock));
@@ -153,7 +138,7 @@ read_request()
 		Sock->buf = NULL;
 		Resp = new_response(Req);
 		parse_path(Req);	
-		str host = parse_host(Req);
+		str host = parse_host(Req,find_header(Req->headers,Str("Host")));
 		str method = parse_method(Req);
 		Resp->status = host && method ?
 			dispatch_method(method) :
@@ -207,7 +192,7 @@ write_response()
 	if (send_response(Resp)) {
 		old_scratch();
 		add_write_socket(Sock->fd,Resp);
-		fprintf(stderr,"Continuing\n");
+	//	fprintf(stderr,"Continuing\n");
 		return;
 	}
 	old_scratch();
@@ -258,11 +243,10 @@ serve(int port, int tls_port)
 	srv->http_sock = open_socket(port);
 	srv->tls_sock = open_socket(tls_port);
 	srv->tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
-	srv->usage = new_usage(1);
+	srv->tls_client = client_tls("certs");
 	srv->ec = NULL;
 	srv->fc = NULL;
 	srv->sc = NULL;
-	srv->timers = NULL;
 	srv->time = time(NULL);
 	srv->numevents = 2;
 	monitor_socket(srv->http_sock);
@@ -274,7 +258,6 @@ serve(int port, int tls_port)
 	file_signal_handlers();
 #endif
 	init_strings();
-	init_timers();
 }
 
 int
@@ -311,11 +294,9 @@ run()
 	srv->numevents = 2;
 	server_scratch();
 	set_SockReqResp(NULL,NULL,NULL);
-	update_timers();
 	ec = poll_events(ec,events);
 	for (srv->ec = NULL; ec; ec = ec->next) {
 		server_scratch();
-		start_usage(srv->usage);
 		set_SockReqResp(NULL,NULL,NULL);
 		if (ec->fd == 0) continue;
 		if (external_port(ec->fd)) {
@@ -354,7 +335,6 @@ run()
 		default:
 			debug("UNKNOWN EVENT");
 		}
-		stop_usage(srv->usage);
 	}
 	if (srv->done) {
 		stop();

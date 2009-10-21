@@ -63,7 +63,7 @@ smpp_transmitter()
 		0,		// type of number
 		0,		// numbering plan identity 
 		0);		// address range
-	Socket retval = connect_socket(SMPP_HOST,SMPP_PORT); 
+	Socket retval = connect_socket(SMPP_HOST,SMPP_PORT,0);
 	write_socket(retval,msg->data,msg->len);
 	return retval;
 }
@@ -71,7 +71,7 @@ smpp_transmitter()
 Socket
 smpp_reciever()
 {
-	Socket retval = connect_socket(SMPP_HOST,SMPP_PORT); 
+	Socket retval = connect_socket(SMPP_HOST,SMPP_PORT,0);
 	if (! retval) return NULL;
 	str msg = SMPP(SMPP_HEADER "v16v9v13bbbv41", 
 		0, 		// command length

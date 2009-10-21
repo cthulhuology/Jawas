@@ -243,10 +243,6 @@ sms_callback ()
 	str date = dequote(skip_fields(sms_line,2));
 	str body = read_ok();
 	debug("Received Number: %s Date: %s Body: [%s]",number,date,body);
-	Timers t = add_timer(Str("sms/incoming.js"),0);
-	set_timer_value(t,Str("number"),number);
-	set_timer_value(t,Str("date"),date);
-	set_timer_value(t,Str("body"),body);
 	return 0;
 }
 

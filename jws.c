@@ -22,7 +22,6 @@
 #include "jsobj.h"
 #include "mail.h"
 #include "amazon.h"
-#include "wand.h"
 #include "facebook.h"
 #include "timers.h"
 #include "database.h"
@@ -30,11 +29,12 @@
 #include "json.h"
 #include "sms.h"
 #include "auth.h"
+#include "usage.h"
 
 JSInstance ins;
 jmp_buf jmp;
 
-void EvalFile(File fc);
+void EvalJSFile(File fc);
 
 str
 js2str(JSContext* cx, jsval x)
@@ -115,14 +115,14 @@ Include(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		return JS_TRUE;
 	}
 	s = jsval2str(argv[0]);
-	filename = file_path(Req->host,Str("/%s",s));
+	filename = file_path(Req ? Req->host : Str("localhost"),Str("/%s",s));
 	fc = load(filename);
 	if (!fc) {
 		error("Failed to open file %s",filename);
 		*rval = FAILURE;
 		return JS_TRUE;
 	}
-	EvalFile(fc);
+	EvalJSFile(fc);
 	*rval = SUCCESS;
 	return JS_TRUE;
 }
@@ -138,7 +138,7 @@ Use(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		return JS_TRUE;
 	}
 	s = jsval2str(argv[0]);
-	filename = file_path(Req->host,Str("/%s",s));
+	filename = file_path(Req ? Req->host : Str("localhost"),Str("/%s",s));
 	fc = load(filename);
 	if (!fc) {
 		error("Failed to open file %s",filename);
@@ -286,116 +286,6 @@ Decode(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 }
 
 static JSBool
-Status(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	if (argc != 1) {
-		error("Usage: status(302)");
-		*rval = FAILURE;
-		return JS_TRUE;
-	}
-	Resp->status = str_int(jsval2str(argv[0]));
-	longjmp(jmp,1);
-	return JS_TRUE; // never get here
-}
-
-static JSBool
-Location(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	HeaderSetter(location)
-}
-
-static JSBool
-Expires(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	HeaderSetter(expires)
-}
-
-static JSBool
-ContentType(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	HeaderSetter(content_type)
-}
-
-static JSBool
-CacheControl(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	HeaderSetter(cache_control)
-}
-
-static JSBool
-Connection(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	HeaderSetter(connection)
-}
-
-static JSBool
-ClientInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	Socket sc;
-	ins.buffer = append(ins.buffer,Str("<table>"));
-	ins.buffer = append(ins.buffer,Str("<tr><td>Max Clients:</td><td> %i</td></tr>",gsci.max));
-	ins.buffer = append(ins.buffer,Str("<tr><td>Current Clients:</td><td> %i</td></tr>",gsci.current));
-	ins.buffer = append(ins.buffer,Str("</table><hr /><ol>"));
-	for (sc = ins.srv->sc; sc; sc = sc->next) 
-		ins.buffer = append(ins.buffer,Str("<li>%i.%i.%i.%i:%i</li>",
-			(0xff & sc->peer),
-			(0xff00 & sc->peer) >> 8,
-			(0xff0000 & sc->peer) >> 16,
-			(0xff000000 & sc->peer) >> 24,
-			sc->port));
-	ins.buffer = append(ins.buffer,Str("</ol>"));
-	return JS_TRUE;
-}
-
-static JSBool
-HitInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	return JS_TRUE;
-}
-
-static JSBool
-MemInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-		
-	ins.buffer = append(ins.buffer,Str("<table>"));
-	ins.buffer = append(ins.buffer,Str("<tr><td>Base Address:</td><td> %p</td></tr>",gpi.baseaddr));
-	ins.buffer = append(ins.buffer,Str("<tr><td>Free Memory:</td><td> %p</td></tr>",free_memory()));
-	ins.buffer = append(ins.buffer,Str("<tr><td>Allocated Memory:</td><td> %p</td></tr>",alloced_memory()));
-	ins.buffer = append(ins.buffer,Str("<tr><td>Pages Allocated:</td><td> %i</td></tr>",gpi.allocated));
-	ins.buffer = append(ins.buffer,Str("<tr><td>Scratch Pages Allocated:</td><td> %i</td></tr>",gsi.allocated));
-	ins.buffer = append(ins.buffer,Str("<tr><td>Freed Pages:</td><td> %i</td></tr>",gpi.frees));
-	ins.buffer = append(ins.buffer,Str("<tr><td>Freed Scratch Pages:</td><td> %i</td></tr>",gsi.frees));
-	ins.buffer = append(ins.buffer,Str("</table>"));
-	return JS_TRUE;
-}
-
-static JSBool
-FileInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	File fc;
-	int total = 0;
-	ins.buffer = append(ins.buffer,Str("<table><tr><th>Name</th><th>Hits</th><th>Size</th></tr>"));
-	for (fc = ins.srv->fc; fc; fc = fc->next)  {
-		ins.buffer = append(ins.buffer,Str("<tr><td>%c</td><td>%i</td><td>%i</td></tr>",&fc->name[len(cwd)],fc->count,fc->st.st_size));
-		total += fc->st.st_size;
-	}
-	ins.buffer = append(ins.buffer,Str("<tr><td colspan=2>Total:</td><td>%i</td></tr></table>",total));
-	return JS_TRUE;
-}
-
-static JSBool
-RequestInfoTable(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	RequestInfo ri;
-	ins.buffer = append(ins.buffer,Str("<table><tr><th>Request</th><th># Hits</th><th>Avg Time</th><th>PPM</th></tr>"));
-	for (ri  = ins.srv->ri; ri; ri = ri->next) {
-		ins.buffer = append(ins.buffer, Str("<tr><td>http://%s%s</td><td>%i</td><td>%i&mu;s</td><td>%i</td></tr>",ri->host,ri->path,ri->hits,ri->time, 60000000 / ri->time));
-	}
-	ins.buffer = append(ins.buffer,Str("</table>"));
-	return JS_TRUE;
-}
-
-static JSBool
 JSON(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	str jsn = json(cx,obj);
@@ -497,65 +387,6 @@ Mail(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 }
 
 static JSBool
-RunScript(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	if (argc != 4) {
-		error("Usage: run(host,script,when,data)");
-		*rval = FAILURE;
-		return JS_TRUE;
-	}
-	int i;
-	str host = jsval2str(argv[0]);
-	str script = file_path(host,Str("/%s",jsval2str(argv[1])));
-	int when = str_int(jsval2str(argv[2]));
-	JSObject* o = JSVAL_TO_OBJECT(argv[3]);	
-	JSIdArray* arr = JS_Enumerate(ins.cx, o);
-	Timers t = add_timer(script,when);
-	for (i = 0; i < arr->length; ++i ) {
-		char* prop = JS_GetStringBytes(ATOM_TO_STRING(JSID_TO_ATOM(arr->vector[i])));
-		jsval value;
-		JS_GetProperty(ins.cx,o,prop,&value);
-		set_timer_value(t,Str("%c",prop),jsval2str(value));
-	}
-	*rval = SUCCESS;
-	return JS_TRUE;
-}
-	
-static JSBool
-StopScript(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	if (argc != 1) {
-		error("Usage: stop(timer_id)");
-		*rval = FAILURE;
-		return JS_TRUE;
-	}
-	str tid = jsval2str(argv[0]);
-	Timers t = str_obj(tid,Timers);
-	cancel_timer(t);
-	*rval = SUCCESS;
-	return JS_TRUE;
-}
-	
-static JSBool
-ListScripts(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	if (argc != 0) {
-		error("Usage: running()");
-		*rval = EMPTY;
-		return JS_TRUE;
-	}
-	JSObject* arr =  JS_NewArrayObject(cx,0,NULL);
-	int i = 0;
-	Timers t;
-	for (t = ins.srv->timers; t; t = t->next) 
-		if (JS_DefineElement(cx,arr,i,str2jsval(Str("%p",t)),NULL,NULL,JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT))
-			++i;
-	*rval = OBJECT_TO_JSVAL(arr);
-	return JS_TRUE;
-}
-	
-
-static JSBool
 S3Auth(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
 	if (argc != 2) {
@@ -588,85 +419,6 @@ S3Put(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 	ins.resp->status = 0;
 	longjmp(jmp,1);
 	return JS_TRUE; // never get here
-}
-
-static JSBool
-ResizeImage(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	if (argc != 3) {
-		error("Usage: resize_image(filename,width,height)");
-		*rval = EMPTY;
-		return JS_TRUE;
-	}
-	str file = jsval2str(argv[0]);
-	str width = jsval2str(argv[1]);
-	str height = jsval2str(argv[2]);
-	str retval = resize_image(file,width,height);
-	*rval = str2jsval(retval);
-	return JS_TRUE;
-}
-
-static JSBool
-RotateImage(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	if (argc != 3) {
-		error("Usage: resize_image(filename,width,height)");
-		*rval = EMPTY;
-		return JS_TRUE;
-	}
-	str file = jsval2str(argv[0]);
-	str degrees = jsval2str(argv[1]);
-	str color = jsval2str(argv[2]);
-	str retval = rotate_image(file,degrees,color);
-	*rval = str2jsval(retval);
-	return JS_TRUE;
-}
-
-static JSBool
-CropImage(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	if (argc != 3) {
-		error("Usage: crop_image(filename,width,height)");
-		*rval = EMPTY;
-		return JS_TRUE;
-	}
-	str file = jsval2str(argv[0]);
-	str width = jsval2str(argv[1]);
-	str height = jsval2str(argv[2]);
-	str retval = crop_image(file,width,height);
-	*rval = str2jsval(retval);
-	return JS_TRUE;
-}
-
-static JSBool
-ImageInfo(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
-{
-	int i;
-	str value;
-	JSObject* o = JS_NewObject(cx,NULL,NULL,NULL);
-	if (argc != 1) {
-		error("Usage: image_info(filename)");
-		*rval = EMPTY;
-		return JS_TRUE;	
-	}
-	str filename = jsval2str(argv[0]);
-	char* fname = dump(filename);
-	char** props = get_image_properties(fname);
-	free(fname);
-	if (! props) {
-		error("image_info failed to read image properties");
-		*rval = EMPTY;
-		return JS_TRUE;;
-	}
-	for (i = 0; props[i*2]; ++i) {
-		if (props[i*2+1])
-			value = copy(props[i*2+1],strlen(props[i*2+1]));
-		else
-			value = NULL;
-		if (value) JS_DefineProperty(cx,o,props[i*2]+5,str2jsval(value),NULL,NULL, JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT);
-	}
-	*rval = OBJECT_TO_JSVAL(o);
-	return JS_TRUE;
 }
 
 static JSBool
@@ -758,18 +510,19 @@ SendSMS(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 static JSBool
 PostHTTP(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 {
-	if (argc != 5) {
-		error("Usage: post(host,path,headers,data,callback)");
+	if (argc != 6) {
+		error("Usage: post(proto,host,path,headers,data,callback)");
 		*rval = EMPTY;
 		return JS_TRUE;
 	}
 	int i;
-	str host = jsval2str(argv[0]);
-	str path = jsval2str(argv[1]);
+	str proto = jsval2str(argv[0]);
+	str host = jsval2str(argv[1]);
+	str path = jsval2str(argv[2]);
 	debug("Posting to %s/%s",host,path);
 	Request req = new_request(Str("POST"),host,path);
-	
-	JSObject* o = JSVAL_TO_OBJECT(argv[2]);	
+	if (icmp(Str("https"),proto)) use_ssl(req);
+	JSObject* o = JSVAL_TO_OBJECT(argv[3]);
 	JSIdArray* arr = JS_Enumerate(ins.cx, o);
 	for (i = 0; i < arr->length; ++i ) {
 		char* prop = JS_GetStringBytes(ATOM_TO_STRING(JSID_TO_ATOM(arr->vector[i])));
@@ -777,12 +530,12 @@ PostHTTP(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 		JS_GetProperty(ins.cx,o,prop,&value);
 		request_headers(req,Str("%c",prop),jsval2str(value));
 	}
-	str body = jsval2str(argv[3]);
+	str body = jsval2str(argv[4]);
 	req = request_data(req,body);
-	str callback = jsval2str(argv[4]);
+	str callback = jsval2str(argv[5]);
 	request_callback(req,ins.resp,callback);
 	send_request(req);
-	ins.resp->status = 0;
+	if (ins.resp) ins.resp->status = 0;
 	longjmp(jmp,1);
 	return JS_TRUE; // never get here
 }
@@ -862,7 +615,7 @@ static JSFunctionSpec obj_functions[] = {
 	{0},
 };
 
-static JSFunctionSpec glob_functions[] = {
+static JSFunctionSpec js_glob_functions[] = {
 	{"print", Print, 0},
 	{"debug", Debug, 0},
 	{"error", Error, 0},
@@ -874,30 +627,12 @@ static JSFunctionSpec glob_functions[] = {
 	{"param", Param, 0 },
 	{"now", Now, 0 },
 	{"query", Query, 0 },
+	{"guid", GetGuid, 0 },
 	{"encode", Encode, 0 },
 	{"decode", Decode, 0 },
-	{"status", Status, 0},
-	{"location", Location, 0},
-	{"expires", Expires, 0},
-	{"content_type", ContentType, 0},
-	{"cache_control", CacheControl, 0},
-	{"connection", Connection, 0},
-	{"hit_info", HitInfo, 0},
-	{"client_info", ClientInfo, 0},
-	{"mem_info", MemInfo, 0},
-	{"file_info", FileInfo, 0},
-	{"request_info", RequestInfoTable, 0},
-	{"guid", GetGuid, 0 },
 	{"mail", Mail, 0 },
-	{"run", RunScript, 0 },
-	{"stop", StopScript, 0 },
-	{"running", ListScripts, 0 },
 	{"s3_auth", S3Auth, 0 }, 
 	{"s3_put",S3Put, 0},
-	{"image_info",ImageInfo, 0},
-	{"resize_image",ResizeImage, 0},
-	{"rotate_image",RotateImage, 0},
-	{"crop_image",CropImage, 0},
 	{"facebook_auth",FacebookAuth, 0},
 	{"facebook_login",FacebookLogin, 0},
 	{"facebook_method",FacebookMethod, 0},
@@ -995,7 +730,7 @@ InitJS(JSInstance* i, Server srv, Headers data)
 	if (!i->cx) return 1;
 	i->glob = JS_NewObject(i->cx, &global_class, NULL, NULL);
 	i->builtins = JS_InitStandardClasses(i->cx, i->glob);
-	if (!JS_DefineFunctions(i->cx, i->glob, glob_functions)) return 1;
+	if (!JS_DefineFunctions(i->cx, i->glob, js_glob_functions)) return 1;
 	i->obj_proto = OBJ_GET_PROTO(i->cx, i->glob);
 	if (!JS_DefineFunctions(i->cx, i->obj_proto, obj_functions)) return 1; 
 	i->database = new_database();
@@ -1015,7 +750,7 @@ DestroyJS(JSInstance* i)
 }
 
 void
-EvalFile(File fc)
+EvalJSFile(File fc)
 {
 	jsval retval;
 	if (!fc->parsed) parse_file(fc);
@@ -1033,16 +768,19 @@ EvalFile(File fc)
 }
 
 int
-run_script(File fc, Headers data)
+run_js_script(File fc, Headers data)
 {
 	jsval rval;
+	Usage u = new_usage();
+	debug("Running Script %c",fc->name);
+	start_usage(u);
 	if (InitJS(&ins,srv,data)) {
 		error("Failed to initialize Javascript");
 		return 1;
 	}
 	if (!setjmp(jmp)) {
 		if (Resp)
-			EvalFile(fc);
+			EvalJSFile(fc);
 		else 
 			if (JS_FALSE == JS_EvaluateScript(ins.cx, ins.glob, fc->data, fc->st.st_size, "jws.c", 1, &rval)) 
 				debug("Failed to evaluate script %c",fc->name);
@@ -1051,13 +789,16 @@ run_script(File fc, Headers data)
 		error("Failed to destroy Javascript");
 		return 1;
 	}
+	stop_usage(u);
+	debug("Script Run Time");
+	dump_usage(u);
 	return 0;
 }
 
 int
 jws_handler(File fc)
 {
-	if (run_script(fc,NULL)) goto error;
+	if (run_js_script(fc,NULL)) goto error;
 	if (Resp) Resp->contents = ins.buffer;
 	return Resp ? Resp->status : 0;
 error:

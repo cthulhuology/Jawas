@@ -285,8 +285,8 @@ new_str(const char* fmt, va_list args)
 str
 name_field(str line)
 {
-	int i, l = len(line);
 	if (!line) return NULL;
+	int i, l = len(line);
 	for (i = 0; i < l && at(line,i) != ':'; ++i);
 	return i < l ? from(line, 0, i) : line;
 }
