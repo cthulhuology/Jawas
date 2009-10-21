@@ -34,7 +34,7 @@ get_method()
 	File fc = NULL;
 	str filename;
 	if (! Req || !Req->host || !Req->path) return error_handler(404);
-	debug("GET %s%s",Req->host,Req->path);
+	notice("GET %s%s from %s",Req->host,Req->path,socket_peer(Req->sc));
 	filename = file_path(Req->host,Req->path);
 	fc = is_directory(filename) ? 
 		load(get_index(filename)) :
@@ -46,9 +46,7 @@ int
 post_method()
 {
 	str enctype = find_header(Req->headers,Str("Content-Type"));
-	debug("POST %s%s %s",Req->host,Req->path,enctype);
-//	debug("Enctype: %s (%p,%i)", enctype, enctype->data,enctype->len);
-//	debug("multipart? %c", (ncmp(enctype,Str("multipart/form-data"),19) ? "yes" : "no"));
+	notice("POST %s%s %s from %s",Req->host,Req->path,enctype, socket_peer(Req->sc));
 	Req->query_vars = enctype && ncmp(enctype,Str("multipart/form-data"),19) ?
 			parse_multipart_body(Req->query_vars,enctype) :
 		enctype && ncmp(enctype,Str("text/json"),9) ?
@@ -67,7 +65,6 @@ int
 dispatch_method(str method)
 {
 	int i;
-//	debug("Method is %s",method);
 	for (i = 0; gdispatch[i].name; ++i ) 
 		if (gdispatch[i].len == len(method) && !strncasecmp(gdispatch[i].name,method->data,gdispatch[i].len)) 
 			return gdispatch[i].handler();

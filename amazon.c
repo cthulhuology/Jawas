@@ -15,7 +15,6 @@
 #include "server.h"
 #include "requests.h"
 #include "events.h"
-#include "wand.h"
 #include "auth.h"
 #include "amazon.h"
 

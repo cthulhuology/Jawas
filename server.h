@@ -26,12 +26,10 @@ struct server_struct {
 	TLSInfo tls;
 	TLSInfo tls_client;
 	Scratch scratch;
-	Timers timers;
 	time_t time;
 	int numevents;
 	int done;
 	RequestInfo ri;
-	Usage usage;
 	Event event;	// current event;
 	Socket sock;	// current socket;
 	Request req;	// current request

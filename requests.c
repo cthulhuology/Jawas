@@ -21,9 +21,9 @@ new_request(str method, str host, str path)
 	Request retval = (Request)salloc(sizeof(struct request_struct));
 	if (retval) {
 		retval->method = clone(method);
-		retval->host = name_field(host);	
-		int port = str_int(skip_fields(host,0));	
-		retval->port = port ? port : 80;
+		retval->host = NULL;
+		retval->port = 0;
+		parse_host(retval,host);
 		retval->path = clone(path);
 		retval->sc = NULL;
 		retval->usage = new_usage(0);
@@ -123,15 +123,17 @@ use_ssl(Request req)
 }
 
 str
-parse_host()
+parse_host(Request req, str host)
 {
-	if (!Req || !Req->headers) return 0;
-	str host = find_header(Req->headers,Str("Host"));
-	if (! host && Sock->host) host = Sock->host;
-	if (! host) return NULL;
-	if (! Sock->host) Sock->host = host;
-	Req->host = host;
-	return Req->host;
+	if (!req) return NULL;
+	if (! host) {
+		req->port = 0;
+		return req->host = NULL;
+	}
+	req->host = name_field(host);
+	int port = str_int(skip_fields(host,0));
+	req->port = port ? port : 80;
+	return req->host;
 }
 
 str
@@ -176,6 +178,7 @@ RequestInfo
 end_request(RequestInfo ri, Request req) {
 	RequestInfo tmp;
 	stop_usage(req->usage);
+	debug("Request %s:%i%s",req->host,req->port,req->path);
 	dump_usage(req->usage);
 	for (tmp = ri; tmp; tmp = tmp->next) {
 		if(cmp(tmp->host,req->host))
@@ -200,7 +203,7 @@ int
 send_request(Request req)
 {
 	if (! req->sc ) {
-		req->sc = connect_socket(req->host,req->port);
+		req->sc = connect_socket(req->host,req->port,0);
 		if (! req->sc) {
 			error("Failed to connect to %s:%i\n",req->host,req->port);
 			return 0;

@@ -38,7 +38,9 @@ extern SocketInfo gsci;
 void socket_signal_handlers();
 int nonblock(int fd);
 
+int new_socket(int stream);
 int open_socket(int port);
+Socket create_socket(int fd, TLSInfo tls, Socket sc);
 Socket accept_socket(Socket sc, int fd, TLSInfo tls);
 Socket connect_socket(str host, int port, int ssl);
 Socket resume_socket(Socket sc);
@@ -58,6 +60,5 @@ int socket_timeout(int fd, size_t seconds);
 void socket_attach(Socket sc, IPAddress peer, int port);
 size_t socket_send(Socket sc, str msg);
 str socket_recv(Socket sc);
-str ipaddress(IPAddress addr, int port);
 
 #endif

@@ -40,11 +40,8 @@ hex(str data)
         int i;
         str retval = NULL;
         for (i = 0; i < data->length; ++i) {
-//		fprintf(stderr, "data->data[%i] = %x",i,0x0ff & (data->data[i]));
 		retval = append(retval,Str("%h%h", (0x0f0 & data->data[i]) >> 4, 0x0f & data->data[i]));
-	//	debug("Retval is [%s]",retval);
         }
-//	debug("HEX is %s",retval);
         return retval;
 }
 

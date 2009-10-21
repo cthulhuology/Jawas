@@ -9,6 +9,7 @@
 #include "alloc.h"
 #include "log.h"
 #include "database.h"
+#include "usage.h"
 
 Database db;
 
@@ -29,7 +30,11 @@ query(str q)
 	if (db->res) reset();
 	char* qry = dump(q);
 	dblog("%s",q);
+	Usage u = new_usage();
+	start_usage(u);
 	db->res = PQexec(db->conn,qry);
+	stop_usage(u);
+	dump_usage(u);
 	free(qry);
 	switch(PQresultStatus(db->res)) {
 		case PGRES_EMPTY_QUERY:

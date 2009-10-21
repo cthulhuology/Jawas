@@ -14,5 +14,6 @@ extern size_t Address_len;
 
 IPAddress* lookup(str host);
 int attachTo(IPAddress addr, int port);
+str ipaddress(IPAddress addr, int port);
 
 #endif

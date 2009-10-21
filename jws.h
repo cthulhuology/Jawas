@@ -31,14 +31,10 @@ struct js_instance_struct {
 extern JSInstance ins;
 
 int jws_handler(File fc);
-int run_script(File fc, Headers data);
+int run_js_script(File fc, Headers data);
 
 int InitJS(JSInstance* i, Server srv, Headers data);
 int DestroyJS(JSInstance* i);
-
-#define HeaderSetter(func) \
-	func(ins.resp->headers,JS_GetStringBytes(JS_ValueToString(cx,argv[0])));\
-	return JS_TRUE; 
 
 #define EMPTY OBJECT_TO_JSVAL(NULL)
 
@@ -52,6 +48,3 @@ jsval str2js(JSContext* cx, str x);
 #define FAILURE BOOLEAN_TO_JSVAL(JS_TRUE)
 
 int process_callback(str cb, Headers headers);
-
-// Javascript Functions
-

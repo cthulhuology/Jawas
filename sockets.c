@@ -19,6 +19,9 @@
 	extern void remove_epoll(int fd);
 #endif
 
+#define STREAM 1
+#define PACKET 0
+
 SocketInfo gsci = {0,0,0};
 
 void
@@ -67,29 +70,40 @@ socket_timeout(int fd, size_t seconds)
 int
 new_socket(int stream)
 {
+	int one = 1;
 	int fd = socket(AF_INET,stream ? SOCK_STREAM : SOCK_DGRAM,0);
-	if (0 > fd) return -1;
+	if (0 > fd) return 0;
+	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&one,sizeof(one));
+	return fd;
+}
+
+int
+bind_socket(int fd, IPAddress addr, int port)
+{
+	attachTo(addr,port);
+	if (bind(fd,(struct sockaddr*)&Address,sizeof(Address))) {
+		error("Failed to bind to port %i\n",port);	
+		close(fd);
+		return 0;
+	}
+	return fd;
+}
+
+int
+listen_socket(int fd) {
+	if (listen(fd,128)) { // See man page on listen
+		close(fd);
+		return 0;
+	}
 	return fd;
 }
 
 int
 open_socket(int  port)
 {
-	int one = 1;
-	int fd = new_socket(1);
-	if (0 > fd) return -1;
-	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&one,sizeof(one));
-	attachTo((IPAddress)0,port);
-	notice("Bind to port %i\n",port);	
-	if (bind(fd,(struct sockaddr*)&Address,sizeof(Address))) {
-		error("Failed to bind to port %i\n",port);	
-		close(fd);
-		return -1;
-	}
-	if (listen(fd,128)) { // See man page on listen
-		close(fd);
-		return -1;
-	}
+	int fd = new_socket(STREAM);
+	if (!bind_socket(fd,(IPAddress)0,port)) error("Failed to bind to port %i",port);
+	if (!listen_socket(fd)) error("Failed to listen to port %i",port);
 	return fd;
 }
 
@@ -104,23 +118,12 @@ resume_socket(Socket sc)
 }
 
 Socket
-accept_socket(Socket sc, int fd, TLSInfo tls)
+create_socket(int fd, TLSInfo tls, Socket sc)
 {
-	Socket retval;
-	Address_len = sizeof(Address);
-	int sock = accept(fd,(struct sockaddr*)&Address,(socklen_t*)&Address_len);
-	if (sock < 1) {
-		error("[JAWAS] failed to accept socket");
-		return NULL;
-	}
-	nonblock(sock);
-	keepalive(sock);
-//	nodelay(sock);
-	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
-	retval = (Socket)salloc(sizeof(struct socket_cache_struct));
-	retval->tls = (tls ? open_tls(tls,sock) : NULL);
+	Socket retval = (Socket)salloc(sizeof(struct socket_cache_struct));
+	retval->tls = (tls ? open_tls(tls,fd) : NULL);
 	retval->next = sc;
-	retval->fd = sock;
+	retval->fd = fd;
 	retval->peer = Address.sin_addr.s_addr;
 	retval->port = Address.sin_port;
 	++gsci.current;
@@ -130,13 +133,28 @@ accept_socket(Socket sc, int fd, TLSInfo tls)
 }
 
 Socket
-connect_socket(str host, int port,int ssl)
+accept_socket(Socket sc, int fd, TLSInfo tls)
+{
+	Address_len = sizeof(Address);
+	int sock = accept(fd,(struct sockaddr*)&Address,(socklen_t*)&Address_len);
+	if (sock < 1) {
+		error("[JAWAS] failed to accept socket");
+		return NULL;
+	}
+	nonblock(sock);
+	keepalive(sock);
+	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
+	return create_socket(sock,tls,sc);
+}
+
+Socket
+connect_socket(str host, int port, int ssl)
 {
 	Socket retval;
 	int i;
 	IPAddress* ipaddrs = lookup(host);
 	int sock = new_socket(1);
-	if (sock < 1) {	
+	if (!sock) {
 		error("[JAWAS] failed to create socket");
 		return NULL;
 	}
@@ -164,30 +182,15 @@ connect_socket(str host, int port,int ssl)
 	}
 	if (!connected) return NULL;
 //	nonblock(sock);
-//	nodelay(sock);
 	keepalive(sock);
 	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
-	retval = (Socket)salloc(sizeof(struct socket_cache_struct));
-	retval->next = NULL;
-	retval->fd = sock;
-	retval->scratch = new_scratch(NULL);
-	retval->buf = NULL;
-	retval->port = port;
+	retval = create_socket(sock,ssl ? srv->tls_client :NULL,NULL);
 	retval->host = Str("%c",host);
-	retval->peer = (int)Address.sin_addr.s_addr;
-	retval->closed = 0;
-	if (ssl) {
-		retval->tls = open_tls(srv->tls_client,sock);
-		if (connect_tls(retval->tls)) {
+	retval->peer = Address.sin_addr.s_addr;
+	retval->port = port;
+	if (ssl && (connect_tls(retval->tls) ||check_tls(retval->tls))) {
 			error("[SSL] Failed to make secure connection");
 			return NULL;
-		}
-		if (check_tls(retval->tls)) {
-			error("[SSL] Failed to check remote certificates");
-			return NULL;
-		}
-	} else {
-		retval->tls = NULL;
 	}
 	return retval;
 }
@@ -271,13 +274,11 @@ write_chunk(Socket sc, char* data, int length)
 int
 write_chunked_socket(Socket sc, str buf)
 {
-	int retval = 0;
-	if (! sc) return 0;
-	char* data = dump(buf);
-	int i, l = len(buf);
-	for (i = 0; i < l; i += MAX_WRITE_SIZE)
-		retval += write_chunk(sc,data + i,min(MAX_WRITE_SIZE,l-i));
-	free(data);
+	if (!sc) return 0;
+	int i, retval = 0;
+	for (str t = buf; t; t = t->next)
+		for (i = 0; i < t->length; i += MAX_WRITE_SIZE)
+			retval += write_chunk(sc,t->data + i,min(MAX_WRITE_SIZE,t->length - i));
 	return retval;
 }
 
@@ -285,7 +286,6 @@ int
 send_contents(Socket sc, str buf, int chunked)
 {
 	if (!sc || !buf) return 0;
-//	fprintf(stderr," Writing chunked? %i\n",chunked);
 	return chunked ? 
 		write_chunked_socket(sc,buf) : 
 		write_socket(sc,buf);
@@ -333,20 +333,9 @@ closed_socket(Socket sc, char* msg)
 }
 
 str
-ipaddress(IPAddress addr, int port)
-{
-	return Str("%i.%i.%i.%i:%i",
-		(0xff & addr),
-		(0xff00 & addr) >> 8,
-		(0xff0000 & addr) >> 16,
-		(0xff000000 & addr) >> 24,
-		port);
-}
-
-str
 socket_peer(Socket sc)
 {
-	ipaddress(sc->peer,sc->port);
+	return ipaddress(sc->peer,sc->port);
 }
 
 void
@@ -365,8 +354,11 @@ socket_attach(Socket sc, IPAddress peer, int port)
 size_t
 socket_send(Socket sc, str msg)
 {
+	size_t retval = 0;
 	attachTo(sc->peer,sc->port);
-	return sendto(sc->fd,msg->data,msg->length,0,(struct sockaddr *)&Address,sizeof(Address));
+	for (str t = msg; t; t = t->next)
+		retval += sendto(sc->fd,t->data,t->length,0,(struct sockaddr *)&Address,sizeof(Address));
+	return retval;
 }
 
 str

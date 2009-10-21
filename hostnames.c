@@ -42,4 +42,15 @@ attachTo(IPAddress addr, int port)
 	return 0;
 }
 
+str
+ipaddress(IPAddress addr, int port)
+{
+	return Str("%i.%i.%i.%i:%i",
+		(0xff & addr),
+		(0xff00 & addr) >> 8,
+		(0xff0000 & addr) >> 16,
+		(0xff000000 & addr) >> 24,
+		port);
+}
+
 

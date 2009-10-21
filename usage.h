@@ -11,7 +11,6 @@
 
 typedef struct usage_struct* Usage;
 struct usage_struct {
-	int type;
 	struct rusage start;
 	struct rusage end;
 	int requests;
@@ -19,7 +18,7 @@ struct usage_struct {
 	int time;
 };
 
-Usage new_usage(int type);
+Usage new_usage();
 void start_usage(Usage u);
 void stop_usage(Usage u);
 void dump_usage();

@@ -60,7 +60,7 @@ int request_content_length(Request req);
 void request_callback(Request req, Response resp, str cb);
 
 str parse_method();
-str parse_host();
+str parse_host(Request req, str host);
 str parse_path();
 
 RequestInfo start_request(RequestInfo ri, Request req);

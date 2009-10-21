@@ -134,14 +134,14 @@ parse_file(File fc)
 	fc->parsed = (Parsed)salloc(MAX_ALLOC_SIZE);
 	memset(fc->parsed,0,MAX_ALLOC_SIZE);
 	for (o = 0; script[o] && o < fc->st.st_size; ++o) {
-		if (!strncmp(&script[o],"<?js",4)) {
+		if (!strncmp(&script[o],"<?",2)) {
 			if (l < o) i = mark_file(fc,i,TEXT,l,o-l);
 			l = 0;
-			e = script[o+4] == '=' ? 1 : 0;
-			while (o+l+5+e < fc->st.st_size && strncmp(&script[o+l+5+e],e ? "=?>" : "?>",2+e)) ++l;
-			if (o+l+5+e < fc->st.st_size) {
-				i = mark_file(fc,i,SCRIPT+e,o+5+e,l);
-				o += l + 5 + e;
+			e = script[o+2] == '=' ? 1 : 0;
+			while (o+l+3+e < fc->st.st_size && strncmp(&script[o+l+3+e],e ? "=?>" : "?>",2+e)) ++l;
+			if (o+l+3+e < fc->st.st_size) {
+				i = mark_file(fc,i,SCRIPT+e,o+3+e,l);
+				o += l + 3 + e;
 				l = o+2+e;
 			}
 		}

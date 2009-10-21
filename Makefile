@@ -6,12 +6,10 @@ PROGRAM = jawasd
 LIBRARY =
 ARCH := $(shell uname)
 
-LIBS = -ljs -lpq -lssl -lcrypto
+LIBS = -ljs -lpq -lssl -lcrypto -llua
 
-CFLAGS += --std=c99 -Wall `Wand-config --cppflags`
-#CFLAGS += -foptimize-sibling-calls -fomit-frame-pointer
-
-LDFLAGS  += `Wand-config --ldflags --libs`
+CFLAGS += --std=c99 -Wall
+LDFLAGS =
 
 ifeq ($(ARCH),Darwin)
 	CFLAGS += -ggdb -DXP_UNIX -fnested-functions
@@ -49,6 +47,7 @@ json.c \
 jws.c \
 linux.c \
 log.c \
+lws.c \
 mail.c \
 methods.c \
 mime.c \
@@ -67,8 +66,7 @@ timers.c \
 tls.c \
 transfer.c \
 uri.c \
-usage.c \
-wand.c
+usage.c
 
 include rules.mk
 include dist.mk

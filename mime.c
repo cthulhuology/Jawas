@@ -9,6 +9,7 @@
 #include "log.h"
 #include "server.h"
 #include "jws.h"
+#include "lws.h"
 #include "image.h"
 #include "script.h"
 #include "status.h"
@@ -18,6 +19,7 @@ static MimeTypes mime_types[] = {
 	{ {4, "html"}, {9, "text/html"                }, jws_handler },
 	{ {5, "shtml"}, {9, "text/html"               }, img_handler },
 	{ {3, "jws"},  { 9, "text/html"               }, jws_handler },
+	{ {3, "lws"},  { 9, "text/html"		      }, lws_handler },
 	{ {3, "xml"},  { 8, "text/xml"                }, jws_handler },
 	{ {3, "txt"},  {10, "text/plain"              }, script_handler },
 	{ {3, "svg"},  {13, "image/svg+xml"           }, jws_handler },
@@ -47,14 +49,14 @@ lookup_mimetype(char* filename)
 {
 	MimeTypes* mt;
 	int i,l = strlen(filename);
-	debug("Looking up file %c (%i)",filename,l);
+	debug("Local: %c",filename);
 	for (i = l - 1; i > 0; --i)
 		if (filename[i-1] == '.') break;
 	l -= i;
-	debug("Looking up ending %c (%i)",&filename[i],l);
 	for (mt = mime_types; mt->ending.len; ++mt)
 		if (l == mt->ending.len && !strncmp(mt->ending.data,&filename[i],l))
-			return mt;
+			break;
+	debug("Mime: %c (%c)",mt->type.data,&filename[i]);
 	return mt;
 }
 
