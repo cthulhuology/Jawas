@@ -32,14 +32,8 @@ init_tls(char* keyfile, char* password)
 	tls->err = BIO_new_fp(stderr,BIO_NOCLOSE);	
 	tls->method = SSLv23_method();
 	tls->ctx = SSL_CTX_new(tls->method);
-	DIR* d = opendir("certs");
-	struct dirent* de;
-	if (! d) {
-		error("Failed to find certs directory");
-		return NULL;
-	}
 	if (!SSL_CTX_load_verify_locations(tls->ctx,"certs.pem",NULL)) {
-		error("Failed to use certificate chain file certs/%c\n",de->d_name);
+		error("Failed to use certificate chain file certs.pem");
 		return NULL;
 	}
 	if (!SSL_CTX_use_certificate_file(tls->ctx,keyfile,SSL_FILETYPE_PEM)) {
