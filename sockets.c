@@ -121,7 +121,7 @@ Socket
 create_socket(int fd, TLSInfo tls, Socket sc)
 {
 	Socket retval = (Socket)salloc(sizeof(struct socket_cache_struct));
-	retval->tls = (tls ? open_tls(tls,fd) : NULL);
+	retval->tls= (tls ? open_tls(tls,fd) : NULL);
 	retval->next = sc;
 	retval->fd = fd;
 	retval->peer = Address.sin_addr.s_addr;
@@ -144,7 +144,9 @@ accept_socket(Socket sc, int fd, TLSInfo tls)
 	nonblock(sock);
 	keepalive(sock);
 	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
-	return create_socket(sock,tls,sc);
+	Socket retval = create_socket(sock,tls,sc);
+	while (tls && 0 < accept_tls(retval->tls));
+	return retval;
 }
 
 Socket

@@ -58,7 +58,6 @@ client_tls(char* certs)
 	tls->err = BIO_new_fp(stderr,BIO_NOCLOSE);
 	tls->method = SSLv23_method();
 	tls->ctx = SSL_CTX_new(tls->method);
-	debug("Loading SSL Certs directory");
 	if (!SSL_CTX_load_verify_locations(tls->ctx,NULL,certs)) {
 		error("Failed to load certs directory");
 		return NULL;
@@ -70,8 +69,7 @@ TLSSocket
 open_tls(TLSInfo tls, int fd)
 {
 	TLSSocket retval = (TLSSocket)salloc(sizeof(struct tls_socket_struct));
-	if (! tls) return NULL;
-	if (! retval) return retval;
+	if (! tls || !retval) return NULL;
 	retval->ssl = SSL_new(tls->ctx);
 	retval->bio = BIO_new_socket(fd,BIO_NOCLOSE);
 	SSL_set_bio(retval->ssl,retval->bio,retval->bio);
@@ -82,7 +80,6 @@ int
 connect_tls(TLSSocket sc)
 {
 	int retval = SSL_connect(sc->ssl);
-	debug("SSL_connect returns %i",retval);
 	switch(SSL_get_error(sc->ssl,retval)) {
 		case SSL_ERROR_ZERO_RETURN: error("[SSL] connection closed"); break;
 		case SSL_ERROR_WANT_CONNECT: error("[SSL] incomplete connection"); break;
@@ -111,7 +108,19 @@ check_tls(TLSSocket sc)
 int
 accept_tls(TLSSocket sc)
 {
-	return SSL_accept(sc->ssl);
+	int retval;
+	retval = SSL_accept(sc->ssl);
+	if (retval) switch(SSL_get_error(sc->ssl,retval)) {
+		case SSL_ERROR_WANT_READ: return 1;
+		case SSL_ERROR_WANT_WRITE: return 1;
+		case SSL_ERROR_ZERO_RETURN: error("[SSL] connection closed"); break;
+		case SSL_ERROR_WANT_CONNECT: error("[SSL] incomplete connection"); break;
+		case SSL_ERROR_WANT_X509_LOOKUP: error("[SSL] no client cert callback"); break;
+		case SSL_ERROR_SYSCALL: error("[SSL] system error"); break;
+		case SSL_ERROR_SSL: error("[SSL] protocol error"); break;
+		default: break;
+	}
+	return retval ? -1 : 0;
 }
 
 int
