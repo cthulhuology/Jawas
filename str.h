@@ -63,4 +63,6 @@ str read_line(str src, int pos);
 int skip_headers(str src, int pos);
 str dechunk(str src);
 
+str encode(str s);
+
 #endif

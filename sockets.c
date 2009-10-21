@@ -354,19 +354,19 @@ socket_attach(Socket sc, IPAddress peer, int port)
 size_t
 socket_send(Socket sc, str msg)
 {
-	size_t retval = 0;
 	attachTo(sc->peer,sc->port);
-	for (str t = msg; t; t = t->next)
-		retval += sendto(sc->fd,t->data,t->length,0,(struct sockaddr *)&Address,sizeof(Address));
-	return retval;
+	str message = encode(msg);
+	return sendto(sc->fd,message->data,message->length,0,(struct sockaddr *)&Address,sizeof(Address));
 }
 
 str
 socket_recv(Socket sc)
 {
-	str retval = blank(MAX_ALLOC_SIZE);
 	attachTo(sc->peer,sc->port);
 	Address_len = sizeof(Address);
+	size_t msg_size;
+	recvfrom(sc->fd,&msg_size,sizeof(size_t),0, (struct sockaddr*)&Address, (socklen_t *)&Address_len);
+	str retval = blank(msg_size);
 	retval->length = recvfrom(sc->fd, retval->data, retval->length, 0, (struct sockaddr *)&Address, (socklen_t *)&Address_len);
 	return retval;
 }

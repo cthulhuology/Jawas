@@ -462,3 +462,15 @@ dump(str s)
 	retval[l] = '\0';
 	return retval;
 }
+
+str
+encode(str s)
+{
+	str retval = blank(sizeof(int) + len(s));
+	*(size_t*)retval->data = len(s);
+	for (str t = s; t; t = t->next)
+		memcpy(retval->data + t->pos + sizeof(size_t), t->data, t->length);
+	debug("encoded message [%c]",retval->data + sizeof(size_t));
+	return retval;
+}
+
