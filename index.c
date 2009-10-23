@@ -14,6 +14,7 @@
 static char* indexes[] = {
 	"/index.html",
 	"/index.shtml",
+	"/index.lws",
 	"/index.svg",
 	"/index.jws",
 	"/index.xml",
