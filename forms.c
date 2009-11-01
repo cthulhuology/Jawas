@@ -52,7 +52,7 @@ parse_name(str src, int pos)
 }
 
 int
-is_file(str src, int pos, int end)
+found_file(str src, int pos, int end)
 {
 	int l = len(src);
 	int off = 6 + search(src,pos,Str("filename=\""));
@@ -120,7 +120,7 @@ parse_multipart_body(Headers headers, str enctype)
 			continue;
 		}
 		e = skip_content_headers(Req->contents,i);
-		if (is_file(Req->contents,i,e)) {
+		if (found_file(Req->contents,i,e)) {
 			debug("%s is a file",srcname);
 			dstname = save_contents(Req->contents,e,n-2);
 		} else {

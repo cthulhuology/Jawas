@@ -46,5 +46,6 @@ json(JSContext* cx, JSObject* obj)
 Headers
 parse_json(Headers hd, str buf, int pos)
 {
+	debug("Found json [%s]",from(buf,pos,len(buf)-pos));
 	return append_header(hd,Str("json"),from(buf,pos,len(buf)-pos));
 }

@@ -23,6 +23,7 @@
 #include "usage.h"
 #include "json.h"
 #include "auth.h"
+#include "lua_json.h"
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -38,10 +39,10 @@ lua2str(int index)
 {
 	str retval = NULL;
 	if (lua_isstring(lins,index))
-		return copy(lua_tostring(lins,index),lua_strlen(lins,index));
+		return ref(lua_tostring(lins,index),lua_strlen(lins,index));
 	if (lua_isnumber(lins,index)) {
 		lua_pushvalue(lins,index);
-		retval = copy(lua_tostring(lins,-1),lua_strlen(lins,-1));
+		retval = ref(lua_tostring(lins,-1),lua_strlen(lins,-1));
 		lua_pop(lins,1);
 		return retval;
 	}
@@ -342,6 +343,15 @@ static int ReceiveLua(lua_State* l)
 	return 1;
 }
 
+static int JSONLua(lua_State* l)
+{
+	int n = lua_gettop(l);
+	str json = lua2str(1);
+	lua_pop(l,n);
+	debug("Parsed json %s", parse_json_string(json));
+	return 1;
+}
+
 typedef struct {
 	const char* name;
 	void* func;
@@ -371,6 +381,7 @@ static LuaFunctions lua_glob_functions[] = {
 	{ "socket", SocketLua },
 	{ "send", SendLua },
 	{ "receive", ReceiveLua },
+	{ "parse", JSONLua },
 	{ NULL, NULL }
 };
 
@@ -381,6 +392,7 @@ init_lua()
 	lins_buffer = NULL;
 	lins_database = new_database();
 	lins = lua_open();
+	luaL_openlibs(lins);
 	luaopen_base(lins);
 	luaopen_string(lins);
 	luaopen_table(lins);

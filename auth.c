@@ -81,4 +81,3 @@ hmac1(str secret, str data)
 //	free(data_data);
 	return retval;
 }
-

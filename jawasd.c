@@ -9,6 +9,8 @@
 #include "log.h"
 #include "server.h"
 
+#include "lua_json.h"
+
 int
 main(int argc, char** argv)
 {

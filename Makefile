@@ -6,9 +6,9 @@ PROGRAM = jawasd
 LIBRARY =
 ARCH := $(shell uname)
 
-LIBS = -ljs -lpq -lssl -lcrypto -llua
+LIBS = -ljs -lpq -lssl -lcrypto -lluajit
 
-CFLAGS += --std=c99 -Wall
+CFLAGS += --std=c99 -Wall -I/usr/local/include/luajit-2.0.0
 LDFLAGS =
 
 ifeq ($(ARCH),Darwin)
@@ -47,6 +47,7 @@ json.c \
 jws.c \
 linux.c \
 log.c \
+lua_json.c \
 lws.c \
 mail.c \
 methods.c \

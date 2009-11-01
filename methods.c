@@ -35,8 +35,9 @@ get_method()
 	str filename;
 	if (! Req || !Req->host || !Req->path) return error_handler(404);
 	notice("GET %s%s from %s",Req->host,Req->path,socket_peer(Req->sc));
-	filename = file_path(Req->host,Req->path);
-	fc = is_directory(filename) ? 
+	filename = deauth_path(file_path(Req->host,Req->path));
+
+	fc = is_directory(filename) ?
 		load(get_index(filename)) :
 		load(filename);
 	return mimetype_handler(fc);

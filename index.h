@@ -9,5 +9,6 @@
 
 int is_directory(str filename);
 str get_index(str filename);
+str deauth_path(str filename);
 
 #endif

@@ -122,7 +122,6 @@ singlequote(str s)
 	if (len(s) == 0) return s;
 	str retval = blank(len(s)*2);
 	retval->length = PQescapeStringConn(db->conn,retval->data,s->data,len(s),&err);
-	debug("Singlequote %s is %s",s,retval);
 	if (err) dblog("Failed to escape string %s",s);
 	return retval;
 }
