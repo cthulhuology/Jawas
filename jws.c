@@ -70,7 +70,8 @@ Print(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval)
 			*rval = FAILURE;
 			return JS_TRUE;
 		}
-		ins.buffer = append(ins.buffer,s);
+		// ins.buffer = append(ins.buffer,s);
+		write_chunked_socket(Req->sc,s);
 	}
 	*rval = SUCCESS;
 	return JS_TRUE;
@@ -757,7 +758,8 @@ EvalJSFile(File fc)
 	for (int i = 0; fc->parsed[i].kind; ++i) {
 		switch(fc->parsed[i].kind) {
 		case TEXT:
-			ins.buffer = append(ins.buffer,ref(&fc->data[fc->parsed[i].offset],fc->parsed[i].length));
+			// ins.buffer = append(ins.buffer,ref(&fc->data[fc->parsed[i].offset],fc->parsed[i].length));
+			write_chunk(Req->sc,&fc->data[fc->parsed[i].offset],fc->parsed[i].length);
 			break;
 		case SCRIPT:
 		case EMIT:

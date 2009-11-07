@@ -12,6 +12,8 @@
 int
 script_handler(File fc)
 {
-	Resp->raw_contents = fc;
+	int total = 0;
+	while (total < fc->st.st_size)
+		total += send_raw_contents(Req->sc,fc,total,1);
 	return 200;
 }

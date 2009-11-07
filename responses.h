@@ -26,7 +26,8 @@ struct response_struct {
 };
 
 Response new_response(Request req);
-int send_response(Response resp);
+int begin_response(Response resp);
+int end_response(Response resp);
 void close_response(Response resp);
 Response process_response(Response resp);
 

@@ -67,7 +67,8 @@ EvalLuaFile(File fc)
 	for (int i = 0; fc->parsed[i].kind; ++i) {
 		switch(fc->parsed[i].kind) {
 		case TEXT:
-			lins_buffer = append(lins_buffer,ref(&fc->data[fc->parsed[i].offset],fc->parsed[i].length));
+		//	lins_buffer = append(lins_buffer,ref(&fc->data[fc->parsed[i].offset],fc->parsed[i].length));
+			write_chunk(Req->sc,&fc->data[fc->parsed[i].offset],fc->parsed[i].length);
 			break;
 		case SCRIPT:
 		case EMIT:
@@ -86,7 +87,8 @@ static int PrintLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	for (int i = 1; i <= n; ++i)
-		lins_buffer = append(lins_buffer,lua2str(i));
+		write_chunked_socket(Req->sc,lua2str(i));
+		//	lins_buffer = append(lins_buffer,lua2str(i));
 	lua_pop(l,n);
 	return 0;
 }
@@ -397,9 +399,8 @@ init_lua()
 	luaopen_string(lins);
 	luaopen_table(lins);
 	luaopen_math(lins);
-	for (i = 0; lua_glob_functions[i].name; ++i) {
+	for (i = 0; lua_glob_functions[i].name; ++i)
 		lua_register(lins,lua_glob_functions[i].name,lua_glob_functions[i].func);
-	}
 	Headers data = Resp->req->query_vars;
 	if(data) over(data,i) {
 		skip_null(data,i);

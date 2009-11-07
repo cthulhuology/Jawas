@@ -192,13 +192,14 @@ send_headers(Socket sc, Headers headers)
 	int i;
 	int total = 0;
 	if (!headers) return total;
-	str lines = NULL;
 	over(headers,i) {
 		skip_null(headers,i);
-		lines = append(lines,Str("%s: %s\r\n",Key(headers,i),Value(headers,i)));
+		total += write_socket(sc,Key(headers,i));
+		total += write_to_socket(sc,": ",2);
+		total += write_socket(sc,Value(headers,i));
+		total += write_to_socket(sc,"\r\n",2);
 	}
-	total += write_socket(sc,lines);
-	total += write_socket(sc,Str("\r\n"));
+	total += write_to_socket(sc,"\r\n",2);
 	return total;
 }
 

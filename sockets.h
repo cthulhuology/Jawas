@@ -47,6 +47,7 @@ Socket resume_socket(Socket sc);
 int send_contents(Socket sc, str buf, int chunked);
 int send_raw_contents(Socket sc, File fc, int off, int chunked);
 str read_socket(Socket sc);
+int write_to_socket(Socket sc, char* buf, int length);
 int write_socket(Socket sc, str buf);
 int write_chunked_socket(Socket sc, str buf);
 int write_chunk(Socket sc, char* data, int length);

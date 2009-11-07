@@ -138,20 +138,26 @@ read_request()
 		Sock->buf = NULL;
 		Resp = new_response(Req);
 		parse_path(Req);	
-		str host = parse_host(Req,find_header(Req->headers,Str("Host")));
-		str method = parse_method(Req);
-		Resp->status = host && method ?
-			dispatch_method(method) :
-			error_handler(400);
-		if (Resp->status > 0)
-			add_write_socket(Sock->fd,Resp);
-		if (Resp->status == 0)
-			debug("Response pending processing!");
+		add_write_socket(Sock->fd,Resp);
 	} else {
 		add_read_socket(Sock->fd,Req);
 	}
 	old_scratch();
 }
+
+
+void
+send_response()
+{
+	str host = parse_host(Req,find_header(Req->headers,Str("Host")));
+	str method = parse_method(Req);
+	begin_response(Resp);
+	Resp->status = host && method ?
+		dispatch_method(method) :
+		error_handler(400);
+	end_response(Resp);
+}
+
 
 void
 read_response()
@@ -189,12 +195,7 @@ void
 write_response()
 {
 	client_scratch();
-	if (send_response(Resp)) {
-		old_scratch();
-		add_write_socket(Sock->fd,Resp);
-	//	fprintf(stderr,"Continuing\n");
-		return;
-	}
+	send_response(Resp);
 	old_scratch();
 	srv->ri = end_request(srv->ri,Resp->req);
 //	resume(srv->sc);

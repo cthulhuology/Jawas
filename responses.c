@@ -73,30 +73,24 @@ process_response(Response resp)
 }
 
 int
-send_response(Response resp)
+begin_response(Response resp)
 {
-	if (resp->length < 0) {
-		resp->length = outbound_content_length(resp->contents,resp->raw_contents);
-		if (!Resp->headers) {
-			error("Missing headers, adding new ones");
-			Resp->headers = new_headers();
-		}
-		connection(Resp->headers,"close");
-		transfer_encoding(Resp->headers,"chunked");
-		server(resp->headers,server_name);
-		send_status(resp->sc,resp->status);
-		send_headers(resp->sc,resp->headers);
-		return resp->contents || resp->raw_contents;
+	if (!Resp->headers) {
+		error("Missing headers, adding new ones");
+		Resp->headers = new_headers();
 	}
-	if (resp->written >= resp->length) {
-		write_chunk(resp->sc,NULL,0);
-		return 0;
-	}
-	resp->written += resp->contents ?
-		send_contents(resp->sc,resp->contents,1):
-		send_raw_contents(resp->sc,resp->raw_contents,resp->written,1);
-//	fprintf(stderr,"written %d length %d\n",resp->written,resp->length);
-//	fprintf(stderr,"written >= length %s\n",resp->written >= resp->length ? "yes" : "no");
-	return resp->written <= resp->length;
+	connection(Resp->headers,"close");
+	transfer_encoding(Resp->headers,"chunked");
+	server(resp->headers,server_name);
+	send_status(resp->sc,resp->status);
+	send_headers(resp->sc,resp->headers);
+	return resp->contents || resp->raw_contents;
+}
+
+int
+end_response(Response resp)
+{
+	write_chunk(resp->sc,NULL,0);
+	return 0;
 }
 

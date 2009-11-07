@@ -7,12 +7,14 @@
 #include "include.h"
 #include "defines.h"
 #include "server.h"
+#include "sockets.h"
 #include "image.h"
 
 int
 img_handler(File fc)
 {
-	append_header(Resp->headers,Str("Cache-Control"),Str("max-age=3600, public"));
-	Resp->raw_contents = fc;		
+	int total = 0;
+	while (total < fc->st.st_size)
+		total += send_raw_contents(Req->sc,fc,total,1);
 	return 200;
 }
