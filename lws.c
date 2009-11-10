@@ -420,18 +420,12 @@ end_lua()
 int
 run_lua_script(File fc, Headers data)
 {
-	Usage u = new_usage();
-	debug("Running Lua Script %c",fc->name);
-	start_usage(u);
 	init_lua();
 	if (!setjmp(l_jump)) {
 		if (Resp) EvalLuaFile(fc);
 		else if (luaL_loadbuffer(lins,fc->data, fc->st.st_size, fc->name) || lua_pcall(lins,0,LUA_MULTRET,0)) error("Failed to evaluate script %c",fc->name);
 	}
 	end_lua();
-	stop_usage(u);
-	debug("Script Run Time");
-	dump_usage(u);
 	return 0;
 }
 
