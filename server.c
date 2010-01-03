@@ -99,7 +99,7 @@ incoming(int fd)
 	Scratch scratch = new_scratch(NULL);
 	set_scratch(scratch);
 	srv->sc = accept_socket(srv->sc,fd,(srv->http_sock == fd ? NULL : srv->tls));
-	resume(srv->sc);
+	if (srv->sc) resume(srv->sc);
 }
 
 void

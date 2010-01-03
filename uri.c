@@ -14,7 +14,7 @@
 
 static char mark_chars[] = "-_.!~*'()";
 static int mark_len = 9;
-static char hex_chars[] = "0123456789abcdef";
+static char hex_chars[] = "0123456789ABCDEF";
 
 Headers
 parse_uri_encoded(Headers head, str buf, int pos)

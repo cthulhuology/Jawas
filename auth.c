@@ -28,7 +28,6 @@ md5sum(char* data, int l)
 str
 md5hex(char* data, int l)
 {
-//	fprintf(stderr,"MD5HEX data [%s] %i",data,l);
 	char* tmp = calloc(16,1);
 	MD5((unsigned char*)data,(unsigned long)l,(unsigned char*)tmp);
 	return hex(copy(tmp,16));
@@ -63,7 +62,7 @@ base64(str s)
 	retval = copy(ptr->data,ptr->length-1);
 	BIO_free_all(dst);
 	return retval;
-}	
+}
 
 str
 hmac1(str secret, str data)
@@ -72,12 +71,12 @@ hmac1(str secret, str data)
 	int dl = len(data);
 	char* secret_data = dump(secret);
 	char* data_data = dump(data);
-	str retval = blank(4090);
+	str retval = blank(4000);
 	HMAC_CTX ctx;
 	HMAC_CTX_init(&ctx);
 	HMAC(EVP_sha1(),secret_data,sl,(unsigned char*)data_data,dl,(unsigned char*)retval->data,(unsigned int*)&retval->length);
-//	HMAC_CTX_cleanup(&ctx);
-//	free(secret_data);
-//	free(data_data);
+	HMAC_CTX_cleanup(&ctx);
+	free(secret_data);
+	free(data_data);
 	return retval;
 }

@@ -242,7 +242,9 @@ static int Hmac1Lua(lua_State* l)
 	str secret = lua2str(1);
 	str data = lua2str(2);
 	lua_pop(l,n);
-	str2lua(hmac1(secret,data));
+	str retval = hmac1(secret,data);
+	fprintf(stderr,"Luahmac len %d\n",len(retval));
+	str2lua(retval);
 	return 1;
 }
 
