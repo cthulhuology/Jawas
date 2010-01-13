@@ -8,18 +8,18 @@ ARCH := $(shell uname)
 
 LIBS = -ljs -lpq -lssl -lcrypto -lluajit
 
-CFLAGS += --std=c99 -Wall -I/usr/local/include/luajit-2.0.0
+CFLAGS += --std=c99 -Wall -I/usr/local/include/luajit-2.0
 LDFLAGS =
 
 ifeq ($(ARCH),Darwin)
 	CFLAGS += -ggdb -DXP_UNIX -fnested-functions
-	INCLUDES = -Ijs -Ijs/Darwin_DBG.OBJ -I/opt/local/include/postgresql82/
-	LDFLAGS += -Ljs/Darwin_DBG.OBJ/ -L/opt/local/lib/postgresql82/ 
+	INCLUDES = -Ijs -Ijs/Darwin_DBG.OBJ 
+	LDFLAGS += -Ljs/Darwin_DBG.OBJ/
 endif
 ifeq ($(ARCH),FreeBSD)
 	CFLAGS += -ggdb -DXP_UNIX  -DFREEBSD
 	INCLUDES = -Ijs -Ijs/FreeBSD_DBG.OBJ -I/usr/local/include/
-	LDFLAGS += -Ljs/FreeBSD_DBG.OBJ/
+	LDFLAGS += -Ljs/FreeBSD_DBG.OBJ/ -L/usr/local/lib
 endif
 ifeq ($(ARCH),Linux)
 	CFLAGS += -ggdb -DXP_UNIX -DLINUX
