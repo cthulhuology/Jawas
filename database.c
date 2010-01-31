@@ -13,17 +13,6 @@
 
 Database db;
 
-str
-guid()
-{
-	db->res = PQexec(db->conn,"SELECT nextval('guid_seq')");
-	str retval = PQresultStatus(db->res) != PGRES_TUPLES_OK ?  NULL : Str("%c",PQgetvalue(db->res,0,0));
-	if (!retval) dblog("%c",PQresultErrorMessage(db->res));
-	PQclear(db->res);
-	db->res = NULL;
-	return retval;
-}
-
 int
 query(str q)
 {

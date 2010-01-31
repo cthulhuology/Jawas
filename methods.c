@@ -15,7 +15,6 @@
 #include "methods.h"
 #include "mime.h"
 #include "forms.h"
-#include "json.h"
 
 MethodDispatch gdispatch[] = {
 	{ 3, "GET", get_method },
@@ -27,6 +26,13 @@ MethodDispatch gdispatch[] = {
 	{ 5, "TRACE", trace_method },
 	{ 0, NULL, NULL }
 };
+
+Headers
+parse_json(Headers hd, str buf, int pos)
+{
+	debug("Found json [%s]",from(buf,pos,len(buf)-pos));
+	return append_header(hd,Str("json"),from(buf,pos,len(buf)-pos));
+}
 
 int
 get_method()

@@ -17,8 +17,8 @@
 #include "uri.h"
 #include "usage.h"
 #include "methods.h"
+#include "lws.h"
 #include "strings.h"
-#include "jws.h"
 #include "sms.h"
 
 Server srv = NULL;
@@ -176,9 +176,8 @@ read_response()
 		append_header(hdrs,Str("data"),from(tmp->contents,tmp->body,len(tmp->contents) - tmp->body));
 		append_header(hdrs,Str("status"),from(tmp->contents,9,3));
 		set_SockReqResp(NULL,NULL,Resp->req->resp);
-		process_callback(cb,hdrs);
+	//	process_callback(cb,hdrs);
 		connection(Resp->headers,"close");
-//		transfer_encoding(Resp->headers,"chunked");
 		adopt_scratch(Resp->sc->scratch,tmp->sc->scratch);
 		tmp->sc->scratch = NULL;
 		close_socket(tmp->sc);
@@ -186,8 +185,6 @@ read_response()
 	} else {
 		add_resp_socket(Sock->fd,Resp);
 	}
-	// if (Resp->done)
-	// 	disconnect();
 	old_scratch();
 }
 
@@ -198,7 +195,6 @@ write_response()
 	send_response(Resp);
 	old_scratch();
 	srv->ri = end_request(srv->ri,Resp->req);
-//	resume(srv->sc);
 	disconnect();
 }
 

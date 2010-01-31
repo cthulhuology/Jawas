@@ -8,7 +8,6 @@
 #include "defines.h"
 #include "log.h"
 #include "server.h"
-#include "jws.h"
 #include "lws.h"
 #include "image.h"
 #include "script.h"
@@ -16,13 +15,13 @@
 #include "mime.h"
 
 static MimeTypes mime_types[] = {
-	{ {4, "html"}, {9, "text/html"                }, jws_handler },
+	{ {4, "html"}, {9, "text/html"                }, lws_handler },
 	{ {5, "shtml"}, {9, "text/html"               }, img_handler },
-	{ {3, "jws"},  { 9, "text/html"               }, jws_handler },
+	{ {3, "lws"},  { 9, "text/html"               }, lws_handler },
 	{ {3, "lws"},  { 9, "text/html"		      }, lws_handler },
-	{ {3, "xml"},  { 8, "text/xml"                }, jws_handler },
+	{ {3, "xml"},  { 8, "text/xml"                }, lws_handler },
 	{ {3, "txt"},  {10, "text/plain"              }, script_handler },
-	{ {3, "svg"},  {13, "image/svg+xml"           }, jws_handler },
+	{ {3, "svg"},  {13, "image/svg+xml"           }, lws_handler },
 	{ {3, "css"},  { 8, "text/css"                }, script_handler },
 	{ {2, "js" },  {24, "application/x-javascript"}, script_handler },
 	{ {3, "ico"},  {12, "image/x-icon"            }, img_handler },

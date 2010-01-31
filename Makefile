@@ -6,15 +6,15 @@ PROGRAM = jawasd
 LIBRARY =
 ARCH := $(shell uname)
 
-LIBS = -ljs -lpq -lssl -lcrypto -lluajit
+LIBS = -lpq -lssl -lcrypto -llua
 
-CFLAGS += --std=c99 -Wall -I/usr/local/include/luajit-2.0.0
+CFLAGS += --std=c99 -Wall -I/usr/local/include/ -m64
 LDFLAGS =
 
 ifeq ($(ARCH),Darwin)
 	CFLAGS += -ggdb -DXP_UNIX -fnested-functions
-	INCLUDES = -Ijs -Ijs/Darwin_DBG.OBJ -I/opt/local/include/postgresql82/
-	LDFLAGS += -Ljs/Darwin_DBG.OBJ/ -L/opt/local/lib/postgresql82/ 
+	INCLUDES = -I/opt/local/include/postgresql84/
+	LDFLAGS += -L/opt/local/lib/postgresql84/  -L/usr/local/lib
 endif
 ifeq ($(ARCH),FreeBSD)
 	CFLAGS += -ggdb -DXP_UNIX  -DFREEBSD
@@ -43,10 +43,9 @@ headers.c \
 hostnames.c \
 image.c \
 index.c \
-json.c \
-jws.c \
 linux.c \
 log.c \
+lua_db.c \
 lua_json.c \
 lws.c \
 mail.c \
