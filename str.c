@@ -180,7 +180,7 @@ hex_str(int i)
 str
 obj_str(void* p)
 {
-	return hex_str((int)p);
+	return hex_str((long)p);
 }
 
 int
