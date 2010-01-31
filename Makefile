@@ -18,13 +18,11 @@ ifeq ($(ARCH),Darwin)
 endif
 ifeq ($(ARCH),FreeBSD)
 	CFLAGS += -ggdb -DXP_UNIX  -DFREEBSD
-	INCLUDES = -Ijs -Ijs/FreeBSD_DBG.OBJ -I/usr/local/include/
-	LDFLAGS += -Ljs/FreeBSD_DBG.OBJ/
+	INCLUDES = -I/usr/local/include/
 endif
 ifeq ($(ARCH),Linux)
 	CFLAGS += -ggdb -DXP_UNIX -DLINUX
-	INCLUDES = -Ijs -Ijs/Linux_All_DBG.OBJ -I/usr/include/postgresql/
-	LDFLAGS += -Ljs/Linux_All_DBG.OBJ/
+	INCLUDES = -I/usr/include/postgresql/
 endif
 
 
