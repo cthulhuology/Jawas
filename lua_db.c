@@ -24,7 +24,7 @@ static int DBClosureLua(lua_State* l)
 	int n = lua_gettop(l);
 	str qry = lua2str(lua_upvalueindex(1));
 	for (int i = 1; i <= n; ++i)
-		qry = append(qry,Str("%s%s", lua2str(i), i < n ? Str(","): Str("")));
+		qry = append(qry,Str("'%s'%s", lua2str(i), i < n ? Str(","): Str("")));
 	lua_pop(l,n);
 	append(qry,Str(")"));
 	int res = query(qry);
