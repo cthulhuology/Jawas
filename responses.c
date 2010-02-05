@@ -15,12 +15,6 @@
 #include "uri.h"
 #include "transfer.h"
 
-int
-send_status(Socket sc, int code)
-{
-	return write_socket(sc,status_line(code));
-}
-
 static char* server_name = SERVER_VERSION;
 
 Response
@@ -82,8 +76,6 @@ begin_response(Response resp)
 	connection(Resp->headers,"close");
 	transfer_encoding(Resp->headers,"chunked");
 	server(resp->headers,server_name);
-	send_status(resp->sc,resp->status);
-	send_headers(resp->sc,resp->headers);
 	return resp->contents || resp->raw_contents;
 }
 

@@ -56,8 +56,7 @@ deauth_path(str filename)
 	if (at(filename,l-1) == '/') --l;
 	if (is_directory(filename) || is_file(filename)) return filename;
 	for (int i = l; i-- > 0;) {
-		debug("path [%s]", from(filename,i,l-i));
-		if (is_directory(from(filename,0,i))) {
+		if (at(filename,i-1) == '/' && is_directory(from(filename,0,i))) {
 			debug("Found auth token [%s]",from(filename,i,l-i));
 			append_header(Req->headers,Str("Token"),from(filename,i,l-i));
 			return from(filename,0,i);

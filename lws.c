@@ -23,6 +23,8 @@
 #include "usage.h"
 #include "auth.h"
 #include "lua_json.h"
+#include "dates.h"
+#include "status.h"
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -429,11 +431,11 @@ run_lua_script(File fc, Headers data)
 int
 lws_handler(File fc)
 {
-	if (run_lua_script(fc,NULL)) goto error;
-	if (Resp) Resp->contents = lins_buffer;
-	return Resp ? Resp->status : 0;
-error:
-	if (Resp) Resp->contents = NULL;
-	return 500;
+	cache_control(Resp->headers,"max-age=0, no-cache");
+	date_field(Resp->headers,Date(time(NULL))->data);
+	send_status(Resp->sc,200);
+	send_headers(Resp->sc,Resp->headers);
+	run_lua_script(fc,NULL);
+	return 200;
 }
 

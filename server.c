@@ -176,7 +176,6 @@ read_response()
 		append_header(hdrs,Str("data"),from(tmp->contents,tmp->body,len(tmp->contents) - tmp->body));
 		append_header(hdrs,Str("status"),from(tmp->contents,9,3));
 		set_SockReqResp(NULL,NULL,Resp->req->resp);
-	//	process_callback(cb,hdrs);
 		connection(Resp->headers,"close");
 		adopt_scratch(Resp->sc->scratch,tmp->sc->scratch);
 		tmp->sc->scratch = NULL;

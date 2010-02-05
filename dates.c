@@ -9,10 +9,9 @@
 #include "str.h"
 
 str
-Date()
+Date(time_t now)
 {
 	str retval = blank(32);
-	time_t now = time(NULL);
 	struct tm* now_tm = gmtime(&now);	
 	retval->length = strftime(retval->data,retval->length,"%a, %d %b %Y %H:%M:%S +0000",now_tm);
 	return retval;
@@ -21,9 +20,8 @@ Date()
 str
 Expires()
 {
-	time_t now = 120 + time(NULL);
-	struct tm* now_tm = gmtime(&now);	
-	return Str("%i",timegm(now_tm));	
+	time_t now = 86400 + time(NULL);
+	return Date(now);
 }
 
 str

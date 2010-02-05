@@ -75,12 +75,24 @@ status_line(int code)
 }
 
 int
+send_status(Socket sc, int code)
+{
+	return write_socket(sc,status_line(code));
+}
+
+
+int
 error_handler(int code)
 {
+	int total = 0;
 	int i = find_status_code(code);
 	if (! stati[i].filename) return code;
 	File fc = load(file_path(ref("errors",6),copy(stati[i].filename,0)));
+	send_status(Resp->sc,code);
+	send_headers(Resp->sc,Resp->headers);
 	if (! fc) return code;
 	Resp->raw_contents = fc;
+	while (total < fc->st.st_size)
+		total += send_raw_contents(Req->sc,fc,total,1);
 	return code;				
 }
