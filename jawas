@@ -7,6 +7,16 @@ CONF=/usr/local/etc/jawas.conf
 . $CONF
 
 case "$1" in
+'log')
+	case "$2" in
+	'prod')
+		tail -f /usr/local/Jawas/prod/Sites/jawas.log
+		;;
+	*)
+		tail -f /usr/local/Jawas/dev/Sites/jawas.log
+		;;
+	esac
+	;;
 'stop')
 	case "$2" in
 	'prod')
@@ -33,8 +43,25 @@ case "$1" in
 		;;
 	esac
 	;;
+'restart')
+	case "$2" in
+	'prod')
+		echo "Restarting Production";
+		jawas stop prod;
+		sleep 1;
+		jawas start prod;
+		sleep 1;
+		;;
+	*)
+		echo "Restarting Production";
+		jawas stop prod;
+		sleep 1;
+		jawas start prod;
+		sleep 1;
+		;;
+	esac
+	;;
 *)
-	echo "Usage: jawas [start|stop] [prod]"
+	echo "Usage: jawas [start|stop|restart] [prod]"
 	;;
 esac
-

@@ -94,6 +94,7 @@ Database
 new_database()
 {
 	Database retval = (Database)salloc(sizeof(struct database_struct));
+	debug(DB_CONNECT_STRING);
 	retval->conn = PQconnectdb(DB_CONNECT_STRING);
 	if (PQstatus(retval->conn) != CONNECTION_OK) dblog("Failed to connect to database %c",DB_CONNECT_STRING);
 	retval->res = NULL;
