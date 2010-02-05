@@ -21,13 +21,16 @@
 #include "timers.h"
 #include "database.h"
 #include "usage.h"
-#include "json.h"
 #include "auth.h"
 #include "lua_json.h"
+#include "dates.h"
+#include "status.h"
 
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
+
+#include "lua_db.h"
 
 lua_State* lins;
 str lins_buffer;
@@ -201,14 +204,6 @@ static int QueryLua(lua_State* l)
 	return 1;
 }
 
-static int GetGuidLua(lua_State* l)
-{
-	int n = lua_gettop(l);
-	lua_pop(l,n);
-	str2lua(guid());
-	return 1;
-}
-
 static int EncodeLua(lua_State* l)
 {
 	int n = lua_gettop(l);
@@ -373,7 +368,6 @@ static LuaFunctions lua_glob_functions[] = {
 	{ "param", ParamLua },
 	{ "now", NowLua },
 	{ "query", QueryLua },
-	{ "guid", GetGuidLua },
 	{ "encode", EncodeLua },
 	{ "decode", DecodeLua },
 	{ "md5sum", MD5SumLua },
@@ -403,6 +397,9 @@ init_lua()
 	luaopen_math(lins);
 	for (i = 0; lua_glob_functions[i].name; ++i)
 		lua_register(lins,lua_glob_functions[i].name,lua_glob_functions[i].func);
+	ProceduresLua(lins,"public");
+	str filename = file_path(Req ? Req->host : Str("localhost"), Str("/common.lua"));
+	luaL_dofile(lins,filename->data);
 	Headers data = Resp->req->query_vars;
 	if(data) over(data,i) {
 		skip_null(data,i);
@@ -434,11 +431,11 @@ run_lua_script(File fc, Headers data)
 int
 lws_handler(File fc)
 {
-	if (run_lua_script(fc,NULL)) goto error;
-	if (Resp) Resp->contents = lins_buffer;
-	return Resp ? Resp->status : 0;
-error:
-	if (Resp) Resp->contents = NULL;
-	return 500;
+	cache_control(Resp->headers,"max-age=0, no-cache");
+	date_field(Resp->headers,Date(time(NULL))->data);
+	send_status(Resp->sc,200);
+	send_headers(Resp->sc,Resp->headers);
+	run_lua_script(fc,NULL);
+	return 200;
 }
 

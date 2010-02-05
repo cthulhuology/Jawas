@@ -19,5 +19,6 @@ struct status_struct {
 
 str status_line(int code);
 int error_handler(int code);
+int send_status(Socket sc, int code);
 
 #endif

@@ -9,3 +9,4 @@
 
 int lws_handler(File fc);
 int run_lua_script(File fc, Headers data);
+int process_callback(str cb, Headers headers);
