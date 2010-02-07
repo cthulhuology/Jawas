@@ -8,7 +8,7 @@ ARCH := $(shell uname)
 
 LIBS = -lpq -lssl -lcrypto -llua -lz
 
-CFLAGS += --std=c99 -Wall -I/usr/local/include/ -m64
+CFLAGS += --std=c99 -Wall -I/usr/local/include/luajit-2.0  -DHOSTADDR=`ifconfig | grep inet | cut -f2 -d" " | head -n1`
 LDFLAGS =
 
 ifeq ($(ARCH),Darwin)
