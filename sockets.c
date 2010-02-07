@@ -28,7 +28,10 @@ void
 signal_handler(int sig)
 {
 	error("Received signal %i\n",sig);
-	Resp->sc->closed = 1;
+	if (Resp->sc) {
+		Resp->sc->closed = 1;
+		close_socket(Resp->sc);
+	}
 }
 
 void
@@ -200,6 +203,7 @@ connect_socket(str host, int port, int ssl)
 Socket
 close_socket(Socket sc)
 {
+	debug("Closing %p",sc);
 	if (!sc) return NULL;
 	Socket retval = sc->next;
 	if (sc->tls) close_tls(sc->tls);

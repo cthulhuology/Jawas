@@ -92,7 +92,7 @@ error_handler(int code)
 	send_headers(Resp->sc,Resp->headers);
 	if (! fc) return code;
 	Resp->raw_contents = fc;
-	while (total < fc->st.st_size)
+	while (!Req->sc->closed && total < fc->st.st_size)
 		total += send_raw_contents(Req->sc,fc,total,1);
 	return code;				
 }

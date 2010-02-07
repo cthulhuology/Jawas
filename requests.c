@@ -103,6 +103,7 @@ process_request(Request req)
 	}
 	if (!req->body) {
 		req->headers = parse_headers(req->contents,&req->body);
+		debug("Headers:\n%s",print_headers(NULL,req->headers));
 		if (!req->headers) {
 			error("No request headers on request %i\n",req);
 			return NULL;

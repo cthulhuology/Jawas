@@ -13,6 +13,7 @@
 
 #include "include.h"
 #include "defines.h"
+#include "memory.h"
 #include "str.h"
 #include "log.h"
 #include "auth.h"
@@ -28,7 +29,7 @@ md5sum(char* data, int l)
 str
 md5hex(char* data, int l)
 {
-	char* tmp = calloc(16,1);
+	char* tmp = new_region(16);
 	MD5((unsigned char*)data,(unsigned long)l,(unsigned char*)tmp);
 	return hex(copy(tmp,16));
 }
@@ -75,7 +76,7 @@ hmac1(str secret, str data)
 	HMAC_CTX_init(&ctx);
 	HMAC(EVP_sha1(),secret_data,sl,(unsigned char*)data_data,dl,(unsigned char*)retval->data,(unsigned int*)&retval->length);
 	HMAC_CTX_cleanup(&ctx);
-	free(secret_data);
-	free(data_data);
+	free_region(secret_data);
+	free_region(data_data);
 	return retval;
 }

@@ -9,6 +9,7 @@
 
 #include <stdarg.h>
 #include "defines.h"
+#include "memory.h"
 
 typedef int (*test_t)(char x, char y);
 

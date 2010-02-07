@@ -74,7 +74,7 @@ save_contents(str src, int pos, int end)
 	debug("Save contents filename %s",filename);
 	char* fname = dump(filename);
 	int fd = open(fname,O_WRONLY|O_CREAT,0644);
-	free(fname);
+	free_region(fname);
 	if (fd < 0 ) {
 		error("Failed to open file for writing %s",filename);
 		perror("open");

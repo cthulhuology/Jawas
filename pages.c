@@ -7,6 +7,7 @@
 #include "include.h"
 #include "defines.h"
 #include "log.h"
+#include "memory.h"
 #include "pages.h"
 
 PageInfo gpi = { NULL, NULL, 0, 0, 0 };
@@ -16,9 +17,9 @@ new_page()
 {
 	Page tmp;
 	int i;	
-	if (!gpi.free) {
-		gpi.baseaddr = (Page)mmap(NULL,getpagesize() * CACHE_PAGES,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANON,-1,0);
-		if (gpi.baseaddr == (Page)-1) return NULL;
+	if (!gpi.free && !gpi.baseaddr) {
+		gpi.baseaddr = (Page)new_region(CACHE_PAGES*getpagesize());
+		if (!gpi.baseaddr) return NULL;
 		gpi.size = CACHE_PAGES * getpagesize();
 		gpi.allocated = 0;
 		gpi.frees = 0;

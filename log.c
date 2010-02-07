@@ -53,7 +53,7 @@ log_msg(int lvl, char* fmt,  ...)
 	char* msg_data = dump(msg);
 	write(log_fd,msg_data,len(msg));
 	fsync(log_fd);
-	free(msg_data);
+	free_region(msg_data);
 	old_log_scratch();
 }
 

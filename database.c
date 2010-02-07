@@ -24,7 +24,7 @@ query(str q)
 	db->res = PQexec(db->conn,qry);
 	stop_usage(u);
 	dump_usage(u);
-	free(qry);
+	free_region(qry);
 	switch(PQresultStatus(db->res)) {
 		case PGRES_EMPTY_QUERY:
 		case PGRES_COMMAND_OK:

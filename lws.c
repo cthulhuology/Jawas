@@ -60,7 +60,7 @@ str2lua(str s)
 {
 	char *data = dump(s);
 	s ? lua_pushlstring(lins,data,len(s)) : lua_pushnil(lins);
-	free(data);
+	free_region(data);
 }
 
 void

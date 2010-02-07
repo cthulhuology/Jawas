@@ -5,6 +5,7 @@
 //
 
 #include "include.h"
+#include "memory.h"
 #include "alloc.h"
 #include "str.h"
 #include "log.h"
@@ -456,7 +457,7 @@ char*
 dump(str s)
 {
 	int l = len(s);
-	char* retval = (char*)calloc(1,l + 1);
+	char* retval = (char*)new_region(l + 1);
 	for (str t = s; t; t = t->next)
 		memcpy(retval + t->pos, t->data, t->length);
 	retval[l] = '\0';

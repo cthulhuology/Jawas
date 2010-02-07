@@ -6,7 +6,7 @@ PROGRAM = jawasd
 LIBRARY =
 ARCH := $(shell uname)
 
-LIBS = -lpq -lssl -lcrypto -llua
+LIBS = -lpq -lssl -lcrypto -llua -lz
 
 CFLAGS += --std=c99 -Wall -I/usr/local/include/ -m64
 LDFLAGS =
@@ -37,6 +37,7 @@ events.c \
 facebook.c \
 files.c \
 forms.c \
+gzip.c \
 headers.c \
 hostnames.c \
 image.c \
@@ -47,6 +48,7 @@ lua_db.c \
 lua_json.c \
 lws.c \
 mail.c \
+memory.c \
 methods.c \
 mime.c \
 pages.c \

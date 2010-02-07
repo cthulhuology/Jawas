@@ -32,7 +32,7 @@ is_directory(str filename)
 		error("Failed to stat file %s",filename);
 		return 0;
 	}
-	free(fname);
+	free_region(fname);
 	return st.st_mode & S_IFDIR;
 }
 
@@ -45,7 +45,7 @@ is_file(str filename)
 		error("Failed to stat file %s",filename);
 		return 0;
 	}
-	free(fname);
+	free_region(fname);
 	return st.st_mode & (S_IFREG|S_IFLNK);
 }
 
@@ -73,10 +73,10 @@ get_index(str filename)
 		str index_path = Str("%s%c",filename,indexes[i]);
 		char *fname = dump(index_path);
 		if (!stat(fname,&st)) {
-			free(fname);
+			free_region(fname);
 			return index_path;
 		}
-		free(fname);
+		free_region(fname);
 	}
 	return NULL;
 }

@@ -47,7 +47,7 @@ facebook_sig(Headers kv)
 	char* data = dump(retval);
 	debug("Producing sig from [%c]",data);
 	retval = md5hex(data,len(retval));	
-	free(data);
+	free_region(data);
 	return retval;
 }
 

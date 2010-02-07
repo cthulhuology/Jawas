@@ -14,8 +14,9 @@
 #define MAILHOST "mail.nexttolast.com"
 #define PAGE_GUARD 1
 #define CACHE_PAGES 10000
+#define MAX_REGIONS 4096
 #else 
-#define halt
+#define halt exit(1)
 #define LOG_LEVEL 4
 #define DB_CONNECT_STRING "dbname=jawas user=jawas"
 #define SERVER_PORT "80"
@@ -25,6 +26,7 @@
 #define MAILHOST "mail.nexttolast.com"
 #define PAGE_GUARD 0
 #define CACHE_PAGES 10000
+#define MAX_REGIONS 4096
 #endif
 
 
