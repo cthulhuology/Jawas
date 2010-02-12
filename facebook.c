@@ -28,7 +28,7 @@ facebook_auth(str key, str secret)
 str
 facebook_login()
 {
-	return Str("http://www.facebook.com/login.php?api_key=%s&v=1.0",facebook_key);
+	return $("http://www.facebook.com/login.php?api_key=%s&v=1.0",facebook_key);
 }
 
 str
@@ -37,17 +37,14 @@ facebook_sig(Headers kv)
 	int i;
 	Headers sorted = sort_headers(kv);
 	debug("Headers %s", list_headers(sorted));
-	str retval = Str("%s=%s",Key(sorted,0),Value(sorted,0));
+	str retval = $("%s=%s",Key(sorted,0),Value(sorted,0));
 	overs(sorted,i,1) { 
 		skip_null(sorted,i);
-		retval = append(retval,Str("%s=%s",Key(sorted,i), Value(sorted,i)));
+		retval = append(retval,$("%s=%s",Key(sorted,i), Value(sorted,i)));
 	}
 	retval = append(retval,facebook_secret);
 	debug("FB SIG HEADERS is [%s]",retval);
-	char* data = dump(retval);
-	debug("Producing sig from [%c]",data);
-	retval = md5hex(data,len(retval));	
-	free_region(data);
+	retval = md5hex(retval->data,len(retval));	
 	return retval;
 }
 
@@ -55,16 +52,16 @@ void
 facebook_method(str method, Headers kv, str callback)
 {
 	
-	kv = append_header(kv,Str("method"),method);
-	kv = append_header(kv,Str("api_key"),facebook_key);
-	kv = append_header(kv,Str("sig"),facebook_sig(kv));
+	kv = append_header(kv,$("method"),method);
+	kv = append_header(kv,$("api_key"),facebook_key);
+	kv = append_header(kv,$("sig"),facebook_sig(kv));
 	str args = url_encode_headers(kv);
 
-	Request req = new_request(Str("POST"),Str("api.facebook.com"),Str("/restserver.php"));
+	Request req = new_request($("POST"),$("api.facebook.com"),$("/restserver.php"));
 
-	request_headers(req,Str("Content-Type"),Str("application/x-www-form-urlencoded"));
-	request_headers(req,Str("User-Agent"),Str("Jawas"));
-	request_headers(req,Str("Content-Length"),Str("%i",len(args)));
+	request_headers(req,$("Content-Type"),$("application/x-www-form-urlencoded"));
+	request_headers(req,$("User-Agent"),$("Jawas"));
+	request_headers(req,$("Content-Length"),$("%i",len(args)));
 	
 	req = request_data(req,args);
 

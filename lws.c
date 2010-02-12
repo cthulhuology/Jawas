@@ -8,8 +8,7 @@
 #include "include.h"
 #include "defines.h"
 #include "config.h"
-#include "alloc.h"
-#include "pages.h"
+#include "memory.h"
 #include "str.h"
 #include "headers.h"
 #include "log.h"
@@ -33,7 +32,6 @@
 #include "lua_db.h"
 
 lua_State* lins;
-str lins_buffer;
 Database lins_database;
 jmp_buf l_jump;
 
@@ -50,17 +48,15 @@ lua2str(int index)
 		return retval;
 	}
 	if (lua_isboolean(lins,index)) {
-		return lua_toboolean(lins,index) ? Str("true") : Str("false");
+		return lua_toboolean(lins,index) ? $("true") : $("false");
 	}
-	return Str("%p",lua_topointer(lins,index));
+	return $("%p",lua_topointer(lins,index));
 }
 
 void
 str2lua(str s)
 {
-	char *data = dump(s);
-	s ? lua_pushlstring(lins,data,len(s)) : lua_pushnil(lins);
-	free_region(data);
+	s ? lua_pushlstring(lins,s->data,len(s)) : lua_pushnil(lins);
 }
 
 void
@@ -70,7 +66,6 @@ EvalLuaFile(File fc)
 	for (int i = 0; fc->parsed[i].kind; ++i) {
 		switch(fc->parsed[i].kind) {
 		case TEXT:
-		//	lins_buffer = append(lins_buffer,ref(&fc->data[fc->parsed[i].offset],fc->parsed[i].length));
 			write_chunk(Req->sc,&fc->data[fc->parsed[i].offset],fc->parsed[i].length);
 			break;
 		case SCRIPT:
@@ -91,7 +86,6 @@ static int PrintLua(lua_State* l)
 	int n = lua_gettop(l);
 	for (int i = 1; i <= n; ++i)
 		write_chunked_socket(Req->sc,lua2str(i));
-		//	lins_buffer = append(lins_buffer,lua2str(i));
 	lua_pop(l,n);
 	return 0;
 }
@@ -116,7 +110,7 @@ static int ErrorLua(lua_State* l)
 
 static int UseLua(lua_State* l)
 {
-	str filename = file_path(Req ? Req->host : Str("localhost"), Str("/%s",lua2str(1)));
+	str filename = file_path(Req ? Req->host : $("localhost"), $("/%s",lua2str(1)));
 	if (luaL_dofile(l,filename->data)) error("Failed to evaluate script %s",filename);
 	lua_pop(l,1);
 	return 0;
@@ -124,7 +118,7 @@ static int UseLua(lua_State* l)
 
 static int IncludeLua(lua_State* l)
 {
-	str filename = file_path(Req ? Req->host : Str("localhost"), Str("/%s",lua2str(1)));
+	str filename = file_path(Req ? Req->host : $("localhost"), $("/%s",lua2str(1)));
 	lua_pop(l,1);
 	File fc = load(filename);
 	if (!fc) {
@@ -165,7 +159,7 @@ static int NowLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	lua_pop(l,n);
-	str2lua(Str("%i",time(NULL)));
+	str2lua($("%i",time(NULL)));
 	return 1;
 }
 
@@ -286,8 +280,8 @@ static int PostHTTPLua(lua_State* l)
 	// n-3 is the headers table
 	str data = lua2str(5);
 	str callback = lua2str(6);
-	Request req = new_request(Str("POST"),host,path);
-	if (icmp(Str("https"),proto)) use_ssl(req);
+	Request req = new_request($("POST"),host,path);
+	if (icmp($("https"),proto)) use_ssl(req);
 	lua_pushnil(l);
 	while(lua_next(l,4)) {
 		request_headers(req,lua2str(-2),lua2str(-1));
@@ -387,7 +381,6 @@ void
 init_lua()
 {
 	int i = 0;
-	lins_buffer = NULL;
 	lins_database = new_database();
 	lins = lua_open();
 	luaL_openlibs(lins);
@@ -398,7 +391,7 @@ init_lua()
 	for (i = 0; lua_glob_functions[i].name; ++i)
 		lua_register(lins,lua_glob_functions[i].name,lua_glob_functions[i].func);
 	ProceduresLua(lins,"public");
-	str filename = file_path(Req ? Req->host : Str("localhost"), Str("/common.lua"));
+	str filename = file_path(Req ? Req->host : $("localhost"), $("/common.lua"));
 	luaL_dofile(lins,filename->data);
 	Headers data = Resp->req->query_vars;
 	if(data) over(data,i) {

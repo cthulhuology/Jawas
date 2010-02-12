@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "log.h"
 #include "headers.h"
 #include "events.h"
@@ -18,13 +18,13 @@
 Request
 new_request(str method, str host, str path)
 {
-	Request retval = (Request)salloc(sizeof(struct request_struct));
+	Request retval = (Request)reserve(sizeof(struct request_struct));
 	if (retval) {
-		retval->method = clone(method);
+		retval->method = method;
 		retval->host = NULL;
 		retval->port = 0;
 		parse_host(retval,host);
-		retval->path = clone(path);
+		retval->path = path;
 		retval->sc = NULL;
 		retval->usage = new_usage(0);
 		retval->headers = new_headers();
@@ -108,7 +108,7 @@ process_request(Request req)
 			error("No request headers on request %i\n",req);
 			return NULL;
 		}
-		append_header(req->headers, Str("peer"),socket_peer(req->sc));
+		append_header(req->headers, $("peer"),socket_peer(req->sc));
 	}
 	if (req->body) {
 		req->done = (len(req->contents) - req->body) >= inbound_content_length(req->contents,req->headers);
@@ -141,7 +141,7 @@ str
 parse_method()
 {
 	int i,l;
-	str tmp = seek(Req->contents,0);
+	str tmp = Req->contents;
 	if (!tmp) return NULL;
 	for (i=0;isspace(at(tmp,i));++i);	// skip errorenous spaces
 	for (l = 1; !isspace(at(tmp,i+l)); ++l);
@@ -154,7 +154,7 @@ parse_path()
 {
 	int i,l,end;
 	str qs;
-	str tmp = seek(Req->contents,0);
+	str tmp = Req->contents;
 	if (! tmp) return NULL;
 	for (i = 0;isspace(at(tmp,i));++i);	// skip errorenous spaces
 	for (i = 0; at(tmp,i) && !isspace(at(tmp,i)); ++i);
@@ -189,14 +189,12 @@ end_request(RequestInfo ri, Request req) {
 				return ri;
 			}
 	}
-	server_scratch();
-	tmp = (RequestInfo)salloc(sizeof(struct request_info_struct));	
+	tmp = (RequestInfo)reserve(sizeof(struct request_info_struct));	
 	tmp->next = ri;
-	tmp->host = clone(req->host);
-	tmp->path = clone(req->path);
+	tmp->host = req->host;
+	tmp->path = req->path;
 	tmp->time = req->usage->time;
 	tmp->hits = req->usage->hits;
-	old_scratch();
 	return tmp;
 }
 
@@ -213,9 +211,9 @@ send_request(Request req)
 		return 0;
 	}
 	if (req->length < 0) {
-		str cmd = Str("%s %s HTTP/1.1\r\n",req->method,req->path);
+		str cmd = $("%s %s HTTP/1.1\r\n",req->method,req->path);
 		write_socket(req->sc,cmd);
-		request_headers(req,Str("Host"),req->host);
+		request_headers(req,$("Host"),req->host);
 		send_headers(req->sc,req->headers);
 		req->length = outbound_content_length(req->contents,req->raw_contents);	
 		return req->contents != NULL || req->raw_contents != NULL ;

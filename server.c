@@ -22,65 +22,28 @@
 #include "sms.h"
 
 Server srv = NULL;
-Scratch old_scratch_pad;
-
-void
-server_scratch()
-{
-	old_scratch_pad = gscratch;
-	set_scratch(srv->scratch);
-}
-
-void
-old_scratch()
-{
-	set_scratch(old_scratch_pad);
-	old_scratch_pad = srv->scratch;
-}
-
-void
-client_scratch()
-{
-	if (Sock) {
-		old_scratch_pad = gscratch;
-		set_scratch(Sock->scratch);
-	}
-}
 
 File
 load(str filename)
 {
 	File retval = NULL;
 	if (!filename) return NULL;
-	server_scratch();	
 	retval = query_cache(&srv->fc,filename);
-#ifdef LINUX
-	if (retval) 
-		unload(retval->fd,filename);
-#else
-	if (retval) {
-		old_scratch();
-		return retval;
-	}
-#endif
+	if (retval) return retval;
 	retval = open_file(srv->fc,filename);
 	if (!retval) {
 		error("Failed to open %s\n",filename);
-		old_scratch();
 		return NULL;
 	}
 	srv->fc = retval;
 	add_file_monitor(srv->fc->fd,srv->fc);
-	old_scratch();
 	return retval;
 }
 
 void
 unload(int fd, str filename)
 {
-	server_scratch();
 	srv->fc = close_file(srv->fc,filename);
-	old_scratch();
 }
 
 void
@@ -90,14 +53,11 @@ resume(Socket sc)
 	req = open_request(srv->sc);
 	srv->ri = start_request(srv->ri,req);
 	add_read_socket(srv->sc->fd,req);
-	reset_socket(srv->sc);
 }
 
 void
 incoming(int fd)
 {
-	Scratch scratch = new_scratch(NULL);
-	set_scratch(scratch);
 	srv->sc = accept_socket(srv->sc,fd,(srv->http_sock == fd ? NULL : srv->tls));
 	if (srv->sc) resume(srv->sc);
 }
@@ -107,13 +67,10 @@ disconnect()
 {
 	Socket tmp,last;
 	last = NULL;
-	server_scratch();
 	for (tmp = srv->sc; tmp; tmp = tmp->next) {
-		if (tmp == Sock)  {
-			last ? 
-				(last->next = close_socket(Sock)) :
-				(srv->sc = close_socket(Sock));
-		}
+		if (tmp == Sock)
+			last ? (last->next = close_socket(Sock)):
+			(srv->sc = close_socket(Sock));
 		last = tmp;
 	}
 }
@@ -121,10 +78,7 @@ disconnect()
 void
 read_request()
 {
-	client_scratch();
 	if (!process_request(Req)) {
-		old_scratch();
-		debug("Request retries %i vs %i",Req->retries, MAX_RETRIES);
 		if (Req->retries < MAX_RETRIES)  {
 			add_read_socket(Sock->fd,Req);
 			return;
@@ -142,14 +96,13 @@ read_request()
 	} else {
 		add_read_socket(Sock->fd,Req);
 	}
-	old_scratch();
 }
 
 
 void
 send_response()
 {
-	str host = parse_host(Req,find_header(Req->headers,Str("Host")));
+	str host = parse_host(Req,find_header(Req->headers,$("Host")));
 	str method = parse_method(Req);
 	begin_response(Resp);
 	Resp->status = host && method ?
@@ -162,37 +115,29 @@ send_response()
 void
 read_response()
 {
-	client_scratch();
 	if (!process_response(Resp)) {
-		old_scratch();
 		error("Failed to read response\n");
 		disconnect();		
 		return;
 	}
 	if (Resp->done) {
 		Response tmp = Resp;
-		str cb = tmp->req->cb;
 		Headers hdrs = tmp->headers;
-		append_header(hdrs,Str("data"),from(tmp->contents,tmp->body,len(tmp->contents) - tmp->body));
-		append_header(hdrs,Str("status"),from(tmp->contents,9,3));
+		append_header(hdrs,$("data"),from(tmp->contents,tmp->body,len(tmp->contents) - tmp->body));
+		append_header(hdrs,$("status"),from(tmp->contents,9,3));
 		set_SockReqResp(NULL,NULL,Resp->req->resp);
 		connection(Resp->headers,"close");
-		adopt_scratch(Resp->sc->scratch,tmp->sc->scratch);
-		tmp->sc->scratch = NULL;
 		close_socket(tmp->sc);
 		add_write_socket(Resp->sc->fd,Resp);
 	} else {
 		add_resp_socket(Sock->fd,Resp);
 	}
-	old_scratch();
 }
 
 void
 write_response()
 {
-	client_scratch();
 	send_response(Resp);
-	old_scratch();
 	srv->ri = end_request(srv->ri,Resp->req);
 	disconnect();
 }
@@ -200,20 +145,17 @@ write_response()
 void
 write_request()
 {
-	client_scratch();
 	if (send_request(Req)) {
-		old_scratch();
 		add_req_socket(Sock->fd,Req);
 		return;
 	}
-	old_scratch();
 	add_resp_socket(Sock->fd,new_response(Req));
 }
 
 str
 load_config(char* filename)
 {
-	File conf = open_file(srv->fc,Str("%c",filename));
+	File conf = open_file(srv->fc,$("%c",filename));
 	if (conf) {
 		srv->fc = conf;
 		return copy(conf->data,conf->st.st_size-1);		
@@ -224,17 +166,10 @@ load_config(char* filename)
 void
 serve(int port, int tls_port)
 {
-	Scratch scratch = new_scratch(NULL);
-	srv = (Server)alloc_scratch(scratch,sizeof(struct server_struct));
-	srv->scratch = scratch;
-	set_scratch(NULL);
-	server_scratch();
+	init_regions();
+	srv = (Server)system_reserve(sizeof(struct server_struct));
 	set_cwd();
-#ifdef LINUX
-	srv->kq = epoll_create(1024);
-#else
 	srv->kq = kqueue();
-#endif
 	srv->alarm = 0;
 	srv->http_sock = open_socket(port);
 	srv->tls_sock = open_socket(tls_port);
@@ -250,9 +185,6 @@ serve(int port, int tls_port)
 	srv->done = 0;
 	general_signal_handlers();
 	socket_signal_handlers();
-#ifdef LINUX
-	file_signal_handlers();
-#endif
 	init_strings();
 }
 
@@ -284,48 +216,41 @@ void
 run()
 {
 	File fc;
-	Event ec = srv->ec;
-	int events = srv->numevents;
-	srv->ec = NULL;
-	srv->numevents = 2;
-	server_scratch();
-	set_SockReqResp(NULL,NULL,NULL);
-	ec = poll_events(ec,events);
+	Event ec = poll_events();
 	for (srv->ec = NULL; ec; ec = ec->next) {
-		server_scratch();
 		set_SockReqResp(NULL,NULL,NULL);
-		if (ec->fd == 0) continue;
+		if (!ec->fd) continue;
 		if (external_port(ec->fd)) {
 			incoming(ec->fd);
 			continue;
 		}
 		switch (ec->type) {
 		case READ:
-			set_SockReqResp(NULL,(Request)event_data(ec->data),NULL);
+			set_SockReqResp(NULL,(Request)ec->data,NULL);
 			closed_socket(Sock,"Read failed") ?
 				disconnect():
 				read_request();
 			break;
 		case WRITE:
-			set_SockReqResp(NULL,NULL,(Response)event_data(ec->data));
+			set_SockReqResp(NULL,NULL,(Response)ec->data);
 			closed_socket(Sock,"Write failed") ?
 				disconnect() :
 				write_response();
 			break;
 		case REQ:
-			set_SockReqResp(NULL,(Request)event_data(ec->data),NULL);
+			set_SockReqResp(NULL,(Request)ec->data,NULL);
 			closed_socket(Sock,"Request failed") ?
 				disconnect() :
 				write_request();
 			break;	
 		case RESP:
-			set_SockReqResp(NULL,NULL,(Response)event_data(ec->data));
+			set_SockReqResp(NULL,NULL,(Response)ec->data);
 			closed_socket(Sock,"Response failed") ?
 				disconnect() :
 				read_response();
 			break;	
 		case NODE:
-			fc = (File)event_data(ec->data);
+			fc = (File)ec->data;
 			unload(ec->fd,copy(fc->name,0));
 			break;
 		default:
@@ -343,7 +268,6 @@ stop()
 {
 	File fc;
 	Socket sc;
-	server_scratch();
 	close(srv->http_sock);
 	close(srv->tls_sock);
 	srv->sock = 0;

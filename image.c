@@ -24,7 +24,7 @@ img_handler(File fc)
 	expires(Resp->headers,Expires()->data);
 	send_status(Resp->sc,200);
 	send_headers(Resp->sc,Resp->headers);
-	str range = find_header(Resp->req->headers,Str("Range"));
+	str range = find_header(Resp->req->headers,$("Range"));
 	if (range) {
 		debug("Ranges: %s",range);
 	}

@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "log.h"
 #include "usage.h"
 
@@ -21,7 +21,7 @@ timediff(struct timeval* tva,struct timeval* tvb)
 Usage
 new_usage()
 {
-	return (Usage)salloc(sizeof(struct usage_struct));
+	return (Usage)reserve(sizeof(struct usage_struct));
 }
 
 void

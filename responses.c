@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "log.h"
 #include "headers.h"
 #include "status.h"
@@ -20,7 +20,7 @@ static char* server_name = SERVER_VERSION;
 Response
 new_response(Request req)
 {
-	Response resp = (Response)salloc(sizeof(struct response_struct));
+	Response resp = (Response)reserve(sizeof(struct response_struct));
 	resp->req = req;
 	resp->sc = req->sc;
 	resp->headers = new_headers();

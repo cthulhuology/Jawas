@@ -17,7 +17,9 @@
 #define MAILHOST "mail.nexttolast.com"
 #define PAGE_GUARD 1
 #define CACHE_PAGES 10000
-#define MAX_REGIONS 4096
+#define MAX_REGIONS 10
+#define MAX_EVENTS 1024
+#define SYSTEM_REGION_SIZE 10000000
 #else 
 #define halt exit(1)
 #define LOG_LEVEL  4
@@ -29,7 +31,10 @@
 #define MAILHOST "mail.nexttolast.com"
 #define PAGE_GUARD 0
 #define CACHE_PAGES 10000
-#define MAX_REGIONS 4096
+#define MAX_REGIONS 10
+#define CACHE_TTL 1000000
+#define MAX_EVENTS 1024
+#define SYSTEM_REGION_SIZE 10000000
 #endif
 
 

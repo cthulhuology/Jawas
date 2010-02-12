@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "str.h"
 #include "log.h"
 #include "headers.h"
@@ -15,7 +15,7 @@
 Headers
 new_headers()
 {
-	return (Headers)salloc(HEADERS_SIZE);
+	return (Headers)reserve(HEADERS_SIZE);
 }
 
 str
@@ -101,8 +101,8 @@ list_headers(Headers kv)
 		skip_null(kv,i);
 	//	debug("i is %i",i);
 	//	debug("retval is %p",retval);
-		retval = retval ? Str("%s, %s : %s", retval, kv->slots[i].key, kv->slots[i].value)
-				: Str("%s : %s", kv->slots[i].key,kv->slots[i].value); 
+		retval = retval ? $("%s, %s : %s", retval, kv->slots[i].key, kv->slots[i].value)
+				: $("%s : %s", kv->slots[i].key,kv->slots[i].value); 
 	}
 	return retval;
 }
@@ -114,7 +114,8 @@ print_headers(str dst, Headers src)
 	str retval = dst;
 	over(src,i) {
 		skip_null(src,i);
-		retval = append(retval,Str("%s: %s\r\n",Key(src,i),Value(src,i)));
+		retval = retval ? $("%s%s: %s\r\n",retval, Key(src,i),Value(src,i)):
+			$("%s: %s\r\n",Key(src,i),Value(src,i));
 	}
 	return retval;
 }
@@ -124,10 +125,10 @@ url_encode_headers(Headers src)
 {
 	int i;
 	if (! src) return NULL;
-	str retval = Str("%s=%s",Key(src,0),Value(src,0));
+	str retval = $("%s=%s",Key(src,0),Value(src,0));
 	overs(src,i,1) {
 		skip_null(src,i);
-		retval = append(retval,Str("&%s=%s",Key(src,i),Value(src,i)));
+		retval = $("%s&%s=%s",retval,Key(src,i),Value(src,i));
 	}
 	return retval;
 }

@@ -50,6 +50,6 @@ str file_path(str host, str filename);
 str temp_file();
 
 #define file_path(h,f) \
-	Str("%s/%s%s",cwd,h,f)
+	$("%s/%s%s",cwd,h,f)
 
 #endif

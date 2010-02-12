@@ -30,6 +30,6 @@ MicroTime()
 	struct timeval tv;
 	if (gettimeofday(&tv,NULL))
 		return Expires();
-	return Str("%i", (tv.tv_sec << 20) + tv.tv_usec);
+	return $("%i", (tv.tv_sec << 20) + tv.tv_usec);
 }
 

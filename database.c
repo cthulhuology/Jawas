@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "str.h"
 #include "log.h"
 #include "database.h"
 #include "usage.h"
@@ -17,14 +17,8 @@ int
 query(str q)
 {
 	if (db->res) reset();
-	char* qry = dump(q);
 	dblog("%s",q);
-	Usage u = new_usage();
-	start_usage(u);
-	db->res = PQexec(db->conn,qry);
-	stop_usage(u);
-	dump_usage(u);
-	free_region(qry);
+	db->res = PQexec(db->conn,q->data);
 	switch(PQresultStatus(db->res)) {
 		case PGRES_EMPTY_QUERY:
 		case PGRES_COMMAND_OK:
@@ -55,21 +49,21 @@ str
 field(int i)
 {
 	if (!db->res) return NULL;
-	return Str("%c",PQfname(db->res,i));
+	return $("%c",PQfname(db->res,i));
 }
 
 str
 db_error()
 {
 	if (!db->res) return NULL;
-	return Str("%c",PQresultErrorMessage(db->res));
+	return $("%c",PQresultErrorMessage(db->res));
 }
 
 str
 fetch(int row, int col)
 {
 	if (!db->res) return NULL;
-	return Str("%c",PQgetvalue(db->res,row,col));	
+	return $("%c",PQgetvalue(db->res,row,col));	
 }
 
 void
@@ -82,7 +76,7 @@ reset()
 Database
 new_database()
 {
-	Database retval = (Database)salloc(sizeof(struct database_struct));
+	Database retval = (Database)reserve(sizeof(struct database_struct));
 	debug(DB_CONNECT_STRING);
 	retval->conn = PQconnectdb(DB_CONNECT_STRING);
 	if (PQstatus(retval->conn) != CONNECTION_OK) dblog("Failed to connect to database %c",DB_CONNECT_STRING);

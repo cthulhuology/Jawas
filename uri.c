@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "str.h"
 #include "log.h"
 #include "uri.h"
@@ -25,14 +25,14 @@ parse_uri_encoded(Headers head, str buf, int pos)
 	Headers retval = (head ? head :  new_headers());
 	for (i = pos; isspace(at(buf,i)); ++i);
 	for (; i < l; ++i) {
-		o = find(buf,i,"=");
+		o = find(buf,i,"=",1);
 		if (o >= l) {
 			 debug("Key not found %i > %i",o,l);
 			 break;
 		}
 		key = from(buf,i,o-i);
 		i = o+1;
-		o = find(buf,i,"&\r\n");
+		o = find(buf,i,"&\r\n",3);
 		value = (o > l) ?
 			from(buf,i,l-i):
 			from(buf,i,o-i);

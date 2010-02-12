@@ -5,7 +5,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "log.h"
 #include "server.h"
 

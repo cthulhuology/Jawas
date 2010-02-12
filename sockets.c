@@ -6,7 +6,6 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
 #include "str.h"
 #include "log.h"
 #include "sockets.h"
@@ -14,10 +13,6 @@
 #include "hostnames.h"
 #include "server.h"
 #include "tls.h"
-
-#ifdef LINUX 
-	extern void remove_epoll(int fd);
-#endif
 
 #define STREAM 1
 #define PACKET 0
@@ -115,7 +110,6 @@ resume_socket(Socket sc)
 {
 	sc->host = NULL;
 	sc->buf = NULL;
-	sc->scratch = gscratch;
 	sc->closed = 0;
 	return sc;
 }
@@ -123,7 +117,7 @@ resume_socket(Socket sc)
 Socket
 create_socket(int fd, TLSInfo tls, Socket sc)
 {
-	Socket retval = (Socket)salloc(sizeof(struct socket_cache_struct));
+	Socket retval = (Socket)reserve(sizeof(struct socket_cache_struct));
 	retval->tls= (tls ? open_tls(tls,fd) : NULL);
 	retval->next = sc;
 	retval->fd = fd;
@@ -190,7 +184,7 @@ connect_socket(str host, int port, int ssl)
 	keepalive(sock);
 	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
 	retval = create_socket(sock,ssl ? srv->tls_client :NULL,NULL);
-	retval->host = Str("%c",host);
+	retval->host = $("%c",host);
 	retval->peer = Address.sin_addr.s_addr;
 	retval->port = port;
 	if (ssl && (connect_tls(retval->tls) ||check_tls(retval->tls))) {
@@ -211,18 +205,8 @@ close_socket(Socket sc)
 	remove_epoll(sc->fd);
 #endif
 	close(sc->fd);
-	free_scratch(sc->scratch);
 	--gsci.current;
 	return retval;
-}
-
-Socket
-reset_socket(Socket sc)
-{
-	if (!sc) return NULL;
-	free_scratch(sc->scratch);
-	sc->scratch = new_scratch(NULL);
-	return sc;
 }
 
 str
@@ -232,12 +216,9 @@ read_socket(Socket sc)
 			read_tls(sc->tls,t->data,Max_Buffer_Size) :
 			read(sc->fd,t->data,Max_Buffer_Size)); sc->buf = append(sc->buf,t)) {
 		if (t->length == -1 ) {
-			if (errno == EAGAIN) {
-				return sc->buf;
-			} else {
-				error("ERROR %i occured", errno);
-				return NULL;	
-			}
+			if (errno == EAGAIN) return sc->buf;
+			error("ERROR %i occured", errno);
+			return NULL;	
 		}
 	}
 	return sc->buf;
@@ -258,19 +239,15 @@ write_to_socket(Socket sc,char* data, int length)
 int
 write_socket(Socket sc, str buf)
 {
-	str t;
-	int retval = 0;
-	if (! sc) return 0;
-	for (t = buf; t; t = t->next) 
-		retval += write_to_socket(sc,t->data,t->length);
-	return retval;
+	if (! sc || !buf) return 0;
+	return write_to_socket(sc,buf->data,buf->length);
 }
 
 int
 write_chunk(Socket sc, char* data, int length)
 {
 	int retval = 0;
-	str header = Str("%h\r\n",length);
+	str header = $("%h\r\n",length);
 	write_to_socket(sc,header->data,header->length);
 	if (data) retval = write_to_socket(sc,data,length);
 	write_to_socket(sc,"\r\n",2);
@@ -282,9 +259,8 @@ write_chunked_socket(Socket sc, str buf)
 {
 	if (!sc) return 0;
 	int i, retval = 0;
-	for (str t = buf; t; t = t->next)
-		for (i = 0; i < t->length; i += MAX_WRITE_SIZE)
-			retval += write_chunk(sc,t->data + i,min(MAX_WRITE_SIZE,t->length - i));
+	for (i = 0; i < buf->length; i += MAX_WRITE_SIZE)
+		retval += write_chunk(sc,buf->data + i,min(MAX_WRITE_SIZE,buf->length - i));
 	return retval;
 }
 
@@ -361,8 +337,7 @@ size_t
 socket_send(Socket sc, str msg)
 {
 	attachTo(sc->peer,sc->port);
-	str message = encode(msg);
-	return sendto(sc->fd,message->data,message->length,0,(struct sockaddr *)&Address,sizeof(Address));
+	return sendto(sc->fd,msg->data,msg->length,0,(struct sockaddr *)&Address,sizeof(Address));
 }
 
 str

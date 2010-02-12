@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "uri.h"
 #include "status.h"
 
@@ -71,7 +71,7 @@ status_line(int code)
 	int i = find_status_code(code);
 	if (stati[i].len == 0)
 		stati[i].len = strlen(stati[i].reason);
-	return Str("%c %c",http_version,stati[i].reason);
+	return $("%c %c",http_version,stati[i].reason);
 }
 
 int

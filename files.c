@@ -5,7 +5,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "str.h"
 #include "log.h"
 #include "files.h"
@@ -16,11 +16,9 @@ int file_index = 0;
 File
 open_file(File cache, str filename)
 {
-	str t;
 	int fl = len(filename);
-	File fc = (File)salloc(sizeof(struct file_cache_struct) + fl + 1);
-	for (t = filename; t; t = t->next)
-		memcpy(fc->name + t->pos,t->data,t->length);
+	File fc = (File)system_reserve(sizeof(struct file_cache_struct) + fl + 1);
+	memcpy(fc->name,filename->data,filename->length);
 	fc->name[fl] = '\0';
 	fc->fd = open(fc->name,O_RDONLY,0400);
 	if (fc->fd < 0 || fstat(fc->fd,&fc->st)) {
@@ -131,8 +129,8 @@ parse_file(File fc)
 	char* script = fc->data;
 	int o = 0, l = 0, i = 0, e = 0;
 	if (fc->parsed) return fc;
-	fc->parsed = (Parsed)salloc(MAX_ALLOC_SIZE);
-	memset(fc->parsed,0,MAX_ALLOC_SIZE);
+	fc->parsed = (Parsed)system_reserve(getpagesize());
+	memset(fc->parsed,0,getpagesize());
 	for (o = 0; script[o] && o < fc->st.st_size; ++o) {
 		if (!strncmp(&script[o],"<?",2) && isspace(script[o+2])) {
 			if (l < o) i = mark_file(fc,i,TEXT,l,o-l);
@@ -159,6 +157,6 @@ set_cwd()
 str
 temp_file()
 {
-	return Str("/tmp/%i%i",++file_index,time(NULL));
+	return $("/tmp/%i%i",++file_index,time(NULL));
 }
 

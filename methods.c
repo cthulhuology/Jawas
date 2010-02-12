@@ -31,7 +31,7 @@ Headers
 parse_json(Headers hd, str buf, int pos)
 {
 	debug("Found json [%s]",from(buf,pos,len(buf)-pos));
-	return append_header(hd,Str("json"),from(buf,pos,len(buf)-pos));
+	return append_header(hd,$("json"),from(buf,pos,len(buf)-pos));
 }
 
 int
@@ -52,11 +52,11 @@ get_method()
 int
 post_method()
 {
-	str enctype = find_header(Req->headers,Str("Content-Type"));
+	str enctype = find_header(Req->headers,$("Content-Type"));
 	notice("POST %s%s %s from %s",Req->host,Req->path,enctype, socket_peer(Req->sc));
-	Req->query_vars = enctype && ncmp(enctype,Str("multipart/form-data"),19) ?
+	Req->query_vars = enctype && ncmp(enctype,$("multipart/form-data"),19) ?
 			parse_multipart_body(Req->query_vars,enctype) :
-		enctype && ncmp(enctype,Str("text/json"),9) ?
+		enctype && ncmp(enctype,$("text/json"),9) ?
 			parse_json(Req->query_vars,Req->contents,Req->body):
 		parse_uri_encoded(Req->query_vars,Req->contents,Req->body);
 	return get_method();

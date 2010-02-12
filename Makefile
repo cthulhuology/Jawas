@@ -8,7 +8,7 @@ ARCH := $(shell uname)
 
 LIBS = -lpq -lssl -lcrypto -llua -lz
 
-CFLAGS += --std=c99 -Wall -I/usr/local/include/luajit-2.0  -DHOSTADDR=`ifconfig | grep inet | cut -f2 -d" " | head -n1`
+CFLAGS += --std=c99 -Wall -I/usr/local/include/luajit-2.0  -DHOSTADDR=`ifconfig | grep inet | cut -f2 -d" " | head -n1` 
 LDFLAGS =
 
 ifeq ($(ARCH),Darwin)
@@ -27,7 +27,6 @@ endif
 
 
 SOURCES = \
-alloc.c \
 amazon.c \
 auth.c \
 bsd.c \
@@ -42,22 +41,18 @@ headers.c \
 hostnames.c \
 image.c \
 index.c \
-linux.c \
 log.c \
 lua_db.c \
 lua_json.c \
 lws.c \
-mail.c \
 memory.c \
 methods.c \
 mime.c \
-pages.c \
 requests.c \
 responses.c \
 script.c \
 server.c \
 signals.c \
-sms.c \
 sockets.c \
 status.c  \
 str.c \

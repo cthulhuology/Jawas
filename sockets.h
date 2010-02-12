@@ -7,7 +7,7 @@
 #ifndef __SOCKETS_H__
 #define __SOCKETS_H__
 
-#include "alloc.h"
+#include "memory.h"
 #include "str.h"
 #include "tls.h"
 #include "files.h"
@@ -16,13 +16,12 @@
 typedef struct socket_cache_struct* Socket;
 struct socket_cache_struct {
 	Socket next;
-	Scratch scratch;	
-	str buf;
 	TLSSocket tls;
-	int fd;
-	unsigned int peer;
-	int port;
+	str buf;
 	str host;
+	unsigned int peer;
+	int fd;
+	int port;
 	int closed;
 };
 
@@ -51,7 +50,6 @@ int write_to_socket(Socket sc, char* buf, int length);
 int write_socket(Socket sc, str buf);
 int write_chunked_socket(Socket sc, str buf);
 int write_chunk(Socket sc, char* data, int length);
-Socket reset_socket(Socket sc);
 Socket close_socket(Socket sc);
 int closed_socket(Socket sc, char* msg);
 void socket_notice(Socket sc, char* msg);
