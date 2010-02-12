@@ -20,10 +20,10 @@ set_scratch(Scratch s)
 }
 
 Scratch
-new_scratch(Scratch n)
+new_scratch()
 {
 	Scratch retval = (Scratch)new_page();	
-	retval->next = n;
+	retval->next = NULL;
 	retval->len = 0;
 	++gsi.allocated;
 	return retval;		
@@ -32,6 +32,7 @@ new_scratch(Scratch n)
 char*
 alloc_scratch(Scratch s, int size)
 {
+	Scratch t;
 	char* retval = NULL;
 	if (!size) return NULL;
 	if (size > MAX_ALLOC_SIZE) {
@@ -39,13 +40,11 @@ alloc_scratch(Scratch s, int size)
 		halt;
 		return NULL;
 	}
-	if (size > MAX_ALLOC_SIZE - s->len) {
-		s->next = new_scratch(s->next);	
-		return alloc_scratch(s->next,size);
-	}
-	retval = &s->data[s->len];
+	for (t = s; size > MAX_ALLOC_SIZE - t->len && t->next; t = t->next); 
+	if ( size > MAX_ALLOC_SIZE - t->len) t->next = new_scratch();
+	retval = &t->data[t->len];
 	memset(retval,0,size);
-	s->len += size;
+	t->len += size;
 	return retval;
 }
 
@@ -59,7 +58,6 @@ void
 adopt_scratch(Scratch dst, Scratch src)
 {
 	Scratch c;
-	debug("Adopting scratch %p %p",dst,src);
 	for (c = dst; c && c->next; c = c->next);
 	c->next = src;
 }
@@ -67,11 +65,9 @@ adopt_scratch(Scratch dst, Scratch src)
 void
 free_scratch(Scratch s)
 {
-//	if (!s) return;
-//	if (s->next) free_scratch(s->next);	
-//	if (free_page((Page)s)) {
-//		++gsi.frees;
-//	}
+	Scratch t;
+	for (t = s; t; t = (Scratch)free_page((Page)t));
+	++gsi.frees;
 }
 
 void

@@ -40,20 +40,21 @@ new_page()
 	return tmp;
 }
 
-int
+Page
 free_page(Page p)
 {
 	Page tmp;
 	for (tmp = gpi.free; PAGE_GUARD && tmp; tmp = tmp->next) {
 		if (tmp == p) {
 			fprintf(stderr,"Double free on page %p\n",p);
-			return 0;
+			return NULL;
 		}
 	}
 	++gpi.frees;
+	tmp = p->next;
 	p->next = gpi.free;
 	gpi.free = p;	
-	return 1;
+	return tmp;
 }
 
 int

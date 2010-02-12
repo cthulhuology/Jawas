@@ -27,7 +27,7 @@ struct scratch_info_struct {
 extern ScratchInfo gsi;
 extern Scratch gscratch;
 
-Scratch new_scratch(Scratch n);
+Scratch new_scratch();
 void free_scratch(Scratch s);
 void set_scratch(Scratch s);
 void adopt_scratch(Scratch dst, Scratch src);

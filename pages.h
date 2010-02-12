@@ -25,7 +25,7 @@ struct page_info_struct {
 extern PageInfo gpi;
 
 Page new_page();
-int free_page(Page p);
+Page free_page(Page p);
 void dump_page_info();
 int free_memory();
 int total_memory();
