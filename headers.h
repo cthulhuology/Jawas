@@ -52,15 +52,15 @@ Headers content_length(Headers headers, const char* value);
 Headers content_type(Headers headers, const char* value);
 Headers expires(Headers headers, const char* value);
 Headers location(Headers headers, const char* value);
-Headers server(Headers headers, const char* value);
+Headers server_name(Headers headers, const char* value);
 
 
 #define HEADER_FUNC(f,k) \
 Headers \
 f (Headers headers, const char* value) {\
 	int i = free_header_slot(headers);\
-	 headers->slots[i].key = copy(k,0);\
-	 headers->slots[i].value = copy(value,0);\
+	 headers->slots[i].key = ref(k,strlen(k));\
+	 headers->slots[i].value = ref(value,strlen(value));\
 	 return headers;\
 }
 

@@ -7,7 +7,7 @@
 #ifndef __HAVE_STR_H__
 #define __HAVE_STR_H__
 
-#include <stdarg.h>
+#include "include.h"
 #include "defines.h"
 #include "memory.h"
 
@@ -34,8 +34,8 @@ str clone(str s);
 str from(str s, int start, int len);
 str append(str s, str v);
 
-str int_str(int i);
-str hex_str(int i);
+str int_str(uint64_t i);
+str hex_str(uint64_t i);
 str obj_str(void* p);
 
 int str_int(str a);

@@ -35,5 +35,7 @@ log_msg(int lvl, char* fmt,  ...)
 	msg = $("%c [%s]: %s\n",log_msgs[lvl],now,msg);
 	write(log_fd,msg->data,len(msg));
 	fsync(log_fd);
+//	vfprintf(stderr,fmt,args);
+//	fprintf(stderr,"\n");
 }
 

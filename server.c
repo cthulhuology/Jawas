@@ -21,243 +21,188 @@
 #include "strings.h"
 #include "sms.h"
 
-Server srv = NULL;
-
-File
-load(str filename)
-{
-	File retval = NULL;
-	if (!filename) return NULL;
-	retval = query_cache(&srv->fc,filename);
-	if (retval) return retval;
-	retval = open_file(srv->fc,filename);
-	if (!retval) {
-		error("Failed to open %s\n",filename);
-		return NULL;
-	}
-	srv->fc = retval;
-	add_file_monitor(srv->fc->fd,srv->fc);
-	return retval;
-}
+Server server;
 
 void
-unload(int fd, str filename)
+incoming(uint64_t fd)
 {
-	srv->fc = close_file(srv->fc,filename);
-}
-
-void
-resume(Socket sc)
-{
-	Request req;
-	req = open_request(srv->sc);
-	srv->ri = start_request(srv->ri,req);
-	add_read_socket(srv->sc->fd,req);
-}
-
-void
-incoming(int fd)
-{
-	srv->sc = accept_socket(srv->sc,fd,(srv->http_sock == fd ? NULL : srv->tls));
-	if (srv->sc) resume(srv->sc);
+	debug("Incoming %i",fd);
+	server.socket = accept_socket(fd,(server.http_sock == fd ? NULL : server.tls));
+	if (!server.socket) return;
+	server.request = open_request(server.socket);
+	add_read_socket(server.socket->fd,server.request);
 }
 
 void
 disconnect()
 {
-	Socket tmp,last;
-	last = NULL;
-	for (tmp = srv->sc; tmp; tmp = tmp->next) {
-		if (tmp == Sock)
-			last ? (last->next = close_socket(Sock)):
-			(srv->sc = close_socket(Sock));
-		last = tmp;
+	debug("Disconnect %p, %i",server.socket,server.socket->fd);
+	close_socket(server.socket);
+}
+
+void
+retry_request()
+{
+	debug("Retry Request %p, %i",server.request,server.request->retries);
+	if (server.request->retries >= MAX_RETRIES)  {
+		error("Failed to read request\n");
+		disconnect();
+		return;
 	}
+	add_read_socket(server.socket->fd,server.request);
 }
 
 void
 read_request()
 {
-	if (!process_request(Req)) {
-		if (Req->retries < MAX_RETRIES)  {
-			add_read_socket(Sock->fd,Req);
-			return;
-		}
-		error("Failed to read request\n");
-		disconnect();
+	debug("Read Request %p",server.request);
+	if (process_request()) {
+		retry_request();
 		return;
 	}
-	Req->retries = 0;
-	if (Req->done) {
-		Sock->buf = NULL;
-		Resp = new_response(Req);
-		parse_path(Req);	
-		add_write_socket(Sock->fd,Resp);
-	} else {
-		add_read_socket(Sock->fd,Req);
+	server.request->retries = 0;
+	if (!server.request->done) {
+		add_read_socket(server.socket->fd,server.request);
+		return;
 	}
+	debug("Read Request %p, %i done",server.request,server.socket->fd);
+	server.socket->buf = NULL;
+	server.response = new_response(server.request);
+	parse_path(server.request);
+	add_write_socket(server.socket->fd,server.response);
+	return;
 }
 
 
 void
 send_response()
 {
-	str host = parse_host(Req,find_header(Req->headers,$("Host")));
-	str method = parse_method(Req);
-	begin_response(Resp);
-	Resp->status = host && method ?
+	debug("Send response to %d",server.socket->fd);
+	str host = parse_host(server.request,find_header(server.request->headers,$("Host")));
+	debug("Connect to host %s",host);
+	str method = parse_method(server.request);
+	debug("Request method %s",method);
+	begin_response();
+	server.response->status = host && method ?
 		dispatch_method(method) :
 		error_handler(400);
-	end_response(Resp);
+	end_response();
+	disconnect();
 }
-
 
 void
 read_response()
 {
-	if (!process_response(Resp)) {
+	if (process_response()) {
 		error("Failed to read response\n");
 		disconnect();		
 		return;
 	}
-	if (Resp->done) {
-		Response tmp = Resp;
-		Headers hdrs = tmp->headers;
-		append_header(hdrs,$("data"),from(tmp->contents,tmp->body,len(tmp->contents) - tmp->body));
-		append_header(hdrs,$("status"),from(tmp->contents,9,3));
-		set_SockReqResp(NULL,NULL,Resp->req->resp);
-		connection(Resp->headers,"close");
-		close_socket(tmp->sc);
-		add_write_socket(Resp->sc->fd,Resp);
-	} else {
-		add_resp_socket(Sock->fd,Resp);
+	if (!server.response->done) {
+		add_resp_socket(server.socket->fd,server.response);
+		return;
 	}
-}
-
-void
-write_response()
-{
-	send_response(Resp);
-	srv->ri = end_request(srv->ri,Resp->req);
-	disconnect();
+	Response tmp = server.response;
+	server.request = server.request = server.response->request;
+	server.socket = server.request->socket;
+	server.response = server.request->response;
+	append_header(server.response->headers,$("data"),from(tmp->contents,tmp->body,len(tmp->contents) - tmp->body));
+	append_header(server.response->headers,$("status"),from(tmp->contents,9,3));
+	close_socket(tmp->socket);
+	connection(server.response->headers,"close");
+	add_write_socket(server.response->socket->fd,server.response);
 }
 
 void
 write_request()
 {
-	if (send_request(Req)) {
-		add_req_socket(Sock->fd,Req);
+	if (send_request(server.request)) {
+		add_req_socket(server.socket->fd,server.request);
 		return;
 	}
-	add_resp_socket(Sock->fd,new_response(Req));
-}
-
-str
-load_config(char* filename)
-{
-	File conf = open_file(srv->fc,$("%c",filename));
-	if (conf) {
-		srv->fc = conf;
-		return copy(conf->data,conf->st.st_size-1);		
-	}
-	return NULL;
+	add_resp_socket(server.socket->fd,new_response(server.request));
 }
 
 void
 serve(int port, int tls_port)
 {
 	init_regions();
-	srv = (Server)system_reserve(sizeof(struct server_struct));
 	set_cwd();
-	srv->kq = kqueue();
-	srv->alarm = 0;
-	srv->http_sock = open_socket(port);
-	srv->tls_sock = open_socket(tls_port);
-	srv->tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
-	srv->tls_client = client_tls("certs");
-	srv->ec = NULL;
-	srv->fc = NULL;
-	srv->sc = NULL;
-	srv->time = time(NULL);
-	srv->numevents = 2;
-	monitor_socket(srv->http_sock);
-	monitor_socket(srv->tls_sock);
-	srv->done = 0;
+	server.kq = kqueue();
+	server.alarm = 0;
+	server.http_sock = open_socket(port);
+	server.tls_sock = open_socket(tls_port);
+	server.tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
+	server.tls_client = client_tls("certs");
+	server.time = time(NULL);
+	server.numevents = 2;
+	monitor_socket(server.http_sock);
+	monitor_socket(server.tls_sock);
+	server.done = 0;
 	general_signal_handlers();
 	socket_signal_handlers();
 	init_strings();
 }
 
-int
-external_port(int fd)
+uint64_t
+external_port(uint64_t fd)
 {
-	return fd == srv->http_sock || fd == srv->tls_sock;
+	return fd == server.http_sock || fd == server.tls_sock;
 }
 
 void
-set_SockReqResp(Socket sc, Request rq, Response rsp)
-{
-	Resp = NULL;	
-	Req = NULL;
-	Sock = NULL;
-	if (rsp) {
-		Resp = rsp;
-		Req = Resp->req;
-		Sock = Resp->sc;
-	} else if (rq) {
-		Req = rq;
-		Sock = Req->sc;
-	} else if (sc) {
-		Sock = sc;
-	}
+use_event(Event e) {
+	server.socket = e ? e->socket : NULL;
+	server.request = e ? e->request : NULL;
+	server.response = e ? e->response : NULL;
+	server.file = e ? e->file : NULL;
 }
 
 void
 run()
 {
-	File fc;
-	Event ec = poll_events();
-	for (srv->ec = NULL; ec; ec = ec->next) {
-		set_SockReqResp(NULL,NULL,NULL);
-		if (!ec->fd) continue;
-		if (external_port(ec->fd)) {
-			incoming(ec->fd);
+	Event e = poll_events();
+	for (server.event = NULL; e; e = e->next) {
+		if (!e->fd) continue;
+		if (external_port(e->fd)) {
+			incoming(e->fd);
 			continue;
 		}
-		switch (ec->type) {
+		use_event(e);
+		switch (e->type) {
 		case READ:
-			set_SockReqResp(NULL,(Request)ec->data,NULL);
-			closed_socket(Sock,"Read failed") ?
+			debug("Event READ");
+			closed_socket(server.socket,"Read failed") ?
 				disconnect():
 				read_request();
 			break;
 		case WRITE:
-			set_SockReqResp(NULL,NULL,(Response)ec->data);
-			closed_socket(Sock,"Write failed") ?
+			debug("Event WRITE");
+			closed_socket(server.socket,"Write failed") ?
 				disconnect() :
-				write_response();
+				send_response();
 			break;
 		case REQ:
-			set_SockReqResp(NULL,(Request)ec->data,NULL);
-			closed_socket(Sock,"Request failed") ?
+			debug("Event REQ");
+			closed_socket(server.socket,"Request failed") ?
 				disconnect() :
 				write_request();
 			break;	
 		case RESP:
-			set_SockReqResp(NULL,NULL,(Response)ec->data);
-			closed_socket(Sock,"Response failed") ?
+			debug("Event RESP");
+			closed_socket(server.socket,"Response failed") ?
 				disconnect() :
 				read_response();
 			break;	
 		case NODE:
-			fc = (File)ec->data;
-			unload(ec->fd,copy(fc->name,0));
+			debug("Event NODE");
+			reload(server.file);
 			break;
 		default:
 			debug("UNKNOWN EVENT");
 		}
 	}
-	if (srv->done) {
+	if (server.done) {
 		stop();
 		exit(0);
 	}
@@ -266,19 +211,9 @@ run()
 void
 stop()
 {
-	File fc;
-	Socket sc;
-	close(srv->http_sock);
-	close(srv->tls_sock);
-	srv->sock = 0;
-	close(srv->kq);
-	srv->kq = 0;
-	srv->ec = NULL;
-	srv->numevents = 0;
-	for (fc = srv->fc; fc; fc = close_file(fc,copy(fc->name,0)));
-	srv->fc = NULL;
-	for (sc = srv->sc; sc; sc = close_socket(sc));
-	srv->sc = NULL;	
-	srv->kq = 0;
-	srv->done = 0;
+	close(server.http_sock);
+	close(server.tls_sock);
+	close(server.kq);
+	close_sockets();
+	close_files();
 }

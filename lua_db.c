@@ -54,7 +54,7 @@ int ProceduresLua(lua_State* l, char* schema)
 {
 	int n = lua_gettop(l);
 	lua_pop(l,n);
-	str sql = $("SELECT functions_in('%c')", schema);
+	str sql = $("SELECT * from functions_in('%c');", schema);
 	int res = query(sql);
 	if (res < 0) {
 		str2lua(db_error());

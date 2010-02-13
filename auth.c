@@ -56,7 +56,7 @@ base64(str s)
 	src = BIO_new(BIO_s_mem());
 	dst = BIO_push(dst,src);
 	BIO_write(dst,t->data,t->length);
-	BIO_flush(dst);
+	if (1>BIO_flush(dst)) return NULL;
 	BIO_get_mem_ptr(dst,&ptr);
 	retval = copy(ptr->data,ptr->length-1);
 	BIO_free_all(dst);

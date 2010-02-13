@@ -53,17 +53,13 @@ s3_put(str file, str bucket, str filename, str mime, str callback)
 	debug("Size is %s",size);
 
 	Request req = new_request($("PUT"), $("%s.s3.amazonaws.com",bucket),$("/%s",filename));	
-
 	request_headers(req,$("x-amz-acl"),$("public-read"));
 	request_headers(req,$("Content-Type"),mime);
 	request_headers(req,$("Content-Length"),size);
 	request_headers(req,$("Date"),date);
 	request_headers(req,$("Authorization"),auth);
-
 	request_file(req,fc);
-	
-	request_callback(req,Resp,callback);
-
+	request_callback(req,server.response,callback);
 	send_request(req);
 
 	debug("S3 PUT DONE");

@@ -40,9 +40,8 @@ restart:
 		child = fork();
 	if (child == 0) {
 		serve(atoi(port),atoi(tls_port));
-		if (!srv) return 1;
 		notice("[%i] Jawasd Running...",getpid());
-		while (! srv->done) run();	
+		while (! server.done) run();	
 		stop();
 	} else {
 		char* pid = NULL;

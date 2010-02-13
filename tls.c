@@ -53,7 +53,7 @@ TLSInfo
 client_tls(char* certs)
 {
 	TLSInfo tls = (TLSInfo)reserve(sizeof(struct tls_struct));
-	if (!tls) return tls;
+	if (!tls) return NULL;
 	tls->pass_len = 0;
 	tls->err = BIO_new_fp(stderr,BIO_NOCLOSE);
 	tls->method = SSLv23_method();

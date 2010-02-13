@@ -9,7 +9,7 @@
 #ifndef PROD
 #define halt for(;;) {};
 #define LOG_LEVEL 4
-#define DB_CONNECT_STRING DB_STR(jawas_dev,HOSTADDR,6060)
+#define DB_CONNECT_STRING DB_STR(jawas_dev,HOSTADDR,5432)
 #define SERVER_PORT "8080"
 #define TLS_SERVER_PORT "4433"
 #define TLS_PASSWORD "whatawonderfulworld"
@@ -20,6 +20,7 @@
 #define MAX_REGIONS 10
 #define MAX_EVENTS 1024
 #define SYSTEM_REGION_SIZE 10000000
+#define MAX_FILES 1024
 #else 
 #define halt exit(1)
 #define LOG_LEVEL  4
@@ -35,6 +36,7 @@
 #define CACHE_TTL 1000000
 #define MAX_EVENTS 1024
 #define SYSTEM_REGION_SIZE 10000000
+#define MAX_FILES 1024
 #endif
 
 

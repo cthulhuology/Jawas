@@ -54,7 +54,7 @@ deauth_path(str filename)
 	for (int i = l; i-- > 0;) {
 		if (at(filename,i-1) == '/' && is_directory(from(filename,0,i))) {
 			debug("Found auth token [%s]",from(filename,i,l-i));
-			append_header(Req->headers,$("Token"),from(filename,i,l-i));
+			append_header(server.request->headers,$("Token"),from(filename,i,l-i));
 			return ref(filename->data,i);
 		}
 	}
@@ -67,8 +67,7 @@ get_index(str filename)
 	struct stat st;
 	for (int i = 0; indexes[i]; ++i) {
 		str index_path = $("%s%c",filename,indexes[i]);
-		if (!stat(filename->data,&st)) 
-			return index_path;
+		if (!stat(index_path->data,&st)) return index_path;
 	}
 	return NULL;
 }

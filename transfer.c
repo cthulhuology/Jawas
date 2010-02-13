@@ -20,11 +20,8 @@ int
 chunked_length(str src)
 {
 	int total = 0;
-	int pos = 0;
-	int delta = 0;
 	str line;
-
-	pos = skip_headers(src,0);
+	int pos = skip_headers(src,0);
 	do {
 		line = read_line(src,pos);	
 		pos += len(line) + 2;

@@ -18,7 +18,10 @@ query(str q)
 {
 	if (db->res) reset();
 	dblog("%s",q);
-	db->res = PQexec(db->conn,q->data);
+	str qry = blank(q->length + 1);
+	memset(qry->data,0,qry->length);	
+	memcpy(qry->data,q->data,q->length);
+	db->res = PQexec(db->conn,qry->data);
 	switch(PQresultStatus(db->res)) {
 		case PGRES_EMPTY_QUERY:
 		case PGRES_COMMAND_OK:

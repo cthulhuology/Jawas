@@ -15,13 +15,13 @@
 typedef struct response_struct* Response;
 typedef struct request_struct* Request;
 struct request_struct {
-	Socket sc;
+	Socket socket;
+	Response response;
 	Headers headers;
 	Headers query_vars;
-	str contents;	
 	File raw_contents;
 	Usage usage;
-	Response resp;
+	str contents;	
 	str cb;
 	str method;
 	str host;
@@ -44,26 +44,24 @@ struct request_info_struct {
 	int hits;	
 };
 
+extern Request requests;
+
 Request new_request(str method, str host, str path);
-Request request_headers(Request req, str key, str value);
-
-Request request_data(Request req, str text);
-Request request_file(Request req, File fc);
-
 Request open_request(Socket sc);
-Request process_request(Request req);
-
-void use_ssl(Request req);
-
-int send_request(Request req);
-int request_content_length(Request req);
+void request_port(Request req, int port);
+void request_ssl(Request req);
+void request_headers(Request req, str key, str value);
+void request_data(Request req, str text);
+void request_file(Request req, File fc);
 void request_callback(Request req, Response resp, str cb);
+int send_request(Request req);
+
+int process_request();
+
+int request_content_length();
 
 str parse_method();
 str parse_host(Request req, str host);
 str parse_path();
-
-RequestInfo start_request(RequestInfo ri, Request req);
-RequestInfo end_request(RequestInfo ri, Request req);
 
 #endif

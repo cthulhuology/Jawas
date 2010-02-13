@@ -20,8 +20,3 @@
 #define dblog(msg ...) log_msg(1,msg)
 #define notice(msg ...)	log_msg(2,msg)
 #define debug(msg ...)	log_msg(3,msg)
-
-#define Sock	srv->sock
-#define Req	srv->req
-#define Resp	srv->resp
-#define KQ	srv->kq

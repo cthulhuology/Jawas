@@ -15,6 +15,7 @@ extern int region_index;
 extern struct region_list_struct region_list[MAX_REGIONS];
 
 int event_index = 0;
+Event events;
 
 Event
 current_event()
@@ -25,57 +26,88 @@ current_event()
 }
 
 Event
-queue_event(Event ec, int fd, enum event_types type, enum event_flags flag, void* udata)
+queue_event(Event ec, uint64_t fd, enum event_types type, enum event_flags flag, Event e)
 {
-	Event retval = udata ? current_event() : (Event) system_reserve(sizeof(struct event_struct));
+	Event retval = e ? e : (Event) system_reserve(sizeof(struct event_struct));
 	retval->next = ec;
 	retval->fd = fd;
-	retval->type = type;	
+	retval->type = type;
 	retval->flag = flag;
-	retval->data = udata;
-	debug("Event %p fd:%i type:%i data:%p next:%p",retval,retval->fd,retval->type,retval->data,retval->next);
+	retval->socket = e ? e->socket : NULL;
+	retval->request = e ? e->request : NULL;
+	retval->response = e ? e->response : NULL;
+	retval->file = e ? e->file : NULL;
+	debug("Event %p fd:%i type:%i sock:%p req:%p resp:%p file:%p next:%p",retval,retval->fd,retval->type,retval->socket,retval->request,retval->response,retval->file,retval->next);
 	return retval;
 }
 
 void 
-monitor_socket(int f) 
+monitor_socket(uint64_t f) 
 {
-	srv->ec = queue_event(srv->ec,f, READ, NONE, NULL); 
-	srv->numevents++;
+	server.event = queue_event(server.event,f, READ, NONE, NULL); 
+	server.event->socket = NULL;
+	server.event->request = NULL;
+	server.event->response = NULL;
+	server.event->file = NULL;
+	server.numevents++;
 }
 
 void
-add_read_socket(int f, Request r)
+add_read_socket(uint64_t f, Request r)
 {
-	srv->ec = queue_event(srv->ec,f, READ, ONESHOT, r); 
-	srv->numevents++;
+	Event e = current_event();
+	e->socket =  r ? r->socket : NULL;
+	e->request = r;
+	e->response = NULL;
+	e->file = NULL;
+	server.event = queue_event(server.event,f, READ, ONESHOT, e); 
+	server.numevents++;
 }
 
 void
-add_write_socket(int f, Response r) 
+add_write_socket(uint64_t f, Response r) 
 {
-	srv->ec = queue_event(srv->ec,f, WRITE, ONESHOT, r); 
-	srv->numevents++; 
+	Event e = current_event();
+	e->socket = r ? r->socket : NULL;
+	e->request = r ? r->request : NULL;
+	e->response = r;
+	e->file = NULL;
+	server.event = queue_event(server.event,f, WRITE, ONESHOT, e); 
+	server.numevents++; 
 }
 
 void
-add_req_socket(int f, Request r) 
+add_req_socket(uint64_t f, Request r) 
 {
-	srv->ec = queue_event(srv->ec,f, REQ, ONESHOT, r); 
-	srv->numevents++;
+	Event e = current_event();
+	e->socket =  r ? r->socket : NULL;
+	e->request = r;
+	e->response = NULL;
+	e->file = NULL;
+	server.event = queue_event(server.event,f, REQ, ONESHOT, e); 
+	server.numevents++;
 }
 
 void
-add_resp_socket(int f, Response r) 
+add_resp_socket(uint64_t f, Response r) 
 {
-	srv->ec = queue_event(srv->ec,f,RESP, ONESHOT, r); 
-	srv->numevents++;
+	Event e = current_event();
+	e->socket = r ? r->socket : NULL;
+	e->request = r ? r->request : NULL;
+	e->response = r;
+	e->file = NULL;
+	server.event = queue_event(server.event,f,RESP, ONESHOT, e); 
+	server.numevents++;
 }
 
 void
-add_file_monitor(int f, File r)
+add_file_monitor(uint64_t f, File r)
 {
-	srv->ec = queue_event(srv->ec,f, NODE, ONESHOT, r);
-	srv->numevents++;
+	Event e = current_event();
+	e->socket = NULL;
+	e->request = NULL;
+	e->response = NULL;
+	e->file = r;
+	server.event = queue_event(server.event,f, NODE, ONESHOT, e);
+	server.numevents++;
 }
-

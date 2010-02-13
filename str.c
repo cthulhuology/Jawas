@@ -91,13 +91,14 @@ str
 from(str s, int start, int l)
 {
 	str retval = blank(l);
-	if (start + l  < s->length)  memcpy(retval->data,&s->data[start],l);
+	memcpy(retval->data,s->data + start,l);
 	return retval;
 }
 
 str
 append(str s, str v)
 {
+	if (!s) return v;
 	if ((str)&s->data[s->length] == v) {
 		fprintf(stderr,"appending inline\n");
 		s->length += v->length;
@@ -111,9 +112,9 @@ append(str s, str v)
 }
 
 size_t 
-int_len(int i)
+int_len(uint64_t i)
 {
-	int t, l;
+	uint64_t t, l;
 	t = i / 10;
 	for (l = (i < 0 ? 2 : 1); t; t = t / 10) ++l;
 	return l;
@@ -126,36 +127,36 @@ int_print(char* data, int i, int l)
 }
 
 str
-int_str(int i)
+int_str(uint64_t i)
 {
-	int l = int_len(i);
+	uint64_t l = int_len(i);
 	str retval = blank(l);
 	int_print(retval->data,i,l);
 	return retval;
 }
 
-int
-hex_len(int i)
+uint64_t
+hex_len(uint64_t i)
 {
-	int t, l;
+	uint64_t t, l;
 	t = i / 16;	
 	for(l = 1; t; t = t / 16) ++l;
 	return l;
 }
 
 void
-hex_print(char* data, int i, int l)
+hex_print(char* data, uint64_t i, uint64_t l)
 {
-	for (int t = i; l; t = t >> 4) 
+	for (uint64_t t = i; l; t = t >> 4) 
 		data[--l] =  between(10,t & 0x0f,15) ?
 			(0x0f & t) + 'a' - 10:
 			(t & 0x0f) + '0';	
 }
 
 str
-hex_str(int i)
+hex_str(uint64_t i)
 {
-	int l = hex_len(i);
+	uint64_t l = hex_len(i);
 	str retval = blank(l);
 	hex_print(retval->data,i,l);
 	return retval;
@@ -164,7 +165,7 @@ hex_str(int i)
 str
 obj_str(void* p)
 {
-	return hex_str((long)p);
+	return hex_str((uint64_t)p);
 }
 
 int
@@ -211,8 +212,8 @@ new_str(const char* fmt, va_list args)
 {
 	char* c;
 	str s;
-	int x, xl, sl;
-	int i, ls = 0, la = 0;
+	uint64_t x, xl, sl;
+	uint64_t i, ls = 0, la = 0;
 	for (i = 0; fmt[i]; ++i) la += (fmt[i] == '%' ? 1 : 0);
 	str retval = blank(0);
 	ls = 0;
@@ -230,20 +231,22 @@ new_str(const char* fmt, va_list args)
 				memcpy(&retval->data[ls],s->data,s->length);
 				ls += s->length;
 				break;
+			case 'd':
 			case 'i':
-				x = va_arg(args,int);
+				x = va_arg(args,uint64_t);
 				xl = int_len(x);
 				int_print(&retval->data[ls],x,xl);
 				ls += xl;
 				break;
 			case 'p':
+			case 'x':
 				c = va_arg(args,char*);
-				xl = hex_len((long)c);
-				hex_print(&retval->data[ls],(long)c,xl);
+				xl = hex_len((uint64_t)c);
+				hex_print(&retval->data[ls],(uint64_t)c,xl);
 				ls += xl;
 				break;
 			case 'h':
-				x  = va_arg(args,int);
+				x  = va_arg(args,uint64_t);
 				xl = hex_len(x);
 				hex_print(&retval->data[ls],x,xl);
 				ls += xl;
@@ -254,6 +257,7 @@ new_str(const char* fmt, va_list args)
 		else retval->data[ls++] = fmt[i];
 	}
 	retval->length = ls;
+	advance(ls);
 	va_end(args);
 	return retval;	
 }
@@ -357,7 +361,11 @@ int
 find(str src, int pos, char* delim, size_t dl)
 {
 	int i;
-	for (i = pos; i < src->length - dl && strncmp(&src->data[i],delim,dl); ++i);
+	dl = dl ? dl : strlen(delim);
+	for (i = pos; i < src->length; ++i)
+		for (int j = 0; j < dl; ++j) 
+			if (*(src->data+i) == delim[j])
+				return i;
 	return i;
 }
 

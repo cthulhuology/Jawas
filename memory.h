@@ -17,6 +17,7 @@ struct region_struct {
 struct region_list_struct {
 	Region address;
 	size_t size;
+	size_t allocated;
 	size_t offset;
 	struct timeval ttl;
 };
@@ -25,5 +26,6 @@ void new_region();
 void init_regions();
 char* reserve(size_t length);
 char* system_reserve(size_t length);
+size_t advance(size_t length);
 
 #endif

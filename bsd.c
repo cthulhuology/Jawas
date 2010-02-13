@@ -12,24 +12,18 @@
 
 #define NODE_FLAGS NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_RENAME | NOTE_REVOKE
 
-struct kevent cl[MAX_EVENTS];
-struct kevent el[MAX_EVENTS];
+struct kevent64_s cl[MAX_EVENTS];
+struct kevent64_s el[MAX_EVENTS];
 
 struct timespec ts = { 0, 100000 };
-
-Event
-event(void* ptr)
-{
-	return (Event)ptr;
-}
 
 Event
 poll_events()
 {
 	int n;
 	Event retval = NULL;
-	Event e = srv->ec;
-	srv->ec = NULL;
+	Event e = server.event;
+	server.event = NULL;
 	memset(cl,0,sizeof(cl));
 	memset(el,0,sizeof(el));
 	for (n = 0; e; ++n) {
@@ -41,13 +35,16 @@ poll_events()
 		cl[n].flags = EV_ADD | (e->flag == ONESHOT ? EV_ONESHOT : 0);;
 		cl[n].fflags = (e->type == NODE ? NODE_FLAGS : 0);
 		cl[n].data = 0;
-		cl[n].udata = (void*)e;
+		cl[n].udata = (uint64_t)e;
 		e = e->next;
 	}
-	n = kevent(srv->kq,cl,n,el,srv->numevents, &ts);
+	n = kevent64(server.kq,cl,n,el,server.numevents,0, &ts);
 	if (n < 0) goto done;
-	while (n--) 
-		retval = queue_event(retval,el[n].ident,event(el[n].udata)->type,el[n].flags == EV_EOF ? EOF : NONE,event(el[n].udata)->data);
+	while (n--)  {
+		e = (Event)el[n].udata;
+		e->next = retval;
+		retval = e;
+	}
 done:
 	return retval;
 }

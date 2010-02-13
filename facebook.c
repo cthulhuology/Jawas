@@ -58,15 +58,11 @@ facebook_method(str method, Headers kv, str callback)
 	str args = url_encode_headers(kv);
 
 	Request req = new_request($("POST"),$("api.facebook.com"),$("/restserver.php"));
-
 	request_headers(req,$("Content-Type"),$("application/x-www-form-urlencoded"));
 	request_headers(req,$("User-Agent"),$("Jawas"));
 	request_headers(req,$("Content-Length"),$("%i",len(args)));
-	
-	req = request_data(req,args);
-
-	request_callback(req,Resp,callback);
-
+	request_data(req,args);
+	request_callback(req,server.response,callback);
 	send_request(req);
 }
 
