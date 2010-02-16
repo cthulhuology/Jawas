@@ -56,7 +56,7 @@ lua2str(int index)
 void
 str2lua(str s)
 {
-	debug("[LUA] to lua [%s]",s);
+	if (s) debug("[LUA] to lua [%s]",s);
 	s ? lua_pushlstring(lins,s->data,len(s)) : lua_pushnil(lins);
 }
 

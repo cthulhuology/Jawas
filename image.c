@@ -27,6 +27,10 @@ img_handler(File fc)
 	str range = find_header(server.response->request->headers,$("Range"));
 	if (range) {
 		debug("Ranges: %s",range);
+		int start = find(range,0,"0123456789",10);
+		int dash = find(range,start,"-",1);
+		debug("Start range: %s",ref(range->data+start,dash-start));	
+		debug("End range: %s",ref(range->data+dash+1,len(range)-dash));	
 	}
 	while (! server.response->socket->closed && total < fc->st.st_size)
 		total += send_raw_contents(server.response->socket,fc,total,1);

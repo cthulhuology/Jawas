@@ -46,19 +46,19 @@ is_file(str filename)
 }
 
 str
-deauth_path(str filename)
+deauth_path(str host, str filename)
 {
 	size_t l = len(filename);
-	if (at(filename,l-1) == '/') --l;
-	if (is_directory(filename) || is_file(filename)) return filename;
-	for (int i = l; i-- > 0;) {
-		if (at(filename,i-1) == '/' && is_directory(from(filename,0,i))) {
-			debug("Found auth token [%s]",from(filename,i,l-i));
-			append_header(server.request->headers,$("Token"),from(filename,i,l-i));
-			return ref(filename->data,i);
+	if (is_directory(file_path(host,filename)) || is_file(file_path(host,filename))) 
+		return file_path(host,filename);
+	for (int i = 1; i < l; ++i) {
+		if (at(filename,i) == '/' && is_directory(file_path(host,ref(filename->data+i,l-i)))) {
+			debug("Found auth token [%s]",ref(filename->data+1,i-1));
+			append_header(server.request->headers,$("Token"),ref(filename->data+1,i-1));
+			return file_path(host,ref(filename->data+i,l-i));
 		}
 	}
-	return filename;
+	return file_path(host,filename);
 }
 
 str

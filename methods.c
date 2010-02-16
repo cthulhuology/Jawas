@@ -41,8 +41,7 @@ get_method()
 	str filename;
 	if (! server.request || !server.request->host || !server.request->path) return error_handler(404);
 	notice("GET %s%s from %s",server.request->host,server.request->path,socket_peer(server.request->socket));
-	filename = deauth_path(file_path(server.request->host,server.request->path));
-
+	filename = deauth_path(server.request->host,server.request->path);
 	fc = is_directory(filename) ?
 		load(get_index(filename)) :
 		load(filename);

@@ -29,7 +29,7 @@ static int DBClosureLua(lua_State* l)
 	for (int i = 1; i <= n; ++i)
 		qry = append(qry,$("'%s'%s", lua2str(i), i < n ? $(","): $("")));
 	lua_pop(l,n);
-	append(qry,$(")"));
+	qry = append(qry,$(")"));
 	int res = query(qry);
 	if (res < 0) {
 		str2lua(db_error());
