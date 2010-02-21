@@ -14,15 +14,14 @@
 extern int region_index;
 extern struct region_list_struct region_list[MAX_REGIONS];
 
-int event_index = 0;
 Event events;
 
 Event
 current_event()
 {
-	if (event_index < MAX_EVENTS)
-		return region_list[region_index].address->events[event_index++] = (Event)reserve(sizeof(struct event_struct));
-	return NULL;
+	if (region_list[region_index].event_index >= MAX_EVENTS)
+		region_list[region_index].event_index = 0;
+	return region_list[region_index].address->events[region_list[region_index].event_index++] = (Event)reserve(sizeof(struct event_struct));
 }
 
 Event

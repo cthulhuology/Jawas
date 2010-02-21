@@ -16,6 +16,7 @@ void
 new_region()
 {
 	region_index = (region_index+1) % MAX_REGIONS;
+	region_list[region_index].event_index = 0;
 	region_list[region_index].size = getpagesize() * CACHE_PAGES;
 	region_list[region_index].allocated = region_list[region_index].size - sizeof(struct region_struct);
 	region_list[region_index].offset = 0;

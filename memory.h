@@ -16,6 +16,7 @@ struct region_struct {
 
 struct region_list_struct {
 	Region address;
+	size_t event_index;
 	size_t size;
 	size_t allocated;
 	size_t offset;
