@@ -1,6 +1,6 @@
 // database.c
 //
-// Copyright (C) 2007 David J. Goehrig
+// © 2007 David J. Goehrig
 // All Rights Reserved
 //
 
