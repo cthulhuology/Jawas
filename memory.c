@@ -21,7 +21,20 @@ new_region()
 	region_list[region_index].allocated = region_list[region_index].size - sizeof(struct region_struct);
 	region_list[region_index].offset = 0;
 	gettimeofday(&region_list[region_index].ttl,NULL);
-	fprintf(stderr,"NEW REGION %d\n",region_index);
+	dump_regions();
+}
+
+void
+dump_regions()
+{
+	for (int i = 0; i < MAX_REGIONS; ++i) {
+		fprintf(stderr,"Region(%i)\n",i);
+		fprintf(stderr,"\t%llu events\n",region_list[i].event_index);
+		fprintf(stderr,"\t%llu size\n",region_list[i].size);
+		fprintf(stderr,"\t%p allocated\n",region_list[i].allocated);
+		fprintf(stderr,"\t%llu offset\n",region_list[i].offset);
+		fprintf(stderr,"\t%llu free\n", region_list[i].size - region_list[i].offset);
+	}
 }
 
 void

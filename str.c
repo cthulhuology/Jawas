@@ -90,9 +90,7 @@ replace(str src, int pos, str rep)
 str
 from(str s, int start, int l)
 {
-	str retval = blank(l);
-	memcpy(retval->data,s->data + start,l);
-	return retval;
+	return ref(s->data + start,l);
 }
 
 str

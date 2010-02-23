@@ -22,11 +22,11 @@ open_file(str filename)
 {
 	int fl = len(filename);
 	File fc = (File)system_reserve(sizeof(struct file_cache_struct) + fl + 1);
-	memcpy(fc->name.contents,filename->data,fl);	// Allocate a str struct by hand!
+	memcpy(&fc->name.contents[0],filename->data,fl);	// Allocate a str struct by hand!
 	fc->name.data = fc->name.contents;
 	fc->name.length = fl;
 	fc->name.data[fl] = '\0';
-	fc->fd = open(fc->name.contents,O_RDONLY,0400);
+	fc->fd = open(fc->name.data,O_RDONLY,0400);
 	if (fc->fd < 0 || fstat(fc->fd,&fc->st)) {
 		error("Failed to open file %s",filename);
 		return NULL;
