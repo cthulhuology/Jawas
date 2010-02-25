@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "str.h"
 #include "log.h"
 #include "headers.h"
@@ -15,7 +15,9 @@
 Headers
 new_headers()
 {
-	return (Headers)salloc(HEADERS_SIZE);
+	Headers retval = (Headers)reserve(HEADERS_SIZE);
+	memset(retval,0,HEADERS_SIZE);
+	return retval;
 }
 
 str
@@ -99,10 +101,8 @@ list_headers(Headers kv)
 	int i;
 	over(kv,i) {
 		skip_null(kv,i);
-	//	debug("i is %i",i);
-	//	debug("retval is %p",retval);
-		retval = retval ? Str("%s, %s : %s", retval, kv->slots[i].key, kv->slots[i].value)
-				: Str("%s : %s", kv->slots[i].key,kv->slots[i].value); 
+		retval = retval ? _("%s, %s : %s", retval, kv->slots[i].key, kv->slots[i].value)
+				: _("%s : %s", kv->slots[i].key,kv->slots[i].value); 
 	}
 	return retval;
 }
@@ -114,7 +114,9 @@ print_headers(str dst, Headers src)
 	str retval = dst;
 	over(src,i) {
 		skip_null(src,i);
-		retval = append(retval,Str("%s: %s\r\n",Key(src,i),Value(src,i)));
+		retval = retval ? 
+			_("%s%s: %s\r\n",retval, Key(src,i),Value(src,i)):
+			_("%s: %s\r\n",Key(src,i),Value(src,i));
 	}
 	return retval;
 }
@@ -124,10 +126,10 @@ url_encode_headers(Headers src)
 {
 	int i;
 	if (! src) return NULL;
-	str retval = Str("%s=%s",Key(src,0),Value(src,0));
+	str retval = _("%s=%s",Key(src,0),Value(src,0));
 	overs(src,i,1) {
 		skip_null(src,i);
-		retval = append(retval,Str("&%s=%s",Key(src,i),Value(src,i)));
+		retval = _("%s&%s=%s",retval,Key(src,i),Value(src,i));
 	}
 	return retval;
 }
@@ -167,7 +169,7 @@ parse_headers(str buf, int* body)
 		if (reset && ! Key(headers,i)) {
 			for (l = 1; (o + l) < lb && at(buf,o+l) != ':'; ++l);
 			headers->nslots++;
-			headers->slots[i].key = from(buf,o,l);
+			headers->slots[i].key = ref(buf->data+o,l);
 			o += l-1;
 			c = at(buf,o);
 		}
@@ -175,8 +177,8 @@ parse_headers(str buf, int* body)
 			o += 1;
 			while(isspace(c = at(buf,o))) ++o;
 			for (l = 1; (o + l) < lb && c != '\r' && c != '\n'; ++l) c = at(buf,o+l); 
-			headers->slots[i].value = from(buf,o,l-1);
-	//		debug("Headers[%i] [%s=%s]",i,Key(headers,i),Value(headers,i));
+			headers->slots[i].value = ref(buf->data+o,l-1);
+			debug("Headers[%i] [%s] = [%s]",i,Key(headers,i),Value(headers,i));
 			reset = 0;
 			o += l-1;
 			++i;
@@ -194,6 +196,7 @@ send_headers(Socket sc, Headers headers)
 	if (!headers) return total;
 	over(headers,i) {
 		skip_null(headers,i);
+		debug("[SEND HEADERS] [%s] [%s]",Key(headers,i),Value(headers,i));
 		total += write_socket(sc,Key(headers,i));
 		total += write_to_socket(sc,": ",2);
 		total += write_socket(sc,Value(headers,i));
@@ -211,5 +214,5 @@ HEADER_FUNC(content_length,Content_Length_MSG)
 HEADER_FUNC(content_type,Content_Type_MSG)
 HEADER_FUNC(expires,Expires_MSG)
 HEADER_FUNC(location,Location_MSG)
-HEADER_FUNC(server,Server_MSG)
+HEADER_FUNC(server_name,Server_MSG)
 

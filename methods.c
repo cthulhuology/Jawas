@@ -30,8 +30,8 @@ MethodDispatch gdispatch[] = {
 Headers
 parse_json(Headers hd, str buf, int pos)
 {
-	debug("Found json [%s]",from(buf,pos,len(buf)-pos));
-	return append_header(hd,Str("json"),from(buf,pos,len(buf)-pos));
+	debug("Found json [%s]",ref(buf->data+pos,len(buf)-pos));
+	return append_header(hd,_("json"),ref(buf->data + pos,len(buf)-pos));
 }
 
 int
@@ -39,10 +39,9 @@ get_method()
 {
 	File fc = NULL;
 	str filename;
-	if (! Req || !Req->host || !Req->path) return error_handler(404);
-	notice("GET %s%s from %s",Req->host,Req->path,socket_peer(Req->sc));
-	filename = deauth_path(file_path(Req->host,Req->path));
-
+	if (! server.request || !server.request->host || !server.request->path) return error_handler(404);
+	notice("GET %s%s from %s",server.request->host,server.request->path,socket_peer(server.request->socket));
+	filename = deauth_path(server.request->host,server.request->path);
 	fc = is_directory(filename) ?
 		load(get_index(filename)) :
 		load(filename);
@@ -52,13 +51,13 @@ get_method()
 int
 post_method()
 {
-	str enctype = find_header(Req->headers,Str("Content-Type"));
-	notice("POST %s%s %s from %s",Req->host,Req->path,enctype, socket_peer(Req->sc));
-	Req->query_vars = enctype && ncmp(enctype,Str("multipart/form-data"),19) ?
-			parse_multipart_body(Req->query_vars,enctype) :
-		enctype && ncmp(enctype,Str("text/json"),9) ?
-			parse_json(Req->query_vars,Req->contents,Req->body):
-		parse_uri_encoded(Req->query_vars,Req->contents,Req->body);
+	str enctype = find_header(server.request->headers,_("Content-Type"));
+	notice("POST %s%s %s from %s",server.request->host,server.request->path,enctype, socket_peer(server.request->socket));
+	server.request->query_vars = enctype && ncmp(enctype,_("multipart/form-data"),19) ?
+			parse_multipart_body(server.request->query_vars,enctype) :
+		enctype && ncmp(enctype,_("text/json"),9) ?
+			parse_json(server.request->query_vars,server.request->contents,server.request->body):
+		parse_uri_encoded(server.request->query_vars,server.request->contents,server.request->body);
 	return get_method();
 }
 

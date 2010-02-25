@@ -5,6 +5,9 @@
 // © 2010 David J. Goehrig
 //
 
+#include "include.h"
+#include "defines.h"
+#include "memory.h"
 #include "log.h"
 #include "database.h"
 
@@ -24,9 +27,9 @@ static int DBClosureLua(lua_State* l)
 	int n = lua_gettop(l);
 	str qry = lua2str(lua_upvalueindex(1));
 	for (int i = 1; i <= n; ++i)
-		qry = append(qry,Str("'%s'%s", lua2str(i), i < n ? Str(","): Str("")));
+		qry = append(qry,_("'%s'%s", lua2str(i), i < n ? _(","): _("")));
 	lua_pop(l,n);
-	append(qry,Str(")"));
+	qry = append(qry,_(")"));
 	int res = query(qry);
 	if (res < 0) {
 		str2lua(db_error());
@@ -51,7 +54,7 @@ int ProceduresLua(lua_State* l, char* schema)
 {
 	int n = lua_gettop(l);
 	lua_pop(l,n);
-	str sql = Str("SELECT functions_in('%c')", schema);
+	str sql = _("SELECT * from functions_in('%c');", schema);
 	int res = query(sql);
 	if (res < 0) {
 		str2lua(db_error());
@@ -60,7 +63,7 @@ int ProceduresLua(lua_State* l, char* schema)
 	for (int i = 0; i < res; ++i) {
 		str proc = fetch(i,0);
 		str2lua(proc); 				// once to bind it
-		str2lua(Str("SELECT * FROM %s(", proc));	// once to store base query
+		str2lua(_("SELECT * FROM %s(", proc));	// once to store base query
 		lua_pushcclosure(l,DBClosureLua,1);
 		lua_settable(l,LUA_GLOBALSINDEX);
 	}

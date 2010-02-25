@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "str.h"
 #include "log.h"
 #include "hostnames.h"
@@ -20,7 +20,7 @@ lookup(str host)
 	size_t i;
 	struct hostent* hst = gethostbyname(host->data);
 	for (i = 0; hst->h_addr_list[i];++i);
-	IPAddress* retval = (IPAddress*)salloc(hst->h_length * i);
+	IPAddress* retval = (IPAddress*)reserve(hst->h_length * i);
 	if (hst->h_length != sizeof(IPAddress)) error("Host name address to large!");
 	for (i = 0; hst->h_addr_list[i]; ++i) {
 		debug("Found ip address: %s",ipaddress(*(IPAddress*)hst->h_addr_list[i],80));
@@ -45,7 +45,7 @@ attachTo(IPAddress addr, int port)
 str
 ipaddress(IPAddress addr, int port)
 {
-	return Str("%i.%i.%i.%i:%i",
+	return _("%i.%i.%i.%i:%i",
 		(0xff & addr),
 		(0xff00 & addr) >> 8,
 		(0xff0000 & addr) >> 16,

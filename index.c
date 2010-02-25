@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "str.h"
 #include "log.h"
 #include "index.h"
@@ -27,12 +27,10 @@ int
 is_directory(str filename)
 {
 	struct stat st;
-	char* fname = dump(filename);
-	if (stat(fname,&st)) {
+	if (stat(filename->data,&st)) {
 		error("Failed to stat file %s",filename);
 		return 0;
 	}
-	free_region(fname);
 	return st.st_mode & S_IFDIR;
 }
 
@@ -40,29 +38,27 @@ int
 is_file(str filename)
 {
 	struct stat st;
-	char* fname = dump(filename);
-	if (stat(fname,&st)) {
+	if (stat(filename->data,&st)) {
 		error("Failed to stat file %s",filename);
 		return 0;
 	}
-	free_region(fname);
 	return st.st_mode & (S_IFREG|S_IFLNK);
 }
 
 str
-deauth_path(str filename)
+deauth_path(str host, str filename)
 {
 	size_t l = len(filename);
-	if (at(filename,l-1) == '/') --l;
-	if (is_directory(filename) || is_file(filename)) return filename;
-	for (int i = l; i-- > 0;) {
-		if (at(filename,i-1) == '/' && is_directory(from(filename,0,i))) {
-			debug("Found auth token [%s]",from(filename,i,l-i));
-			append_header(Req->headers,Str("Token"),from(filename,i,l-i));
-			return from(filename,0,i);
+	if (is_directory(file_path(host,filename)) || is_file(file_path(host,filename))) 
+		return file_path(host,filename);
+	for (int i = 1; i < l; ++i) {
+		if (at(filename,i) == '/' && is_directory(file_path(host,ref(filename->data+i,l-i)))) {
+			debug("Found auth token [%s]",ref(filename->data+1,i-1));
+			append_header(server.request->headers,_("Token"),ref(filename->data+1,i-1));
+			return file_path(host,ref(filename->data+i,l-i));
 		}
 	}
-	return filename;
+	return file_path(host,filename);
 }
 
 str
@@ -70,13 +66,8 @@ get_index(str filename)
 {
 	struct stat st;
 	for (int i = 0; indexes[i]; ++i) {
-		str index_path = Str("%s%c",filename,indexes[i]);
-		char *fname = dump(index_path);
-		if (!stat(fname,&st)) {
-			free_region(fname);
-			return index_path;
-		}
-		free_region(fname);
+		str index_path = _("%s%c",filename,indexes[i]);
+		if (!stat(index_path->data,&st)) return index_path;
 	}
 	return NULL;
 }

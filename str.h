@@ -7,7 +7,7 @@
 #ifndef __HAVE_STR_H__
 #define __HAVE_STR_H__
 
-#include <stdarg.h>
+#include "include.h"
 #include "defines.h"
 #include "memory.h"
 
@@ -15,9 +15,7 @@ typedef int (*test_t)(char x, char y);
 
 typedef struct str_struct* str;
 struct str_struct {
-	str next;
 	int length;
-	int pos;
 	char* data;
 	char contents[0];
 };
@@ -26,7 +24,6 @@ int min(int a, int b);
 int max(int a, int b);
 int between(int a, int x, int b);
 
-str seek(str s, int pos);
 str set(str s, int pos, char c);
 char at(str s, int pos);
 int len(str s);
@@ -36,17 +33,16 @@ str blank(int l);
 str clone(str s);
 str from(str s, int start, int len);
 str append(str s, str v);
-char* dump(str s);
 
-str int_str(int i);
-str hex_str(int i);
+str int_str(reg i);
+str hex_str(reg i);
 str obj_str(void* p);
 
 int str_int(str a);
 int str_hex(str a);
 #define str_obj(a,t) (t)str_hex(a)
 
-str Str(const char* fmt, ...);
+str _(const char* fmt, ...);
 str new_str(const char* fmt, va_list args); 
 
 str name_field(str line);
@@ -58,12 +54,10 @@ int ncmp(str a, str b,int n);
 int icmp(str a, str b);
 int lesser(str a, str b);
 
-int find(str src, int pos, char* delim);
+int find(str src, int pos, char* delim, size_t dl);
 int search(str src, int pos, str key);
 str read_line(str src, int pos);
 int skip_headers(str src, int pos);
 str dechunk(str src);
-
-str encode(str s);
 
 #endif

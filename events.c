@@ -4,107 +4,110 @@
 // All Rights Reserved
 //
 
+#include "defines.h"
 #include "include.h"
-#include "alloc.h"
+#include "memory.h"
 #include "log.h"
 #include "defines.h"
 #include "server.h"
 #include "events.h"
-Scratch escratch = NULL;
 
-EventData
-new_event_data(enum event_types type, void* udata) 
+extern int region_index;
+extern struct region_list_struct region_list[MAX_REGIONS];
+
+Event events;
+
+Event
+current_event()
 {
-	EventData retval = (EventData)salloc(sizeof(struct event_data_wrapper));
-	retval->type = type;
-	switch(type) {
-		case READ:
-			retval->value.req = (Request)udata;
-		case WRITE:
-			retval->value.resp = (Response)udata;
-		case REQ:
-			retval->value.req = (Request)udata;
-		case RESP:
-			retval->value.resp = (Response)udata;
-		case NODE:
-			retval->value.file = (File)udata;
-	}
-	return retval;
+	if (region_list[region_index].event_index >= MAX_EVENTS)
+		region_list[region_index].event_index = 0;
+	return region_list[region_index].address->events[region_list[region_index].event_index++] = (Event)reserve(sizeof(struct event_struct));
 }
 
 Event
-queue_event(Event ec, int fd, enum event_types type, enum event_flags flag, void* udata)
+queue_event(Event ec, reg fd, enum event_types type, enum event_flags flag, Event e)
 {
-//	debug("Queuing %i",type);
-	if (! escratch) escratch = new_scratch(NULL);
-	Event retval = (Event)alloc_scratch(escratch,sizeof(struct event_cache_struct));
-	retval->fd = fd;
-	retval->type = type;	
-	retval->flag = flag;
-	retval->data = new_event_data(type,udata);
+	Event retval = e ? e : (Event) system_reserve(sizeof(struct event_struct));
 	retval->next = ec;
-	retval->pos = (ec ? ec->pos + 1 : 1);
+	retval->fd = fd;
+	retval->type = type;
+	retval->flag = flag;
+	retval->socket = e ? e->socket : NULL;
+	retval->request = e ? e->request : NULL;
+	retval->response = e ? e->response : NULL;
+	retval->file = e ? e->file : NULL;
+	debug("Event %p fd:%i type:%i sock:%p req:%p resp:%p file:%p next:%p",retval,retval->fd,retval->type,retval->socket,retval->request,retval->response,retval->file,retval->next);
 	return retval;
 }
 
 void 
-monitor_socket(int f) 
+monitor_socket(reg f) 
 {
-	srv->ec = queue_event(srv->ec,f, READ, NONE, NULL); 
-	srv->numevents++;
+	server.event = queue_event(server.event,f, READ, NONE, NULL); 
+	server.event->socket = NULL;
+	server.event->request = NULL;
+	server.event->response = NULL;
+	server.event->file = NULL;
+	server.numevents++;
 }
 
 void
-add_read_socket(int f, void* r)
+add_read_socket(reg f, Request r)
 {
-	srv->ec = queue_event(srv->ec,f, READ, ONESHOT, r); 
-	srv->numevents++;
+	Event e = current_event();
+	e->socket =  r ? r->socket : NULL;
+	e->request = r;
+	e->response = NULL;
+	e->file = NULL;
+	server.event = queue_event(server.event,f, READ, ONESHOT, e); 
+	server.numevents++;
 }
 
 void
-add_write_socket(int f, void* r) 
+add_write_socket(reg f, Response r) 
 {
-	srv->ec = queue_event(srv->ec,f, WRITE, ONESHOT, r); 
-	srv->numevents++; 
+	Event e = current_event();
+	e->socket = r ? r->socket : NULL;
+	e->request = r ? r->request : NULL;
+	e->response = r;
+	e->file = NULL;
+	server.event = queue_event(server.event,f, WRITE, ONESHOT, e); 
+	server.numevents++; 
 }
 
 void
-add_req_socket(int f, void* r) 
+add_req_socket(reg f, Request r) 
 {
-	srv->ec = queue_event(srv->ec,f, REQ, ONESHOT, r); 
-	srv->numevents++;
+	Event e = current_event();
+	e->socket =  r ? r->socket : NULL;
+	e->request = r;
+	e->response = NULL;
+	e->file = NULL;
+	server.event = queue_event(server.event,f, REQ, ONESHOT, e); 
+	server.numevents++;
 }
 
 void
-add_resp_socket(int f, void* r) 
+add_resp_socket(reg f, Response r) 
 {
-	srv->ec = queue_event(srv->ec,f,RESP, ONESHOT, r); 
-	srv->numevents++;
+	Event e = current_event();
+	e->socket = r ? r->socket : NULL;
+	e->request = r ? r->request : NULL;
+	e->response = r;
+	e->file = NULL;
+	server.event = queue_event(server.event,f,RESP, ONESHOT, e); 
+	server.numevents++;
 }
 
-void*
-event_data(EventData ed)
+void
+add_file_monitor(reg f, File r)
 {
-	switch(ed->type) {
-		case READ:
-			return ed->value.req;
-		case WRITE:
-			return ed->value.resp;
-		case REQ:
-			return ed->value.req;
-		case RESP:
-			return ed->value.resp;
-		case NODE:
-			return ed->value.file;
-	}
-	return NULL;
+	Event e = current_event();
+	e->socket = NULL;
+	e->request = NULL;
+	e->response = NULL;
+	e->file = r;
+	server.event = queue_event(server.event,f, NODE, ONESHOT, e);
+	server.numevents++;
 }
-
-enum event_types
-event_type(EventData ed)
-{
-//	debug("EventData <%p> type %i",ed,ed->type);
-	return ed->type;
-}
-
-

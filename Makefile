@@ -6,19 +6,25 @@ PROGRAM = jawasd
 LIBRARY =
 ARCH := $(shell uname)
 
-LIBS = -lpq -lssl -lcrypto -llua -lz
+HOSTADDR=$(shell ifconfig | grep inet | cut -f2 -d" " | head -n1)
 
-CFLAGS += --std=c99 -Wall -I/usr/local/include/luajit-2.0  -DHOSTADDR=`ifconfig | grep inet | cut -f2 -d" " | head -n1`
+LIBS = -lpq -lssl -lcrypto -lz
+
+CFLAGS += --std=c99 -Wall -DHOSTADDR="$(HOSTADDR)" -save-temps
+
 LDFLAGS =
 
 ifeq ($(ARCH),Darwin)
-	CFLAGS += -ggdb -DXP_UNIX -fnested-functions
+	CFLAGS += -ggdb -DXP_UNIX -fnested-functions -m64 -DBITS64
 	INCLUDES = -I/opt/local/include/postgresql84/
 	LDFLAGS += -L/opt/local/lib/postgresql84/  -L/usr/local/lib
+	LIBS += -llua
 endif
 ifeq ($(ARCH),FreeBSD)
-	CFLAGS += -ggdb -DXP_UNIX  -DFREEBSD
-	INCLUDES = -I/usr/local/include/
+	CFLAGS += -ggdb -DXP_UNIX  -DFREEBSD  -fpic
+	INCLUDES = -I/usr/local/include/ -I/usr/local/include/luajit-2.0
+	LDFLAGS += -L/usr/local/lib
+	LIBS += -lluajit
 endif
 ifeq ($(ARCH),Linux)
 	CFLAGS += -ggdb -DXP_UNIX -DLINUX
@@ -27,7 +33,6 @@ endif
 
 
 SOURCES = \
-alloc.c \
 amazon.c \
 auth.c \
 bsd.c \
@@ -42,22 +47,18 @@ headers.c \
 hostnames.c \
 image.c \
 index.c \
-linux.c \
 log.c \
 lua_db.c \
 lua_json.c \
 lws.c \
-mail.c \
 memory.c \
 methods.c \
 mime.c \
-pages.c \
 requests.c \
 responses.c \
 script.c \
 server.c \
 signals.c \
-sms.c \
 sockets.c \
 status.c  \
 str.c \

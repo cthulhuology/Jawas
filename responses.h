@@ -7,14 +7,15 @@
 #ifndef __RESPONSE_H__
 #define __RESPONSE_H__
 
+#include "str.h"
 #include "headers.h"
 #include "requests.h"
 #include "sockets.h"
 #include "files.h"
 
 struct response_struct {
-	Socket sc;
-	Request req;
+	Socket socket;
+	Request request;
 	Headers headers;
 	str contents;
 	File raw_contents;
@@ -25,10 +26,12 @@ struct response_struct {
 	int done;
 };
 
+extern Response responses;
+
 Response new_response(Request req);
-int begin_response(Response resp);
-int end_response(Response resp);
-void close_response(Response resp);
-Response process_response(Response resp);
+int begin_response();
+int end_response();
+void close_response();
+int process_response();
 
 #endif

@@ -29,19 +29,18 @@ md5sum(char* data, int l)
 str
 md5hex(char* data, int l)
 {
-	char* tmp = new_region(16);
-	MD5((unsigned char*)data,(unsigned long)l,(unsigned char*)tmp);
-	return hex(copy(tmp,16));
+	str retval = blank(16);
+	MD5((unsigned char*)data,(unsigned long)l,(unsigned char*)retval->data);
+	return hex(retval);
 }
 
 str
 hex(str data)
 {
-        int i;
         str retval = NULL;
-        for (i = 0; i < data->length; ++i) {
-		retval = append(retval,Str("%h%h", (0x0f0 & data->data[i]) >> 4, 0x0f & data->data[i]));
-        }
+        for (int i = 0; i < data->length; ++i) 
+		retval = retval ? _("%s%h%h",retval,(0x0f0 & data->data[i]) >> 4, 0x0f & data->data[i]):
+			_("%h%h",(0x0f0 & data->data[i]) >> 4, 0x0f & data->data[i]);
         return retval;
 }
 
@@ -56,8 +55,8 @@ base64(str s)
 	dst = BIO_new(BIO_f_base64());
 	src = BIO_new(BIO_s_mem());
 	dst = BIO_push(dst,src);
-	for (t = s; t; t = t->next) BIO_write(dst,t->data,t->length);
-	BIO_flush(dst);
+	BIO_write(dst,t->data,t->length);
+	if (1>BIO_flush(dst)) return NULL;
 	BIO_get_mem_ptr(dst,&ptr);
 	retval = copy(ptr->data,ptr->length-1);
 	BIO_free_all(dst);
@@ -69,14 +68,10 @@ hmac1(str secret, str data)
 {
 	int sl = len(secret);
 	int dl = len(data);
-	char* secret_data = dump(secret);
-	char* data_data = dump(data);
-	str retval = blank(4000);
+	str retval = blank(256);
 	HMAC_CTX ctx;
 	HMAC_CTX_init(&ctx);
-	HMAC(EVP_sha1(),secret_data,sl,(unsigned char*)data_data,dl,(unsigned char*)retval->data,(unsigned int*)&retval->length);
+	HMAC(EVP_sha1(),secret->data,sl,(unsigned char*)data->data,dl,(unsigned char*)retval->data,(unsigned int*)&retval->length);
 	HMAC_CTX_cleanup(&ctx);
-	free_region(secret_data);
-	free_region(data_data);
 	return retval;
 }

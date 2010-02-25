@@ -12,13 +12,13 @@
 void
 gen_signal_handler()
 {
-	srv->done = 1;
+	server.done = 1;
 }
 
 void
 alrm_signal_handler()
 {
-	srv->alarm = 1;
+	server.alarm = 1;
 }
 
 void

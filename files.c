@@ -5,24 +5,28 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "str.h"
 #include "log.h"
 #include "files.h"
+#include "events.h"
+#include "server.h"
 
 str cwd = NULL;
 int file_index = 0;
 
+File files;
+
 File
-open_file(File cache, str filename)
+open_file(str filename)
 {
-	str t;
 	int fl = len(filename);
-	File fc = (File)salloc(sizeof(struct file_cache_struct) + fl + 1);
-	for (t = filename; t; t = t->next)
-		memcpy(fc->name + t->pos,t->data,t->length);
-	fc->name[fl] = '\0';
-	fc->fd = open(fc->name,O_RDONLY,0400);
+	File fc = (File)system_reserve(sizeof(struct file_cache_struct) + fl + 1);
+	memcpy(&fc->name.contents[0],filename->data,fl);	// Allocate a str struct by hand!
+	fc->name.data = fc->name.contents;
+	fc->name.length = fl;
+	fc->name.data[fl] = '\0';
+	fc->fd = open(fc->name.data,O_RDONLY,0400);
 	if (fc->fd < 0 || fstat(fc->fd,&fc->st)) {
 		error("Failed to open file %s",filename);
 		return NULL;
@@ -32,87 +36,44 @@ open_file(File cache, str filename)
 		close(fc->fd);
 		return NULL;
 	}
-	fc->next = cache;
-	fc->count = 0;
 	fc->parsed = NULL;
 	fc->mime = NULL;
 	return fc;
 }
 
 File
-reopen_file(File fc) 
+reload(File fc) 
 {
 	munmap(fc->data,fc->st.st_size);
 	close(fc->fd);
-	fc->fd = open(fc->name,O_RDONLY,0400);
+	fc->fd = open(fc->name.data,O_RDONLY,0400);
 	if (fc->fd < 0 || fstat(fc->fd,&fc->st)) {
-		error("Failed to open file %c",fc->name);
+		error("Failed to open file %c",fc->name.data);
 		return NULL;
 	}
 	if (!(fc->data = mmap(NULL,fc->st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fc->fd,0))) {
-		error("Failed to memory map file %c",fc->name);
+		error("Failed to memory map file %c",fc->name.data);
 		close(fc->fd);
 		return NULL;
 	}
 	return fc;
 }
 
-File
-close_file(File fc, str filename)
+void
+close_files()
 {
-	File tmp, last = NULL;		
-	int fl = len(filename);
-	for (tmp = fc; tmp; tmp = tmp->next) {
-		if (fl == strlen(tmp->name) && !strncmp(filename->data,tmp->name,fl)) {
-			if (last) {
-				last->next = tmp->next;
-				last = fc;
-			} else {
-				last = tmp->next;	
-			}
-			break;
-		}
-		last = tmp;
-	} 
-	if (tmp) {
-		munmap(tmp->data,tmp->st.st_size);
-		close(tmp->fd);
+	for (int i = 0; i < server.file_index; ++i) {
+		munmap(server.files[i]->data,server.files[i]->st.st_size);
+		close(server.files[i]->fd);
 	}
-	return last;
 }
 
 File
-query_cache(File* cache, str filename)
+query_cache(str filename)
 {
-	int fl = len(filename);
-	File tmp, last = NULL, prior = NULL;
-	for (tmp = *cache; tmp; tmp = tmp->next) {
-		if (fl == strlen(tmp->name) && !strncmp(tmp->name,filename->data,fl)) {
-			if (last && last->count < tmp->count + 1) {
-				if (prior) { 
-					prior->next = tmp;
-				} else {
-					*cache = tmp;
-				}
-				last->next = tmp->next;
-				tmp->next = last;
-			}
-			tmp->count += 1;
-			return tmp;
-		}
-		prior = last;
-		last = tmp;
-	}
-	return NULL;
-}
-
-File
-query_fd_cache(File cache, int fd)
-{
-	File tmp;
-	for (tmp = cache; tmp; tmp = tmp->next)
-		if (tmp->fd == fd)
-			return tmp;
+	for (int i = 0; i < server.file_index; ++i)
+		if (cmp(filename,&server.files[i]->name))
+			return server.files[i];
 	return NULL;
 }
 
@@ -131,8 +92,8 @@ parse_file(File fc)
 	char* script = fc->data;
 	int o = 0, l = 0, i = 0, e = 0;
 	if (fc->parsed) return fc;
-	fc->parsed = (Parsed)salloc(MAX_ALLOC_SIZE);
-	memset(fc->parsed,0,MAX_ALLOC_SIZE);
+	fc->parsed = (Parsed)system_reserve(getpagesize());
+	memset(fc->parsed,0,getpagesize());
 	for (o = 0; script[o] && o < fc->st.st_size; ++o) {
 		if (!strncmp(&script[o],"<?",2) && isspace(script[o+2])) {
 			if (l < o) i = mark_file(fc,i,TEXT,l,o-l);
@@ -153,12 +114,28 @@ parse_file(File fc)
 void
 set_cwd()
 {
-	cwd = ref(getcwd(NULL,0),strlen(getcwd(NULL,0)));
+	char* tmp = getcwd(NULL,0);
+	cwd = ref(tmp,strlen(tmp));
 }
 
 str
 temp_file()
 {
-	return Str("/tmp/%i%i",++file_index,time(NULL));
+	return _("/tmp/%i%i",++file_index,time(NULL));
+}
+
+File
+load(str filename)
+{
+	if (!filename) return NULL;
+	File retval = query_cache(filename);
+	if (retval) return retval;
+	retval = open_file(filename);
+	if (!retval) {
+		error("Failed to open %s\n",filename);
+		return NULL;
+	}
+	add_file_monitor(retval->fd,retval);
+	return retval;
 }
 

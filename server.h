@@ -6,51 +6,38 @@
 #ifndef __SERVER_H__
 #define __SERVER_H__
 
-#include "alloc.h"
 #include "str.h"
-#include "events.h"
 #include "files.h"
-#include "tls.h"
 #include "sockets.h"
+#include "requests.h"
+#include "responses.h"
+#include "tls.h"
 #include "timers.h"
 
-typedef struct server_struct* Server;
+typedef struct server_struct Server;
 struct server_struct {
-	int kq;
-	int http_sock;
-	int tls_sock;
+	reg kq;
+	reg http_sock;
+	reg tls_sock;
 	int alarm;
-	Event ec;
-	File fc;
-	Socket sc;
+	time_t time;
 	TLSInfo tls;
 	TLSInfo tls_client;
-	Scratch scratch;
-	time_t time;
-	int numevents;
 	int done;
-	RequestInfo ri;
-	Event event;	// current event;
-	Socket sock;	// current socket;
-	Request req;	// current request
-	Response resp;	// current response
+	int numevents;
+	Event event;
+	Socket socket;
+	Request request;
+	Response response;
+	File file;
+	File files[MAX_FILES];
+	int file_index;
 };
 
-extern Server srv;
+extern Server server;
 
 void serve(int port, int tls_port);
 void run();
 void stop();
-
-File load(str filename);
-void unload(int fd, str filename);
-
-void server_scratch();
-void client_scratch();
-
-void set_SockReqResp(Socket sc, Request rq, Response rsp);
-
-void server_scratch();
-void old_scratch();
 
 #endif

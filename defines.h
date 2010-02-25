@@ -5,6 +5,12 @@
 
 #include "config.h"
 
+#ifdef BITS64
+#define reg uint64_t
+#else
+#define reg int
+#endif
+
 #define SERVER_VERSION "Jawas/1.0"
 
 #define RUNTIME_SIZE 8L * 1024L * 1024L
@@ -20,8 +26,3 @@
 #define dblog(msg ...) log_msg(1,msg)
 #define notice(msg ...)	log_msg(2,msg)
 #define debug(msg ...)	log_msg(3,msg)
-
-#define Sock	srv->sock
-#define Req	srv->req
-#define Resp	srv->resp
-#define KQ	srv->kq

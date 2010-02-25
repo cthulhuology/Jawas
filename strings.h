@@ -9,7 +9,7 @@
 
 #define ext_const_str(x) extern str x
 #define const_str(x) str x = NULL
-#define init_str(x) x = Str(#x)
+#define init_str(x) x = _(#x)
 
 ext_const_str(OK);
 ext_const_str(ERROR);

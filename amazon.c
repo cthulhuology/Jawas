@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "str.h"
 #include "log.h"
 #include "files.h"
@@ -31,9 +31,9 @@ s3_auth(str key, str secret)
 str 
 s3_put_auth_string(str verb, str mime, str date, str bucket, str filename)
 {
-	str sts = Str("%s\n\n\%s\n%s\nx-amz-acl:public-read\n/%s/%s",verb,mime,date,bucket,filename);
+	str sts = _("%s\n\n\%s\n%s\nx-amz-acl:public-read\n/%s/%s",verb,mime,date,bucket,filename);
 	debug("STS is %s",sts);
-	return Str("AWS %s:%s",s3_key,base64(hmac1(s3_secret,sts)));
+	return _("AWS %s:%s",s3_key,base64(hmac1(s3_secret,sts)));
 }
 
 void
@@ -47,23 +47,19 @@ s3_put(str file, str bucket, str filename, str mime, str callback)
 	debug("Date is %s",date);
 	str md5 = base64(md5sum(fc->data,fc->st.st_size));
 	debug("MD5 is %s",md5);
-	str auth = s3_put_auth_string(Str("PUT"),mime,date,bucket,filename);
+	str auth = s3_put_auth_string(_("PUT"),mime,date,bucket,filename);
 	debug("AUTH is %s", auth);
-	str size = Str("%i",fc->st.st_size);
+	str size = _("%i",fc->st.st_size);
 	debug("Size is %s",size);
 
-	Request req = new_request(Str("PUT"), Str("%s.s3.amazonaws.com",bucket),Str("/%s",filename));	
-
-	request_headers(req,Str("x-amz-acl"),Str("public-read"));
-	request_headers(req,Str("Content-Type"),mime);
-	request_headers(req,Str("Content-Length"),size);
-	request_headers(req,Str("Date"),date);
-	request_headers(req,Str("Authorization"),auth);
-
+	Request req = new_request(_("PUT"), _("%s.s3.amazonaws.com",bucket),_("/%s",filename));	
+	request_headers(req,_("x-amz-acl"),_("public-read"));
+	request_headers(req,_("Content-Type"),mime);
+	request_headers(req,_("Content-Length"),size);
+	request_headers(req,_("Date"),date);
+	request_headers(req,_("Authorization"),auth);
 	request_file(req,fc);
-	
-	request_callback(req,Resp,callback);
-
+	request_callback(req,server.response,callback);
 	send_request(req);
 
 	debug("S3 PUT DONE");

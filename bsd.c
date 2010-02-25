@@ -10,54 +10,50 @@
 #include "events.h"
 #include "server.h"
 
-#ifndef LINUX
-
 #define NODE_FLAGS NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_RENAME | NOTE_REVOKE
 
-extern Scratch escratch;
+#ifdef BITS64
+struct kevent64_s cl[MAX_EVENTS];
+struct kevent64_s el[MAX_EVENTS];
+#else
+struct kevent cl[MAX_EVENTS];
+struct kevent el[MAX_EVENTS];
+#endif
 
-struct kevent cl[255];
-struct kevent el[255];
+struct timespec ts = { 0, 100000 };
 
 Event
-poll_events(Event ec, int numevents)
+poll_events()
 {
 	int n;
-	Scratch tmp = escratch;
-	escratch = new_scratch(NULL);
-	set_scratch(escratch);
 	Event retval = NULL;
-	EventData data;
-	struct timespec ts = { 0, 100000000 };
+	Event e = server.event;
+	server.event = NULL;
 	memset(cl,0,sizeof(cl));
 	memset(el,0,sizeof(el));
-	for (n = 0; ec; ++n) {
-		cl[n].ident = ec->fd;
-		cl[n].filter = (ec->type == READ || ec->type == RESP ? EVFILT_READ :
-				ec->type == WRITE || ec->type == REQ ? EVFILT_WRITE :
-				ec->type == NODE ? EVFILT_VNODE : 0);
-		cl[n].flags = EV_ADD | (ec->flag == ONESHOT ? EV_ONESHOT : 0);;
-		cl[n].fflags = (ec->type == NODE ? NODE_FLAGS : 0);
+	for (n = 0; e; ++n) {
+		debug("Queue Event: %p fd: %i type: %i next: %p",e,e->fd,e->type,e->next);
+		cl[n].ident = e->fd;
+		cl[n].filter = (e->type == READ || e->type == RESP ? EVFILT_READ :
+				e->type == WRITE || e->type == REQ ? EVFILT_WRITE :
+				e->type == NODE ? EVFILT_VNODE : 0);
+		cl[n].flags = EV_ADD | (e->flag == ONESHOT ? EV_ONESHOT : 0);;
+		cl[n].fflags = (e->type == NODE ? NODE_FLAGS : 0);
 		cl[n].data = 0;
-		cl[n].udata = ec->data;
-		ec = ec->next;
+		cl[n].udata = (reg)e;
+		e = e->next;
 	}
-	n = kevent(KQ,cl,n,el,numevents, &ts);
+#ifdef BITS64
+	n = kevent64(server.kq,cl,n,el,server.numevents,0, &ts);
+#else
+	n = kevent(server.kq,cl,n,el,server.numevents,&ts);
+#endif
 	if (n < 0) goto done;
 	while (n--)  {
-		data = (EventData)el[n].udata;
-		retval = queue_event(retval,el[n].ident,event_type(data),el[n].flags == EV_EOF ? EOF : NONE,event_data(data));
+		e = (Event)el[n].udata;
+		e->next = retval;
+		retval = e;
 	}
 done:
-	free_scratch(tmp); // Done with old event scratch freeing
 	return retval;
 }
-
-void
-add_file_monitor(int f, void* r)
-{
-	srv->ec = queue_event(srv->ec,f, NODE, ONESHOT, r);
-	srv->numevents++;
-}
-
-#endif

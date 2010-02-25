@@ -4,9 +4,9 @@
 // All Rights Reserved
 //
 
+#include "defines.h"
 #include "include.h"
 #include "memory.h"
-#include "alloc.h"
 #include "str.h"
 #include "log.h"
 
@@ -29,159 +29,142 @@ between(int a, int x, int b)
 }
 
 str
-seek(str s, int pos)
-{
-	return	(! s) ? NULL :
-		(pos >= s->pos && pos < s->pos + s->length) ? s :
-		seek(s->next,pos);
-}
-
-str
 set(str s, int pos, char c)
 {
-	str x = seek(s,pos);
-	if (x) x->data[pos - x->pos] = c;
+	if (!s) return NULL;
+	s->data[pos] = c;
 	return s;
 }
 
 char
 at(str s, int pos)
 {
-	str x = seek(s,pos);
-	return x ? x->data[pos - x->pos] : '\0';
+	return s && pos < s->length ? s->data[pos] : '\0';
 }
 
 int
 len(str s)
 {
-	str t;
-	int retval = 0;
-	for (t = s; t; t = t->next) 
-		retval += t->length;
-	return retval;
+	return s ? s->length : 0;
 }
 
 str
 ref(const char* a, int al)
 {
-	str retval = (str)salloc(sizeof(struct str_struct));
+	str retval = (str)reserve(sizeof(struct str_struct));
 	retval->data = (char*)a;
 	retval->length = al;
-	retval->pos = 0;
-	retval->next = NULL;
 	return retval;
 }
 
 str
 copy(const char* a, int al)
 {
-	str t = NULL, retval = NULL;
-	int l;
-	for (l = al ? al : strlen(a) ; l > Max_Buffer_Size; l -= Max_Buffer_Size) {
-		retval = (str)salloc(Max_Buffer_Size + sizeof(struct str_struct));	
-		retval->data = retval->contents;
-		if (a) memcpy(retval->data,a + l - Max_Buffer_Size, Max_Buffer_Size);
-		retval->length = Max_Buffer_Size;
-		retval->pos = l - Max_Buffer_Size;
-		retval->next = t;
-		t = retval;
-	}
-	retval = (str)salloc(l + sizeof(struct str_struct));
-	retval->data = retval->contents;
-	if (a) memcpy(retval->data,a,l);
-	retval->pos = 0;
-	retval->length = l;
-	retval->next = t;
+	if (!a) return NULL;
+	str retval = blank(al);
+	memcpy(retval->data,a,al);
 	return retval;
 }
 
 str
 blank(int l)
 {
-	if (l == 0) return NULL;
-	return copy(NULL,l);
+	str retval = (str)reserve(sizeof(struct str_struct) + l);
+	retval->data = &retval->contents[0];
+	retval->length = l;
+	return retval;
 }
 
 str
 clone(str s)
 {
-	if (!s) return NULL;
-	str retval = (str)salloc(s->length + sizeof(struct str_struct));
-	retval->data = retval->contents;
-	memcpy(retval->data,s->data,s->length);
-	retval->length = s->length;
-	retval->pos = s->pos;
-	retval->next = clone(s->next);
-	return retval;
+	return copy(s->data,s->length);
 }
 
 str
 replace(str src, int pos, str rep)
 {
-	int i,j, sl = len(src), rl = len(rep);
-	for (i = pos, j = 0; i < sl && j < rl; ++i, ++j) 
-		set(src,i,at(rep,j));
+	if (src->length > pos + rep->length) memcpy(&src->data[pos],rep->data,rep->length);
 	return src;
 }
 
 str
 from(str s, int start, int l)
 {
-	int i;
-	str retval = blank(l);
-	for (i = 0; i < l; ++i) 
-		set(retval,i,at(s,start+i));	
-	return retval;
+	return ref(s->data + start,l);
 }
 
 str
 append(str s, str v)
 {
-	str t;
-	int pos;
-	if (! s) return v->length > MAX_ALLOC_SIZE ? v: clone(v);
-	for (t = s; t->next; t = t->next);
-	t->next = clone(v); 
-	pos = t->pos + t->length;
-	for (t = t->next; t; t = t->next) {
-		t->pos = pos;
-		pos += t->length;
+	if (!s) return v;
+	if ((str)&s->data[s->length] == v) {
+		fprintf(stderr,"appending inline\n");
+		s->length += v->length;
+		memcpy((char*)v,v->data,v->length);
+		return s;
 	}
-	return s;
-}
-
-str
-int_str(int i)
-{
-	int t, l;
-	t = i / 10;
-	for(l = (i < 0 ? 2 : 1); t; t = t / 10) ++l;
-	str retval = blank(l);
-	for (t = (i < 0 ? -i : i); l; t = t / 10) 
-		set(retval, --l, t % 10 + '0');
-	if (i < 0)
-		set(retval, 0, '-');
+	str retval = blank(s->length + v->length);
+	memcpy(retval->data,s->data,s->length);
+	memcpy(retval->data + s->length,v->data,v->length);
 	return retval;
 }
 
-str
-hex_str(int i)
+size_t 
+int_len(reg i)
 {
-	int t, l;
+	reg t, l;
+	t = i / 10;
+	for (l = (i < 0 ? 2 : 1); t; t = t / 10) ++l;
+	return l;
+}
+
+void
+int_print(char* data, int i, int l)
+{
+	for (int t = (i < 0 ? -i : i); l; t = t / 10) data[--l] =  t % 10 + '0';
+}
+
+str
+int_str(reg i)
+{
+	reg l = int_len(i);
+	str retval = blank(l);
+	int_print(retval->data,i,l);
+	return retval;
+}
+
+reg
+hex_len(reg i)
+{
+	reg t, l;
 	t = i / 16;	
 	for(l = 1; t; t = t / 16) ++l;
-	str retval = blank(l);
-	for (t = i; l; t = t >> 4) 
-		set(retval,--l, between(10,t & 0x0f,15) ?
+	return l;
+}
+
+void
+hex_print(char* data, reg i, reg l)
+{
+	for (reg t = i; l; t = t >> 4) 
+		data[--l] =  between(10,t & 0x0f,15) ?
 			(0x0f & t) + 'a' - 10:
-			(t & 0x0f) + '0');	
+			(t & 0x0f) + '0';	
+}
+
+str
+hex_str(reg i)
+{
+	reg l = hex_len(i);
+	str retval = blank(l);
+	hex_print(retval->data,i,l);
 	return retval;
 }
 
 str
 obj_str(void* p)
 {
-	return hex_str((long)p);
+	return hex_str((reg)p);
 }
 
 int
@@ -216,7 +199,7 @@ str_hex(str a)
 }
 
 str
-Str(const char* fmt, ...)
+_(const char* fmt, ...)
 {
 	va_list args;
 	va_start(args,fmt);
@@ -226,59 +209,54 @@ Str(const char* fmt, ...)
 str
 new_str(const char* fmt, va_list args)
 {
-	int i, o = 0, a = 0, ls = 0, la = 0;
-	for (i = 0; fmt[i]; ++i)
-		la += (fmt[i] == '%' ? 1 : 0);
-	str retval = NULL, params[la];
-	ls = strlen(fmt) - 2*la;
-	for (i = 0; fmt[i]; ++i)
+	char* c;
+	str s;
+	reg x, xl, sl;
+	reg i, ls = 0, la = 0;
+	for (i = 0; fmt[i]; ++i) la += (fmt[i] == '%' ? 1 : 0);
+	str retval = blank(0);
+	ls = 0;
+	for (i = 0; fmt[i]; ++i) {
 		if (fmt[i] == '%')
 			switch (fmt[++i]) {
 			case 'c':
-				params[a] = copy(va_arg(args,char*),0);
-				ls += len(params[a++]);
+				c = va_arg(args,char*);
+				sl = strlen(c);
+				memcpy(&retval->data[ls],c,sl);
+				ls += sl;
 				break;
 			case 's':
-				params[a] = va_arg(args,str);
-				if (params[a])
-					ls += len(params[a]);
-				++a;
+				s = va_arg(args,str);
+				memcpy(&retval->data[ls],s->data,s->length);
+				ls += s->length;
 				break;
+			case 'd':
 			case 'i':
-				params[a] = int_str(va_arg(args,int));
-				ls += len(params[a++]);
+				x = va_arg(args,reg);
+				xl = int_len(x);
+				int_print(&retval->data[ls],x,xl);
+				ls += xl;
 				break;
 			case 'p':
-				params[a] = obj_str(va_arg(args,char*));
-				ls += len(params[a++]);
+			case 'x':
+				c = va_arg(args,char*);
+				xl = hex_len((reg)c);
+				hex_print(&retval->data[ls],(reg)c,xl);
+				ls += xl;
 				break;
 			case 'h':
-				params[a] = hex_str(va_arg(args,int));
-				ls += len(params[a++]);
+				x  = va_arg(args,reg);
+				xl = hex_len(x);
+				hex_print(&retval->data[ls],x,xl);
+				ls += xl;
 				break;
 			default:
 				++ls;
 			}
-	retval = blank(ls);
-	a = 0; 
-	o = 0;
-	for (i = 0; fmt[i]; ++i) {
-		if (fmt[i] == '%' 
-		&& (fmt[i+1] == 'c'
-		||  fmt[i+1] == 's'
-		||  fmt[i+1] == 'i'
-		||  fmt[i+1] == 'p'
-		||  fmt[i+1] == 'h')) {
-			if (params[a]) {
-				replace(retval,o,params[a]);
-				o += len(params[a++]);
-			}
-			++i;
-		} else {
-			if (fmt[i] != '%') 
-				set(retval,o++,fmt[i]);
-		}
+		else retval->data[ls++] = fmt[i];
 	}
+	retval->length = ls;
+	advance(ls);
 	va_end(args);
 	return retval;	
 }
@@ -289,7 +267,7 @@ name_field(str line)
 	if (!line) return NULL;
 	int i, l = len(line);
 	for (i = 0; i < l && at(line,i) != ':'; ++i);
-	return i < l ? from(line, 0, i) : line;
+	return i < l ? ref(line->data,i) : line;
 }
 
 str 
@@ -300,14 +278,10 @@ skip_fields(str line, int n)
 	if (n == 0) {
 		for(i = 0; i < l && at(line,i) != ':'; ++i);
 		for (++i; i< l && isspace(at(line,i)); ++i);
-		if (i < l)
-			return from(line, i, l - i);
-		return line;
+		return (i < l) ? ref(&line->data[i], l - i) : line;
 	}
-	for (i = 0; i < l && n; ++i) 
-		if (at(line,i) == ',') 
-			--n;
-	return from(line, i, l - i);
+	for (i = 0; i < l && n; ++i) if (at(line,i) == ',') --n;
+	return ref(&line->data[i], l - i);
 }
 
 str
@@ -317,14 +291,12 @@ dequote(str line)
 	for (i = 0; i < l && at(line,i) != '"'; ++i);
 	for (j = i+1; j < l && at(line,j) != '"'; ++j);
 	return from(line, i + 1, j - i - 1);
-} 
+}
 
 int
 fncmp(str a, str b, int n, test_t func)
 {
-	for (int i = 0; i < n; ++i)
-		if (func(at(a,i),at(b,i)))
-			return 0;
+	for (int i = 0; i < n; ++i) if (func(at(a,i),at(b,i))) return 0;
 	return 1;
 }
 	
@@ -351,10 +323,8 @@ cmp(str a, str b)
 int 
 inot_equal(char x, char y) 
 {
-	if (between('a',x,'z')) 
-		x = x - 'a' + 'A';
-	if (between('a',y,'z'))
-		y = y - 'a' + 'A';
+	if (between('a',x,'z')) x = x - 'a' + 'A';
+	if (between('a',y,'z')) y = y - 'a' + 'A';
 	return x != y;
 }
 
@@ -387,53 +357,41 @@ lesser(str a, str b)
 }
 
 int
-find(str src, int pos, char* delim)
+find(str src, int pos, char* delim, size_t dl)
 {
-	int i,j,d,l = len(src);
-	str t = seek(src,pos);
-	while (t) {
-		d = pos - t->pos;
-		for (i = d; i < t->length; ++i)
-			for (j = 0; delim[j]; ++j ) 
-				if (delim[j] == t->data[i]) 
-					return i + t->pos;
-		if (i + t->pos >= l) return l;
-		pos = t->pos + t->length;
-		t = seek(src,pos);
-	}
-	return l;
+	int i;
+	dl = dl ? dl : strlen(delim);
+	for (i = pos; i < src->length; ++i)
+		for (int j = 0; j < dl; ++j) 
+			if (*(src->data+i) == delim[j])
+				return i;
+	return i;
 }
 
 int
 search(str src, int pos, str key)
 {
-	int i;
-	int sl = len(src);
-	int kl = len(key);
-	for (i = pos; i < sl; ++i) {
-		if (cmp(from(src,i,kl),key))
-			return i;
-	}
-	return sl;
+	return find(src,pos,key->data,key->length);
 }
 
 str
 read_line(str src, int pos)
 {
-	int eol = find(src,pos,"\r\n");
-	return from(src,pos,eol-pos);
+	int eol = find(src,pos,"\r\n",2);
+	return ref(&src->data[pos],eol-pos);
 }
 
 int
 skip_headers(str src, int pos)
 {
-	str t;
-	for (t = seek(src,pos); t; t = seek(src,pos)) {
-		str line = read_line(src,pos);
-		int ll = len(line);
-		pos += ll + 2;
-		if (ll == 0) break;
-	}
+	str line;
+	int ll;
+	int p = pos;
+	do {
+		line = read_line(src,pos);
+		ll = len(line);
+		p += ll + 2;
+	} while (ll != 0 && pos < src->length);
 	return pos;
 }
 
@@ -441,37 +399,8 @@ str
 dechunk(str src)
 {
 	int d = 0;
-	str retval = NULL;
 	int pos = skip_headers(src,0);
-	for (str t = seek(src,pos); t; t = seek(src,pos)) {
-		str line = read_line(src,pos);	
-		d = str_hex(line);
-		retval = append(retval,from(src,pos+len(line)+2,d));
-		pos += d + len(line) + 4;
-		if (d == 0) return retval;
-	}
-	return retval;
+	str line = read_line(src,pos);	
+	d = str_hex(line);
+	return ref(&src->data[pos+len(line)+2],d);
 }
-
-char*
-dump(str s)
-{
-	int l = len(s);
-	char* retval = (char*)new_region(l + 1);
-	for (str t = s; t; t = t->next)
-		memcpy(retval + t->pos, t->data, t->length);
-	retval[l] = '\0';
-	return retval;
-}
-
-str
-encode(str s)
-{
-	str retval = blank(sizeof(int) + len(s));
-	*(size_t*)retval->data = len(s);
-	for (str t = s; t; t = t->next)
-		memcpy(retval->data + t->pos + sizeof(size_t), t->data, t->length);
-	debug("encoded message [%c]",retval->data + sizeof(size_t));
-	return retval;
-}
-

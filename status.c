@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "uri.h"
 #include "status.h"
 
@@ -71,7 +71,7 @@ status_line(int code)
 	int i = find_status_code(code);
 	if (stati[i].len == 0)
 		stati[i].len = strlen(stati[i].reason);
-	return Str("%c %c",http_version,stati[i].reason);
+	return _("%c %c",http_version,stati[i].reason);
 }
 
 int
@@ -88,11 +88,11 @@ error_handler(int code)
 	int i = find_status_code(code);
 	if (! stati[i].filename) return code;
 	File fc = load(file_path(ref("errors",6),copy(stati[i].filename,0)));
-	send_status(Resp->sc,code);
-	send_headers(Resp->sc,Resp->headers);
+	send_status(server.response->socket,code);
+	send_headers(server.response->socket,server.response->headers);
 	if (! fc) return code;
-	Resp->raw_contents = fc;
-	while (!Req->sc->closed && total < fc->st.st_size)
-		total += send_raw_contents(Req->sc,fc,total,1);
+	server.response->raw_contents = fc;
+	while (!server.response->socket->closed && total < fc->st.st_size)
+		total += send_raw_contents(server.response->socket,fc,total,1);
 	return code;				
 }

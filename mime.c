@@ -66,7 +66,7 @@ mimetype_handler(File fc)
 		error("File not found 404");
 		return error_handler(404);
 	}
-	if (!fc->mime) fc->mime = lookup_mimetype(fc->name);
-	content_type(Resp->headers, fc->mime->type.data);
+	if (!fc->mime) fc->mime = lookup_mimetype(fc->name.data);
+	content_type(server.response->headers, fc->mime->type.data);
 	return fc->mime->handler(fc);
 }

@@ -6,7 +6,6 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
 #include "str.h"
 #include "log.h"
 #include "sockets.h"
@@ -15,22 +14,16 @@
 #include "server.h"
 #include "tls.h"
 
-#ifdef LINUX 
-	extern void remove_epoll(int fd);
-#endif
-
 #define STREAM 1
 #define PACKET 0
-
-SocketInfo gsci = {0,0,0};
 
 void
 signal_handler(int sig)
 {
 	error("Received signal %i\n",sig);
-	if (Resp->sc) {
-		Resp->sc->closed = 1;
-		close_socket(Resp->sc);
+	if (server.response->socket) {
+		server.response->socket->closed = 1;
+		close_socket(server.response->socket);
 	}
 }
 
@@ -42,28 +35,28 @@ socket_signal_handlers()
 }
 
 int
-nonblock(int fd)
+nonblock(reg fd)
 {
 	int flags = fcntl(fd,F_GETFL,0);
 	return fcntl(fd,F_SETFL,flags | O_NONBLOCK);
 }
 
 int
-keepalive(int fd)
+keepalive(reg fd)
 {
 	int value = 1 ;
 	return setsockopt(fd,SOL_SOCKET,SO_KEEPALIVE,&value,sizeof(int));
 }
 
 int
-nodelay(int fd)
+nodelay(reg fd)
 {
 	int value = 1;
 	return setsockopt(fd,IPPROTO_TCP,TCP_NODELAY,&value,sizeof(int));
 }
 
 int
-socket_timeout(int fd, size_t seconds)
+socket_timeout(reg fd, size_t seconds)
 {
 	timeout(seconds,0);
 	return setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,&Timeout,sizeof(Timeout))
@@ -74,14 +67,14 @@ int
 new_socket(int stream)
 {
 	int one = 1;
-	int fd = socket(AF_INET,stream ? SOCK_STREAM : SOCK_DGRAM,0);
+	reg fd = socket(AF_INET,stream ? SOCK_STREAM : SOCK_DGRAM,0);
 	if (0 > fd) return 0;
 	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&one,sizeof(one));
 	return fd;
 }
 
 int
-bind_socket(int fd, IPAddress addr, int port)
+bind_socket(reg fd, IPAddress addr, int port)
 {
 	attachTo(addr,port);
 	if (bind(fd,(struct sockaddr*)&Address,sizeof(Address))) {
@@ -93,7 +86,7 @@ bind_socket(int fd, IPAddress addr, int port)
 }
 
 int
-listen_socket(int fd) {
+listen_socket(reg fd) {
 	if (listen(fd,128)) { // See man page on listen
 		close(fd);
 		return 0;
@@ -104,7 +97,7 @@ listen_socket(int fd) {
 int
 open_socket(int  port)
 {
-	int fd = new_socket(STREAM);
+	reg fd = new_socket(STREAM);
 	if (!bind_socket(fd,(IPAddress)0,port)) error("Failed to bind to port %i",port);
 	if (!listen_socket(fd)) error("Failed to listen to port %i",port);
 	return fd;
@@ -115,39 +108,35 @@ resume_socket(Socket sc)
 {
 	sc->host = NULL;
 	sc->buf = NULL;
-	sc->scratch = gscratch;
 	sc->closed = 0;
 	return sc;
 }
 
 Socket
-create_socket(int fd, TLSInfo tls, Socket sc)
+create_socket(reg fd, TLSInfo tls)
 {
-	Socket retval = (Socket)salloc(sizeof(struct socket_cache_struct));
-	retval->tls= (tls ? open_tls(tls,fd) : NULL);
-	retval->next = sc;
+	Socket retval = (Socket)reserve(sizeof(struct socket_cache_struct));
 	retval->fd = fd;
+	retval->tls= (tls ? open_tls(tls,fd) : NULL);
 	retval->peer = Address.sin_addr.s_addr;
 	retval->port = Address.sin_port;
-	++gsci.current;
-	++gsci.total;
-	gsci.max = max(gsci.current,gsci.max);
 	return resume_socket(retval);
 }
 
 Socket
-accept_socket(Socket sc, int fd, TLSInfo tls)
+accept_socket(reg fd, TLSInfo tls)
 {
 	Address_len = sizeof(Address);
-	int sock = accept(fd,(struct sockaddr*)&Address,(socklen_t*)&Address_len);
+	reg sock = accept(fd,(struct sockaddr*)&Address,(socklen_t*)&Address_len);
 	if (sock < 1) {
 		error("[JAWAS] failed to accept socket");
 		return NULL;
 	}
+	debug("Conected to socket %d",sock);
 	nonblock(sock);
 	keepalive(sock);
 	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
-	Socket retval = create_socket(sock,tls,sc);
+	Socket retval = create_socket(sock,tls);
 	while (tls && 0 < accept_tls(retval->tls));
 	return retval;
 }
@@ -171,16 +160,16 @@ connect_socket(str host, int port, int ssl)
 		timer();
 		connected = 1;
 		if (connect(sock,(struct sockaddr*)&Address,Address_len)) {
-			if (srv->alarm) {
+			if (server.alarm) {
 				error("[JAWAS] socket conect timeout!");
-				srv->alarm = 0;
+				server.alarm = 0;
 			}
 			perror("connect");
 			error("[JAWAS] failed to connect to %c:%i",host,port);
 			connected = 0;
 			continue;
 		}
-		srv->alarm = 0;
+		server.alarm = 0;
 		timeout(0,0);
 		timer();
 		break;
@@ -189,8 +178,8 @@ connect_socket(str host, int port, int ssl)
 //	nonblock(sock);
 	keepalive(sock);
 	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
-	retval = create_socket(sock,ssl ? srv->tls_client :NULL,NULL);
-	retval->host = Str("%c",host);
+	retval = create_socket(sock,ssl ? server.tls_client :NULL);
+	retval->host = _("%c",host);
 	retval->peer = Address.sin_addr.s_addr;
 	retval->port = port;
 	if (ssl && (connect_tls(retval->tls) ||check_tls(retval->tls))) {
@@ -200,44 +189,37 @@ connect_socket(str host, int port, int ssl)
 	return retval;
 }
 
-Socket
+void
 close_socket(Socket sc)
 {
 	debug("Closing %p",sc);
-	if (!sc) return NULL;
-	Socket retval = sc->next;
+	if (!sc) return;
 	if (sc->tls) close_tls(sc->tls);
-#ifdef LINUX
-	remove_epoll(sc->fd);
-#endif
 	close(sc->fd);
-	free_scratch(sc->scratch);
-	--gsci.current;
-	return retval;
-}
-
-Socket
-reset_socket(Socket sc)
-{
-	if (!sc) return NULL;
-	free_scratch(sc->scratch);
-	sc->scratch = new_scratch(NULL);
-	return sc;
 }
 
 str
 read_socket(Socket sc)
 {
-	for (str t = blank(Max_Buffer_Size); (t->length = sc->tls ?
-			read_tls(sc->tls,t->data,Max_Buffer_Size) :
-			read(sc->fd,t->data,Max_Buffer_Size)); sc->buf = append(sc->buf,t)) {
-		if (t->length == -1 ) {
+	int delta;
+	for (sc->buf = sc->buf ? clone(sc->buf) : blank(0); 
+		(delta = sc->tls ?
+			read_tls(sc->tls,sc->buf->data + sc->buf->length,Max_Buffer_Size) :
+			read(sc->fd,sc->buf->data + sc->buf->length,Max_Buffer_Size)); 
+		sc->buf->length += advance(delta)) {
+		fprintf(stderr,"Read %i bytes at %p\n",delta,sc->buf);
+		if (delta == 0) {
+			fprintf(stderr,"READ ZERO!!!\n");
+			sc->closed = 1;
+			return sc->buf;
+		}
+		if (delta == -1 ) {
 			if (errno == EAGAIN) {
+				fprintf(stderr,"Returning %d bytes [%s]\n",len(sc->buf),sc->buf->data);
 				return sc->buf;
-			} else {
-				error("ERROR %i occured", errno);
-				return NULL;	
 			}
+			error("ERROR %i occured", errno);
+			return NULL;	
 		}
 	}
 	return sc->buf;
@@ -258,19 +240,15 @@ write_to_socket(Socket sc,char* data, int length)
 int
 write_socket(Socket sc, str buf)
 {
-	str t;
-	int retval = 0;
-	if (! sc) return 0;
-	for (t = buf; t; t = t->next) 
-		retval += write_to_socket(sc,t->data,t->length);
-	return retval;
+	if (! sc || !buf) return 0;
+	return write_to_socket(sc,buf->data,buf->length);
 }
 
 int
 write_chunk(Socket sc, char* data, int length)
 {
 	int retval = 0;
-	str header = Str("%h\r\n",length);
+	str header = _("%h\r\n",length);
 	write_to_socket(sc,header->data,header->length);
 	if (data) retval = write_to_socket(sc,data,length);
 	write_to_socket(sc,"\r\n",2);
@@ -282,9 +260,8 @@ write_chunked_socket(Socket sc, str buf)
 {
 	if (!sc) return 0;
 	int i, retval = 0;
-	for (str t = buf; t; t = t->next)
-		for (i = 0; i < t->length; i += MAX_WRITE_SIZE)
-			retval += write_chunk(sc,t->data + i,min(MAX_WRITE_SIZE,t->length - i));
+	for (i = 0; i < buf->length; i += MAX_WRITE_SIZE)
+		retval += write_chunk(sc,buf->data + i,min(MAX_WRITE_SIZE,buf->length - i));
 	return retval;
 }
 
@@ -361,8 +338,7 @@ size_t
 socket_send(Socket sc, str msg)
 {
 	attachTo(sc->peer,sc->port);
-	str message = encode(msg);
-	return sendto(sc->fd,message->data,message->length,0,(struct sockaddr *)&Address,sizeof(Address));
+	return sendto(sc->fd,msg->data,msg->length,0,(struct sockaddr *)&Address,sizeof(Address));
 }
 
 str
@@ -375,4 +351,10 @@ socket_recv(Socket sc)
 	str retval = blank(msg_size);
 	retval->length = recvfrom(sc->fd, retval->data, retval->length, 0, (struct sockaddr *)&Address, (socklen_t *)&Address_len);
 	return retval;
+}
+
+void
+close_sockets() 
+{
+
 }

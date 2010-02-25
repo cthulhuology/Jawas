@@ -6,7 +6,7 @@
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "memory.h"
 #include "log.h"
 #include "headers.h"
 #include "events.h"
@@ -15,109 +15,104 @@
 #include "server.h"
 #include "transfer.h"
 
+Request requests;
+
 Request
 new_request(str method, str host, str path)
 {
-	Request retval = (Request)salloc(sizeof(struct request_struct));
-	if (retval) {
-		retval->method = clone(method);
-		retval->host = NULL;
-		retval->port = 0;
-		parse_host(retval,host);
-		retval->path = clone(path);
-		retval->sc = NULL;
-		retval->usage = new_usage(0);
-		retval->headers = new_headers();
-		retval->query_vars = new_headers();
-		retval->contents = NULL;
-		retval->raw_contents = NULL;
-		retval->resp = NULL;
-		retval->cb = NULL;
-		retval->body = 0;
-		retval->done = 0;
-		retval->written = 0;
-		retval->length = -1;
-		retval->retries = 0;
-		retval->ssl = 0;
-	}
+	Request retval = (Request)reserve(sizeof(struct request_struct));
+	if (!retval) return NULL;
+	retval->method = method;
+	retval->host = NULL;
+	retval->port = 0;
+	parse_host(retval,host);
+	retval->path = path;
+	retval->socket = NULL;
+	retval->usage = new_usage(0);
+	retval->headers = new_headers();
+	retval->query_vars = new_headers();
+	retval->contents = NULL;
+	retval->raw_contents = NULL;
+	retval->response = NULL;
+	retval->cb = NULL;
+	retval->body = 0;
+	retval->done = 0;
+	retval->written = 0;
+	retval->length = -1;
+	retval->retries = 0;
+	retval->ssl = 0;
 	return retval;
 }
 
-Request
-request_port(Request req,int port)
+void
+request_port(Request req, int port)
 {
 	req->port = port;	
-	return req;
 }
 
-Request
+void
 request_headers(Request req, str key, str value)
 {
 	append_header(req->headers,key,value);
-	return req;
 }
 
-Request
+void
 request_data(Request req, str text)
 {
-	if (len(text) > 0) 
-		req->contents = append(req->contents,text);
-	return req;
+	if (len(text) > 0) req->contents = append(req->contents,text);
 }
 
-Request
+void
 request_file(Request req, File fc)
 {
 	req->raw_contents = fc;
-	return req;
 }
 
 Request
 open_request(Socket sc)
 {
 	Request retval = new_request(NULL,NULL,NULL);
-	if (retval) retval->sc = sc;
+	if (retval) retval->socket = sc;
 	return retval;
 }
 
-Request
-dechunk_request(Request req)
+void
+dechunk_request()
 {
-	if (is_chunked(req->headers)) {
-		str hed = from(req->contents,0,req->body);
-		str con = dechunk(req->contents);
-		req->contents = append(hed,con);
-	}
-	return req;
+	if (!is_chunked(server.request->headers)) return;
+	str hed = from(server.request->contents,0,server.request->body);
+	str con = dechunk(server.request->contents);
+	server.request->contents = append(hed,con);
 }
 
-Request 
-process_request(Request req)
+int 
+process_request()
 {
-	req->contents = read_socket(req->sc);
-	if (!req->contents) {
-		error("No request contents on request %i\n",req);
-		++req->retries;
-		debug("retries %i",req->retries);
-		return NULL;
+	server.request->contents = read_socket(server.request->socket);
+	if (!server.request->contents) {
+		error("No request contents on request %i\n",server.request);
+		++server.request->retries;
+		debug("retries %i",server.request->retries);
+		return -1;
 	}
-	if (!req->body) {
-		req->headers = parse_headers(req->contents,&req->body);
-		debug("Headers:\n%s",print_headers(NULL,req->headers));
-		if (!req->headers) {
-			error("No request headers on request %i\n",req);
-			return NULL;
+	if (!server.request->body) {
+		server.request->headers = parse_headers(server.request->contents,&server.request->body);
+		debug("Headers:\n%s",print_headers(NULL,server.request->headers));
+		if (!server.request->headers) {
+			error("No request headers on request %i\n",server.request);
+			return -1;
 		}
-		append_header(req->headers, Str("peer"),socket_peer(req->sc));
+		request_headers(server.request, _("peer"),socket_peer(server.request->socket));
 	}
-	if (req->body) {
-		req->done = (len(req->contents) - req->body) >= inbound_content_length(req->contents,req->headers);
+	if (server.request->body) {
+		server.request->done = (len(server.request->contents) - server.request->body) >= inbound_content_length(server.request->contents,server.request->headers);
 	}
-	return req->done ? dechunk_request(req) : req;
+	if (server.request->done) dechunk_request();
+	return 0;
 }
 
 void
-use_ssl(Request req)
+request_ssl(Request req)
 {
 	debug("Setting request to SSL mode");
 	req->ssl = 1;
@@ -133,7 +128,7 @@ parse_host(Request req, str host)
 	}
 	req->host = name_field(host);
 	int port = str_int(skip_fields(host,0));
-	req->port = port ? port : 80;
+	request_port(req,port ? port : 80);
 	return req->host;
 }
 
@@ -141,12 +136,12 @@ str
 parse_method()
 {
 	int i,l;
-	str tmp = seek(Req->contents,0);
+	str tmp = server.request->contents;
 	if (!tmp) return NULL;
 	for (i=0;isspace(at(tmp,i));++i);	// skip errorenous spaces
 	for (l = 1; !isspace(at(tmp,i+l)); ++l);
-	Req->method = from(tmp,i,l);
-	return Req->method;
+	server.request->method = from(tmp,i,l);
+	return server.request->method;
 }
 
 str
@@ -154,19 +149,19 @@ parse_path()
 {
 	int i,l,end;
 	str qs;
-	str tmp = seek(Req->contents,0);
+	str tmp = server.request->contents;
 	if (! tmp) return NULL;
 	for (i = 0;isspace(at(tmp,i));++i);	// skip errorenous spaces
 	for (i = 0; at(tmp,i) && !isspace(at(tmp,i)); ++i);
 	for (;isspace(at(tmp,i));++i);
 	for (end = i; at(tmp,end) && !isspace(at(tmp,end)) && at(tmp,end) != '?'; ++end);
-	Req->query_vars = NULL;
+	server.request->query_vars = NULL;
 	if (at(tmp,end) == '?') {
 		for (l = 1; !isspace(at(tmp,end + l)); ++l);
 		qs = from(tmp,end,l);
-		Req->query_vars = parse_uri_encoded(NULL,qs,1);
+		server.request->query_vars = parse_uri_encoded(NULL,qs,1);
 	}
-	return Req->path = from(tmp,i,end - i);
+	return server.request->path = from(tmp,i,end - i);
 }
 
 RequestInfo
@@ -189,50 +184,48 @@ end_request(RequestInfo ri, Request req) {
 				return ri;
 			}
 	}
-	server_scratch();
-	tmp = (RequestInfo)salloc(sizeof(struct request_info_struct));	
+	tmp = (RequestInfo)reserve(sizeof(struct request_info_struct));	
 	tmp->next = ri;
-	tmp->host = clone(req->host);
-	tmp->path = clone(req->path);
+	tmp->host = req->host;
+	tmp->path = req->path;
 	tmp->time = req->usage->time;
 	tmp->hits = req->usage->hits;
-	old_scratch();
 	return tmp;
 }
 
 int
 send_request(Request req)
 {
-	if (! req->sc ) {
-		req->sc = connect_socket(req->host,req->port,0);
-		if (! req->sc) {
+	if (! req->socket ) {
+		req->socket = connect_socket(req->host,req->port,0);
+		if (! req->socket) {
 			error("Failed to connect to %s:%i\n",req->host,req->port);
 			return 0;
 		}
-		add_req_socket(req->sc->fd,req);
+		add_req_socket(req->socket->fd,req);
 		return 0;
 	}
 	if (req->length < 0) {
-		str cmd = Str("%s %s HTTP/1.1\r\n",req->method,req->path);
-		write_socket(req->sc,cmd);
-		request_headers(req,Str("Host"),req->host);
-		send_headers(req->sc,req->headers);
+		str cmd = _("%s %s HTTP/1.1\r\n",req->method,req->path);
+		write_socket(req->socket,cmd);
+		request_headers(req,_("Host"),req->host);
+		send_headers(req->socket,req->headers);
 		req->length = outbound_content_length(req->contents,req->raw_contents);	
 		return req->contents != NULL || req->raw_contents != NULL ;
 	}
 	req->written += req->contents ?
-			send_contents(req->sc,req->contents,is_chunked(req->headers)) :
+			send_contents(req->socket,req->contents,is_chunked(req->headers)) :
 		req->raw_contents ?
-			send_raw_contents(req->sc,req->raw_contents,req->written,0):
+			send_raw_contents(req->socket,req->raw_contents,req->written,0):
 			0;
 	if (is_chunked(req->headers) && req->written >= req->length)
-		write_chunk(req->sc,NULL,0);
+		write_chunk(req->socket,NULL,0);
 	return req->written < req->length;
 }
 
 void
 request_callback(Request req, Response resp,  str cb)
 {
-	req->resp = resp;
+	req->response = resp;
 	req->cb = cb;
 }

@@ -1,12 +1,12 @@
 // database.c
 //
-// Copyright (C) 2007 David J. Goehrig
+// © 2007 David J. Goehrig
 // All Rights Reserved
 //
 
 #include "include.h"
 #include "defines.h"
-#include "alloc.h"
+#include "str.h"
 #include "log.h"
 #include "database.h"
 #include "usage.h"
@@ -17,14 +17,11 @@ int
 query(str q)
 {
 	if (db->res) reset();
-	char* qry = dump(q);
 	dblog("%s",q);
-	Usage u = new_usage();
-	start_usage(u);
-	db->res = PQexec(db->conn,qry);
-	stop_usage(u);
-	dump_usage(u);
-	free_region(qry);
+	str qry = blank(q->length + 1);
+	memset(qry->data,0,qry->length);	
+	memcpy(qry->data,q->data,q->length);
+	db->res = PQexec(db->conn,qry->data);
 	switch(PQresultStatus(db->res)) {
 		case PGRES_EMPTY_QUERY:
 		case PGRES_COMMAND_OK:
@@ -55,21 +52,21 @@ str
 field(int i)
 {
 	if (!db->res) return NULL;
-	return Str("%c",PQfname(db->res,i));
+	return _("%c",PQfname(db->res,i));
 }
 
 str
 db_error()
 {
 	if (!db->res) return NULL;
-	return Str("%c",PQresultErrorMessage(db->res));
+	return _("%c",PQresultErrorMessage(db->res));
 }
 
 str
 fetch(int row, int col)
 {
 	if (!db->res) return NULL;
-	return Str("%c",PQgetvalue(db->res,row,col));	
+	return _("%c",PQgetvalue(db->res,row,col));	
 }
 
 void
@@ -82,7 +79,7 @@ reset()
 Database
 new_database()
 {
-	Database retval = (Database)salloc(sizeof(struct database_struct));
+	Database retval = (Database)reserve(sizeof(struct database_struct));
 	debug(DB_CONNECT_STRING);
 	retval->conn = PQconnectdb(DB_CONNECT_STRING);
 	if (PQstatus(retval->conn) != CONNECTION_OK) dblog("Failed to connect to database %c",DB_CONNECT_STRING);
