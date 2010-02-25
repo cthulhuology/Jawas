@@ -15,7 +15,7 @@ CFLAGS += --std=c99 -Wall -DHOSTADDR="$(HOSTADDR)" -save-temps
 LDFLAGS =
 
 ifeq ($(ARCH),Darwin)
-	CFLAGS += -ggdb -DXP_UNIX -fnested-functions -m64
+	CFLAGS += -ggdb -DXP_UNIX -fnested-functions -m64 -DBITS64
 	INCLUDES = -I/opt/local/include/postgresql84/
 	LDFLAGS += -L/opt/local/lib/postgresql84/  -L/usr/local/lib
 	LIBS += -llua
