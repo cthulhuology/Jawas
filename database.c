@@ -52,21 +52,21 @@ str
 field(int i)
 {
 	if (!db->res) return NULL;
-	return $("%c",PQfname(db->res,i));
+	return _("%c",PQfname(db->res,i));
 }
 
 str
 db_error()
 {
 	if (!db->res) return NULL;
-	return $("%c",PQresultErrorMessage(db->res));
+	return _("%c",PQresultErrorMessage(db->res));
 }
 
 str
 fetch(int row, int col)
 {
 	if (!db->res) return NULL;
-	return $("%c",PQgetvalue(db->res,row,col));	
+	return _("%c",PQgetvalue(db->res,row,col));	
 }
 
 void

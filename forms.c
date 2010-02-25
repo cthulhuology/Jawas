@@ -21,10 +21,10 @@ find_boundary(str enc)
 	for (i = 19; i < el; ++i) {
 		t = from(enc, i, el - i);
 		debug("TMP %s",t);
-		if (ncmp($("boundary="),t,9)) {
+		if (ncmp(_("boundary="),t,9)) {
 			t = from(enc, i + 9, el - (i+9));
 			debug("Boundary is %s",t);
-			return $("--%s",t);
+			return _("--%s",t);
 		}
 	}
 	return NULL;
@@ -35,7 +35,7 @@ parse_name(str src, int pos)
 {
 	str retval = NULL;
 	int bl = len(src);
-	int off = 6 + search(src,pos,$("name=\""));
+	int off = 6 + search(src,pos,_("name=\""));
 	debug("name offset %i, %i",off,bl);
 	if (off >= bl) return NULL;
 	debug("Working offset %i",off);
@@ -55,14 +55,14 @@ int
 found_file(str src, int pos, int end)
 {
 	int l = len(src);
-	int off = 6 + search(src,pos,$("filename=\""));
+	int off = 6 + search(src,pos,_("filename=\""));
 	return off < l && off < end;
 }
 
 int
 skip_content_headers(str src, int pos)
 {
-	return 4 + search(src,pos,$("\r\n\r\n"));
+	return 4 + search(src,pos,_("\r\n\r\n"));
 }
 
 str

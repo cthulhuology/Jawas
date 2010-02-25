@@ -24,7 +24,7 @@ img_handler(File fc)
 	expires(server.response->headers,Expires()->data);
 	send_status(server.response->socket,200);
 	send_headers(server.response->socket,server.response->headers);
-	str range = find_header(server.response->request->headers,$("Range"));
+	str range = find_header(server.response->request->headers,_("Range"));
 	if (range) {
 		debug("Ranges: %s",range);
 		int start = find(range,0,"0123456789",10);

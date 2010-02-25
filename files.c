@@ -121,7 +121,7 @@ set_cwd()
 str
 temp_file()
 {
-	return $("/tmp/%i%i",++file_index,time(NULL));
+	return _("/tmp/%i%i",++file_index,time(NULL));
 }
 
 File

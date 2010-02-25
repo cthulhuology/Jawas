@@ -29,11 +29,11 @@ dump_regions()
 {
 	for (int i = 0; i < MAX_REGIONS; ++i) {
 		fprintf(stderr,"Region(%i)\n",i);
-		fprintf(stderr,"\t%llu events\n",region_list[i].event_index);
-		fprintf(stderr,"\t%llu size\n",region_list[i].size);
+		fprintf(stderr,"\t%p events\n",region_list[i].event_index);
+		fprintf(stderr,"\t%p size\n",region_list[i].size);
 		fprintf(stderr,"\t%p allocated\n",region_list[i].allocated);
-		fprintf(stderr,"\t%llu offset\n",region_list[i].offset);
-		fprintf(stderr,"\t%llu free\n", region_list[i].size - region_list[i].offset);
+		fprintf(stderr,"\t%p offset\n",region_list[i].offset);
+		fprintf(stderr,"\t%p free\n", region_list[i].size - region_list[i].offset);
 	}
 }
 

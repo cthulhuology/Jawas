@@ -17,9 +17,9 @@ int
 script_handler(File fc)
 {
 	int total = 0;
-//	cache_control(server.response->headers,"max-age=86400, public");
-//	date_field(server.response->headers,Date(time(NULL))->data);
-//	expires(server.response->headers,Expires()->data);
+	cache_control(server.response->headers,"max-age=86400, public");
+	date_field(server.response->headers,Date(time(NULL))->data);
+	expires(server.response->headers,Expires()->data);
 //	str zipped = shrink(fc);
 //	if (zipped) append_header(server.response->headers,Str("Content-Encoding"),Str("gzip"));
 //	debug("RESP:\n%s",print_headers(NULL,server.response->headers));

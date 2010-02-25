@@ -102,7 +102,7 @@ process_request()
 			error("No request headers on request %i\n",server.request);
 			return -1;
 		}
-		request_headers(server.request, $("peer"),socket_peer(server.request->socket));
+		request_headers(server.request, _("peer"),socket_peer(server.request->socket));
 	}
 	if (server.request->body) {
 		server.request->done = (len(server.request->contents) - server.request->body) >= inbound_content_length(server.request->contents,server.request->headers);
@@ -206,9 +206,9 @@ send_request(Request req)
 		return 0;
 	}
 	if (req->length < 0) {
-		str cmd = $("%s %s HTTP/1.1\r\n",req->method,req->path);
+		str cmd = _("%s %s HTTP/1.1\r\n",req->method,req->path);
 		write_socket(req->socket,cmd);
-		request_headers(req,$("Host"),req->host);
+		request_headers(req,_("Host"),req->host);
 		send_headers(req->socket,req->headers);
 		req->length = outbound_content_length(req->contents,req->raw_contents);	
 		return req->contents != NULL || req->raw_contents != NULL ;

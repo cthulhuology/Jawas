@@ -29,4 +29,6 @@ char* reserve(size_t length);
 char* system_reserve(size_t length);
 size_t advance(size_t length);
 
+void dump_regions();
+
 #endif

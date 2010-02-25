@@ -34,15 +34,15 @@ str clone(str s);
 str from(str s, int start, int len);
 str append(str s, str v);
 
-str int_str(uint64_t i);
-str hex_str(uint64_t i);
+str int_str(reg i);
+str hex_str(reg i);
 str obj_str(void* p);
 
 int str_int(str a);
 int str_hex(str a);
 #define str_obj(a,t) (t)str_hex(a)
 
-str $(const char* fmt, ...);
+str _(const char* fmt, ...);
 str new_str(const char* fmt, va_list args); 
 
 str name_field(str line);

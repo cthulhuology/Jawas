@@ -48,9 +48,9 @@ lua2str(int index)
 		return retval;
 	}
 	if (lua_isboolean(lins,index)) {
-		return lua_toboolean(lins,index) ? $("true") : $("false");
+		return lua_toboolean(lins,index) ? _("true") : _("false");
 	}
-	return $("%p",lua_topointer(lins,index));
+	return _("%p",lua_topointer(lins,index));
 }
 
 void
@@ -114,7 +114,7 @@ static int ErrorLua(lua_State* l)
 
 static int UseLua(lua_State* l)
 {
-	str filename = file_path(server.request ? server.request->host : $("localhost"), $("/%s",lua2str(1)));
+	str filename = file_path(server.request ? server.request->host : _("localhost"), _("/%s",lua2str(1)));
 	if (luaL_dofile(l,filename->data)) error("Failed to evaluate script %s",filename);
 	lua_pop(l,1);
 	return 0;
@@ -122,7 +122,7 @@ static int UseLua(lua_State* l)
 
 static int IncludeLua(lua_State* l)
 {
-	str filename = file_path(server.request ? server.request->host : $("localhost"), $("/%s",lua2str(1)));
+	str filename = file_path(server.request ? server.request->host : _("localhost"), _("/%s",lua2str(1)));
 	lua_pop(l,1);
 	File fc = load(filename);
 	if (!fc) {
@@ -163,7 +163,7 @@ static int NowLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	lua_pop(l,n);
-	str2lua($("%i",time(NULL)));
+	str2lua(_("%i",time(NULL)));
 	return 1;
 }
 
@@ -284,8 +284,8 @@ static int PostHTTPLua(lua_State* l)
 	// n-3 is the headers table
 	str data = lua2str(5);
 	str callback = lua2str(6);
-	Request req = new_request($("POST"),host,path);
-	if (icmp($("https"),proto)) request_ssl(req);
+	Request req = new_request(_("POST"),host,path);
+	if (icmp(_("https"),proto)) request_ssl(req);
 	lua_pushnil(l);
 	while(lua_next(l,4)) {
 		request_headers(req,lua2str(-2),lua2str(-1));
@@ -396,7 +396,7 @@ init_lua()
 	for (i = 0; lua_glob_functions[i].name; ++i)
 		lua_register(lins,lua_glob_functions[i].name,lua_glob_functions[i].func);
 	ProceduresLua(lins,"public");
-	str filename = file_path(server.request ? server.request->host : $("localhost"), $("/common.lua"));
+	str filename = file_path(server.request ? server.request->host : _("localhost"), _("/common.lua"));
 	if (luaL_dofile(lins,filename->data)) error("Failed to load common.lua");
 	Headers data = server.response->request->query_vars;
 	if(data) over(data,i) {

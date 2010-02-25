@@ -45,7 +45,7 @@ attachTo(IPAddress addr, int port)
 str
 ipaddress(IPAddress addr, int port)
 {
-	return $("%i.%i.%i.%i:%i",
+	return _("%i.%i.%i.%i:%i",
 		(0xff & addr),
 		(0xff00 & addr) >> 8,
 		(0xff0000 & addr) >> 16,

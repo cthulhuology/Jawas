@@ -101,8 +101,8 @@ list_headers(Headers kv)
 	int i;
 	over(kv,i) {
 		skip_null(kv,i);
-		retval = retval ? $("%s, %s : %s", retval, kv->slots[i].key, kv->slots[i].value)
-				: $("%s : %s", kv->slots[i].key,kv->slots[i].value); 
+		retval = retval ? _("%s, %s : %s", retval, kv->slots[i].key, kv->slots[i].value)
+				: _("%s : %s", kv->slots[i].key,kv->slots[i].value); 
 	}
 	return retval;
 }
@@ -115,8 +115,8 @@ print_headers(str dst, Headers src)
 	over(src,i) {
 		skip_null(src,i);
 		retval = retval ? 
-			$("%s%s: %s\r\n",retval, Key(src,i),Value(src,i)):
-			$("%s: %s\r\n",Key(src,i),Value(src,i));
+			_("%s%s: %s\r\n",retval, Key(src,i),Value(src,i)):
+			_("%s: %s\r\n",Key(src,i),Value(src,i));
 	}
 	return retval;
 }
@@ -126,10 +126,10 @@ url_encode_headers(Headers src)
 {
 	int i;
 	if (! src) return NULL;
-	str retval = $("%s=%s",Key(src,0),Value(src,0));
+	str retval = _("%s=%s",Key(src,0),Value(src,0));
 	overs(src,i,1) {
 		skip_null(src,i);
-		retval = $("%s&%s=%s",retval,Key(src,i),Value(src,i));
+		retval = _("%s&%s=%s",retval,Key(src,i),Value(src,i));
 	}
 	return retval;
 }

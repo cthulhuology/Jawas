@@ -35,28 +35,28 @@ socket_signal_handlers()
 }
 
 int
-nonblock(uint64_t fd)
+nonblock(reg fd)
 {
 	int flags = fcntl(fd,F_GETFL,0);
 	return fcntl(fd,F_SETFL,flags | O_NONBLOCK);
 }
 
 int
-keepalive(uint64_t fd)
+keepalive(reg fd)
 {
 	int value = 1 ;
 	return setsockopt(fd,SOL_SOCKET,SO_KEEPALIVE,&value,sizeof(int));
 }
 
 int
-nodelay(uint64_t fd)
+nodelay(reg fd)
 {
 	int value = 1;
 	return setsockopt(fd,IPPROTO_TCP,TCP_NODELAY,&value,sizeof(int));
 }
 
 int
-socket_timeout(uint64_t fd, size_t seconds)
+socket_timeout(reg fd, size_t seconds)
 {
 	timeout(seconds,0);
 	return setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,&Timeout,sizeof(Timeout))
@@ -67,14 +67,14 @@ int
 new_socket(int stream)
 {
 	int one = 1;
-	uint64_t fd = socket(AF_INET,stream ? SOCK_STREAM : SOCK_DGRAM,0);
+	reg fd = socket(AF_INET,stream ? SOCK_STREAM : SOCK_DGRAM,0);
 	if (0 > fd) return 0;
 	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&one,sizeof(one));
 	return fd;
 }
 
 int
-bind_socket(uint64_t fd, IPAddress addr, int port)
+bind_socket(reg fd, IPAddress addr, int port)
 {
 	attachTo(addr,port);
 	if (bind(fd,(struct sockaddr*)&Address,sizeof(Address))) {
@@ -86,7 +86,7 @@ bind_socket(uint64_t fd, IPAddress addr, int port)
 }
 
 int
-listen_socket(uint64_t fd) {
+listen_socket(reg fd) {
 	if (listen(fd,128)) { // See man page on listen
 		close(fd);
 		return 0;
@@ -97,7 +97,7 @@ listen_socket(uint64_t fd) {
 int
 open_socket(int  port)
 {
-	uint64_t fd = new_socket(STREAM);
+	reg fd = new_socket(STREAM);
 	if (!bind_socket(fd,(IPAddress)0,port)) error("Failed to bind to port %i",port);
 	if (!listen_socket(fd)) error("Failed to listen to port %i",port);
 	return fd;
@@ -113,7 +113,7 @@ resume_socket(Socket sc)
 }
 
 Socket
-create_socket(uint64_t fd, TLSInfo tls)
+create_socket(reg fd, TLSInfo tls)
 {
 	Socket retval = (Socket)reserve(sizeof(struct socket_cache_struct));
 	retval->fd = fd;
@@ -124,10 +124,10 @@ create_socket(uint64_t fd, TLSInfo tls)
 }
 
 Socket
-accept_socket(uint64_t fd, TLSInfo tls)
+accept_socket(reg fd, TLSInfo tls)
 {
 	Address_len = sizeof(Address);
-	uint64_t sock = accept(fd,(struct sockaddr*)&Address,(socklen_t*)&Address_len);
+	reg sock = accept(fd,(struct sockaddr*)&Address,(socklen_t*)&Address_len);
 	if (sock < 1) {
 		error("[JAWAS] failed to accept socket");
 		return NULL;
@@ -179,7 +179,7 @@ connect_socket(str host, int port, int ssl)
 	keepalive(sock);
 	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
 	retval = create_socket(sock,ssl ? server.tls_client :NULL);
-	retval->host = $("%c",host);
+	retval->host = _("%c",host);
 	retval->peer = Address.sin_addr.s_addr;
 	retval->port = port;
 	if (ssl && (connect_tls(retval->tls) ||check_tls(retval->tls))) {
@@ -207,8 +207,15 @@ read_socket(Socket sc)
 			read_tls(sc->tls,sc->buf->data + sc->buf->length,Max_Buffer_Size) :
 			read(sc->fd,sc->buf->data + sc->buf->length,Max_Buffer_Size)); 
 		sc->buf->length += advance(delta)) {
+		fprintf(stderr,"Read %i bytes at %p\n",delta,sc->buf);
+		if (delta == 0) {
+			fprintf(stderr,"READ ZERO!!!\n");
+			sc->closed = 1;
+			return sc->buf;
+		}
 		if (delta == -1 ) {
 			if (errno == EAGAIN) {
+				fprintf(stderr,"Returning %d bytes [%s]\n",len(sc->buf),sc->buf->data);
 				return sc->buf;
 			}
 			error("ERROR %i occured", errno);
@@ -241,7 +248,7 @@ int
 write_chunk(Socket sc, char* data, int length)
 {
 	int retval = 0;
-	str header = $("%h\r\n",length);
+	str header = _("%h\r\n",length);
 	write_to_socket(sc,header->data,header->length);
 	if (data) retval = write_to_socket(sc,data,length);
 	write_to_socket(sc,"\r\n",2);

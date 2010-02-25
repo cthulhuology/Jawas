@@ -4,6 +4,7 @@
 // All Rights Reserved
 //
 
+#include "defines.h"
 #include "include.h"
 #include "memory.h"
 #include "log.h"
@@ -25,7 +26,7 @@ current_event()
 }
 
 Event
-queue_event(Event ec, uint64_t fd, enum event_types type, enum event_flags flag, Event e)
+queue_event(Event ec, reg fd, enum event_types type, enum event_flags flag, Event e)
 {
 	Event retval = e ? e : (Event) system_reserve(sizeof(struct event_struct));
 	retval->next = ec;
@@ -41,7 +42,7 @@ queue_event(Event ec, uint64_t fd, enum event_types type, enum event_flags flag,
 }
 
 void 
-monitor_socket(uint64_t f) 
+monitor_socket(reg f) 
 {
 	server.event = queue_event(server.event,f, READ, NONE, NULL); 
 	server.event->socket = NULL;
@@ -52,7 +53,7 @@ monitor_socket(uint64_t f)
 }
 
 void
-add_read_socket(uint64_t f, Request r)
+add_read_socket(reg f, Request r)
 {
 	Event e = current_event();
 	e->socket =  r ? r->socket : NULL;
@@ -64,7 +65,7 @@ add_read_socket(uint64_t f, Request r)
 }
 
 void
-add_write_socket(uint64_t f, Response r) 
+add_write_socket(reg f, Response r) 
 {
 	Event e = current_event();
 	e->socket = r ? r->socket : NULL;
@@ -76,7 +77,7 @@ add_write_socket(uint64_t f, Response r)
 }
 
 void
-add_req_socket(uint64_t f, Request r) 
+add_req_socket(reg f, Request r) 
 {
 	Event e = current_event();
 	e->socket =  r ? r->socket : NULL;
@@ -88,7 +89,7 @@ add_req_socket(uint64_t f, Request r)
 }
 
 void
-add_resp_socket(uint64_t f, Response r) 
+add_resp_socket(reg f, Response r) 
 {
 	Event e = current_event();
 	e->socket = r ? r->socket : NULL;
@@ -100,7 +101,7 @@ add_resp_socket(uint64_t f, Response r)
 }
 
 void
-add_file_monitor(uint64_t f, File r)
+add_file_monitor(reg f, File r)
 {
 	Event e = current_event();
 	e->socket = NULL;

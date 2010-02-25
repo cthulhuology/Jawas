@@ -39,8 +39,8 @@ hex(str data)
 {
         str retval = NULL;
         for (int i = 0; i < data->length; ++i) 
-		retval = retval ? $("%s%h%h",retval,(0x0f0 & data->data[i]) >> 4, 0x0f & data->data[i]):
-			$("%h%h",(0x0f0 & data->data[i]) >> 4, 0x0f & data->data[i]);
+		retval = retval ? _("%s%h%h",retval,(0x0f0 & data->data[i]) >> 4, 0x0f & data->data[i]):
+			_("%h%h",(0x0f0 & data->data[i]) >> 4, 0x0f & data->data[i]);
         return retval;
 }
 

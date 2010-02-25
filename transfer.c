@@ -12,8 +12,8 @@
 int
 is_chunked(Headers headers)
 {
-	str enc = find_header(headers, $(Transfer_Encoding_MSG));
- 	return enc && icmp(enc,$("chunked"));
+	str enc = find_header(headers, _(Transfer_Encoding_MSG));
+ 	return enc && icmp(enc,_("chunked"));
 }
 
 int
@@ -37,7 +37,7 @@ inbound_content_length(str src, Headers headers)
 	if (!src || !headers) return 0;
 	return is_chunked(headers) ?
 		chunked_length(src) :
-		str_int(find_header(headers, $("Content-Length")));
+		str_int(find_header(headers, _("Content-Length")));
 }
 
 int

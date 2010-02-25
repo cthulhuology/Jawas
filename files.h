@@ -49,6 +49,6 @@ void close_files();
 void set_cwd();
 str temp_file();
 
-#define file_path(h,f) $("%s/%s%s",cwd,h,f)
+#define file_path(h,f) _("%s/%s%s",cwd,h,f)
 
 #endif

@@ -7,6 +7,7 @@
 #ifndef __EVENTS_H__
 #define __EVENTS_H__
 
+#include "defines.h"
 #include "memory.h"
 #include "sockets.h"
 #include "requests.h"
@@ -21,23 +22,22 @@ struct event_struct {
 	Request request;
 	Response response;
 	File file;
-	uint64_t fd;
+	reg fd;
 	enum event_types type;
 	enum event_flags flag;
 };
 
 extern Event events;
 
-Event queue_event(Event ec, uint64_t fd, enum event_types type, enum event_flags flag, Event e);
 Event poll_events();
 Event file_monitor(Event ec);
 
-void monitor_socket(uint64_t f);
-void add_read_socket(uint64_t f, Request r);
-void add_write_socket(uint64_t f, Response r);
-void add_req_socket(uint64_t f, Request r);
-void add_resp_socket(uint64_t f, Response r);
-void add_file_monitor(uint64_t f, File r);
+void monitor_socket(reg f);
+void add_read_socket(reg f, Request r);
+void add_write_socket(reg f, Response r);
+void add_req_socket(reg f, Request r);
+void add_resp_socket(reg f, Response r);
+void add_file_monitor(reg f, File r);
 
 void dump_event(Event e);
 

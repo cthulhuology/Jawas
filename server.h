@@ -16,9 +16,9 @@
 
 typedef struct server_struct Server;
 struct server_struct {
-	uint64_t kq;
-	uint64_t http_sock;
-	uint64_t tls_sock;
+	reg kq;
+	reg http_sock;
+	reg tls_sock;
 	int alarm;
 	time_t time;
 	TLSInfo tls;

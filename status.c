@@ -71,7 +71,7 @@ status_line(int code)
 	int i = find_status_code(code);
 	if (stati[i].len == 0)
 		stati[i].len = strlen(stati[i].reason);
-	return $("%c %c",http_version,stati[i].reason);
+	return _("%c %c",http_version,stati[i].reason);
 }
 
 int

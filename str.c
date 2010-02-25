@@ -4,6 +4,7 @@
 // All Rights Reserved
 //
 
+#include "defines.h"
 #include "include.h"
 #include "memory.h"
 #include "str.h"
@@ -110,9 +111,9 @@ append(str s, str v)
 }
 
 size_t 
-int_len(uint64_t i)
+int_len(reg i)
 {
-	uint64_t t, l;
+	reg t, l;
 	t = i / 10;
 	for (l = (i < 0 ? 2 : 1); t; t = t / 10) ++l;
 	return l;
@@ -125,36 +126,36 @@ int_print(char* data, int i, int l)
 }
 
 str
-int_str(uint64_t i)
+int_str(reg i)
 {
-	uint64_t l = int_len(i);
+	reg l = int_len(i);
 	str retval = blank(l);
 	int_print(retval->data,i,l);
 	return retval;
 }
 
-uint64_t
-hex_len(uint64_t i)
+reg
+hex_len(reg i)
 {
-	uint64_t t, l;
+	reg t, l;
 	t = i / 16;	
 	for(l = 1; t; t = t / 16) ++l;
 	return l;
 }
 
 void
-hex_print(char* data, uint64_t i, uint64_t l)
+hex_print(char* data, reg i, reg l)
 {
-	for (uint64_t t = i; l; t = t >> 4) 
+	for (reg t = i; l; t = t >> 4) 
 		data[--l] =  between(10,t & 0x0f,15) ?
 			(0x0f & t) + 'a' - 10:
 			(t & 0x0f) + '0';	
 }
 
 str
-hex_str(uint64_t i)
+hex_str(reg i)
 {
-	uint64_t l = hex_len(i);
+	reg l = hex_len(i);
 	str retval = blank(l);
 	hex_print(retval->data,i,l);
 	return retval;
@@ -163,7 +164,7 @@ hex_str(uint64_t i)
 str
 obj_str(void* p)
 {
-	return hex_str((uint64_t)p);
+	return hex_str((reg)p);
 }
 
 int
@@ -198,7 +199,7 @@ str_hex(str a)
 }
 
 str
-$(const char* fmt, ...)
+_(const char* fmt, ...)
 {
 	va_list args;
 	va_start(args,fmt);
@@ -210,8 +211,8 @@ new_str(const char* fmt, va_list args)
 {
 	char* c;
 	str s;
-	uint64_t x, xl, sl;
-	uint64_t i, ls = 0, la = 0;
+	reg x, xl, sl;
+	reg i, ls = 0, la = 0;
 	for (i = 0; fmt[i]; ++i) la += (fmt[i] == '%' ? 1 : 0);
 	str retval = blank(0);
 	ls = 0;
@@ -231,7 +232,7 @@ new_str(const char* fmt, va_list args)
 				break;
 			case 'd':
 			case 'i':
-				x = va_arg(args,uint64_t);
+				x = va_arg(args,reg);
 				xl = int_len(x);
 				int_print(&retval->data[ls],x,xl);
 				ls += xl;
@@ -239,12 +240,12 @@ new_str(const char* fmt, va_list args)
 			case 'p':
 			case 'x':
 				c = va_arg(args,char*);
-				xl = hex_len((uint64_t)c);
-				hex_print(&retval->data[ls],(uint64_t)c,xl);
+				xl = hex_len((reg)c);
+				hex_print(&retval->data[ls],(reg)c,xl);
 				ls += xl;
 				break;
 			case 'h':
-				x  = va_arg(args,uint64_t);
+				x  = va_arg(args,reg);
 				xl = hex_len(x);
 				hex_print(&retval->data[ls],x,xl);
 				ls += xl;

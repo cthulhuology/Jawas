@@ -14,7 +14,7 @@
 
 typedef struct socket_cache_struct* Socket;
 struct socket_cache_struct {
-	uint64_t fd;
+	reg fd;
 	TLSSocket tls;
 	str buf;
 	str host;
@@ -26,12 +26,12 @@ struct socket_cache_struct {
 extern Socket sockets;
 
 void socket_signal_handlers();
-int nonblock(uint64_t);
+int nonblock(reg);
 
 int new_socket(int stream);
 int open_socket(int port);
-Socket create_socket(uint64_t fd, TLSInfo tls);
-Socket accept_socket(uint64_t fd, TLSInfo tls);
+Socket create_socket(reg fd, TLSInfo tls);
+Socket accept_socket(reg fd, TLSInfo tls);
 Socket connect_socket(str host, int port, int ssl);
 Socket resume_socket(Socket sc);
 int send_contents(Socket sc, str buf, int chunked);
@@ -44,7 +44,7 @@ int write_chunk(Socket sc, char* data, int length);
 int closed_socket(Socket sc, char* msg);
 void socket_notice(Socket sc, char* msg);
 str socket_peer(Socket sc);
-int socket_timeout(uint64_t fd, size_t seconds);
+int socket_timeout(reg fd, size_t seconds);
 
 void socket_attach(Socket sc, IPAddress peer, int port);
 size_t socket_send(Socket sc, str msg);

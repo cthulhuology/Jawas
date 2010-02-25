@@ -24,7 +24,7 @@
 Server server;
 
 void
-incoming(uint64_t fd)
+incoming(reg fd)
 {
 	debug("Incoming %i",fd);
 	server.socket = accept_socket(fd,(server.http_sock == fd ? NULL : server.tls));
@@ -78,7 +78,7 @@ void
 send_response()
 {
 	debug("Send response to %d",server.socket->fd);
-	str host = parse_host(server.request,find_header(server.request->headers,$("Host")));
+	str host = parse_host(server.request,find_header(server.request->headers,_("Host")));
 	debug("Connect to host %s",host);
 	str method = parse_method(server.request);
 	debug("Request method %s",method);
@@ -106,8 +106,8 @@ read_response()
 	server.request = server.request = server.response->request;
 	server.socket = server.request->socket;
 	server.response = server.request->response;
-	append_header(server.response->headers,$("data"),from(tmp->contents,tmp->body,len(tmp->contents) - tmp->body));
-	append_header(server.response->headers,$("status"),from(tmp->contents,9,3));
+	append_header(server.response->headers,_("data"),from(tmp->contents,tmp->body,len(tmp->contents) - tmp->body));
+	append_header(server.response->headers,_("status"),from(tmp->contents,9,3));
 	close_socket(tmp->socket);
 	connection(server.response->headers,"close");
 	add_write_socket(server.response->socket->fd,server.response);
@@ -144,8 +144,8 @@ serve(int port, int tls_port)
 	init_strings();
 }
 
-uint64_t
-external_port(uint64_t fd)
+reg
+external_port(reg fd)
 {
 	return fd == server.http_sock || fd == server.tls_sock;
 }

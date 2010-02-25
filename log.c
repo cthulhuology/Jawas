@@ -32,7 +32,7 @@ log_msg(int lvl, char* fmt,  ...)
 	va_start(args,fmt);
 	str msg = new_str(fmt,args);
 	str now = Date(time(NULL));
-	msg = $("%c [%s]: %s\n",log_msgs[lvl],now,msg);
+	msg = _("%c [%s]: %s\n",log_msgs[lvl],now,msg);
 	write(log_fd,msg->data,len(msg));
 	fsync(log_fd);
 //	vfprintf(stderr,fmt,args);

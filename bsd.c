@@ -12,8 +12,13 @@
 
 #define NODE_FLAGS NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_RENAME | NOTE_REVOKE
 
+#ifdef BITS64
 struct kevent64_s cl[MAX_EVENTS];
 struct kevent64_s el[MAX_EVENTS];
+#else
+struct kevent cl[MAX_EVENTS];
+struct kevent el[MAX_EVENTS];
+#endif
 
 struct timespec ts = { 0, 100000 };
 
@@ -35,10 +40,14 @@ poll_events()
 		cl[n].flags = EV_ADD | (e->flag == ONESHOT ? EV_ONESHOT : 0);;
 		cl[n].fflags = (e->type == NODE ? NODE_FLAGS : 0);
 		cl[n].data = 0;
-		cl[n].udata = (uint64_t)e;
+		cl[n].udata = (reg)e;
 		e = e->next;
 	}
+#ifdef BITS64
 	n = kevent64(server.kq,cl,n,el,server.numevents,0, &ts);
+#else
+	n = kevent(server.kq,cl,n,el,server.numevents,&ts);
+#endif
 	if (n < 0) goto done;
 	while (n--)  {
 		e = (Event)el[n].udata;

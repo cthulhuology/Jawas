@@ -5,6 +5,12 @@
 
 #include "config.h"
 
+#ifdef BITS64
+#define reg uint64_t
+#else
+#define reg int
+#endif
+
 #define SERVER_VERSION "Jawas/1.0"
 
 #define RUNTIME_SIZE 8L * 1024L * 1024L
