@@ -202,7 +202,7 @@ str
 read_socket(Socket sc)
 {
 	int delta;
-	for (sc->buf = blank(0); 
+	for (sc->buf = sc->buf ? clone(sc->buf) : blank(0); 
 		(delta = sc->tls ?
 			read_tls(sc->tls,sc->buf->data + sc->buf->length,Max_Buffer_Size) :
 			read(sc->fd,sc->buf->data + sc->buf->length,Max_Buffer_Size)); 
