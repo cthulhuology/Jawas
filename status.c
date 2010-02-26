@@ -9,6 +9,8 @@
 #include "memory.h"
 #include "uri.h"
 #include "status.h"
+#include "client.h"
+#include "server.h"
 
 static struct status_struct stati[] = {
 	{ 100, 0, "100 Continue\r\n", NULL },
@@ -88,11 +90,11 @@ error_handler(int code)
 	int i = find_status_code(code);
 	if (! stati[i].filename) return code;
 	File fc = load(file_path(ref("errors",6),copy(stati[i].filename,0)));
-	send_status(server.response->socket,code);
-	send_headers(server.response->socket,server.response->headers);
+	send_status(client.response->socket,code);
+	send_headers(client.response->socket,client.response->headers);
 	if (! fc) return code;
-	server.response->raw_contents = fc;
-	while (!server.response->socket->closed && total < fc->st.st_size)
-		total += send_raw_contents(server.response->socket,fc,total,1);
+	client.response->raw_contents = fc;
+	while (!client.response->socket->closed && total < fc->st.st_size)
+		total += send_raw_contents(client.response->socket,fc,total,1);
 	return code;				
 }

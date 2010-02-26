@@ -7,6 +7,7 @@
 #include "include.h"
 #include "defines.h"
 #include "signals.h"
+#include "client.h"
 #include "server.h"
 
 void
@@ -18,7 +19,7 @@ gen_signal_handler()
 void
 alrm_signal_handler()
 {
-	server.alarm = 1;
+	client.alarm = 1;
 }
 
 void

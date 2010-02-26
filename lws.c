@@ -16,7 +16,7 @@
 #include "requests.h"
 #include "responses.h"
 #include "files.h"
-#include "server.h"
+#include "client.h"
 #include "timers.h"
 #include "database.h"
 #include "usage.h"
@@ -24,6 +24,7 @@
 #include "lua_json.h"
 #include "dates.h"
 #include "status.h"
+#include "server.h"
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -63,11 +64,11 @@ str2lua(str s)
 void
 EvalLuaFile(File fc)
 {
-	if (!fc->parsed) parse_file(fc);
+	if (! fc->parsed) return;
 	for (int i = 0; fc->parsed[i].kind; ++i) {
 		switch(fc->parsed[i].kind) {
 		case TEXT:
-			write_chunk(server.request->socket,&fc->data[fc->parsed[i].offset],fc->parsed[i].length);
+			write_chunk(client.request->socket,&fc->data[fc->parsed[i].offset],fc->parsed[i].length);
 			break;
 		case SCRIPT:
 		case EMIT:
@@ -88,7 +89,7 @@ static int PrintLua(lua_State* l)
 	for (int i = 1; i <= n; ++i) {
 		str out =  lua2str(i);
 //		debug("Lua printing [%s]",out);
-		write_chunked_socket(server.request->socket,out);
+		write_chunked_socket(client.request->socket,out);
 	}
 	lua_pop(l,n);
 	return 0;
@@ -114,7 +115,7 @@ static int ErrorLua(lua_State* l)
 
 static int UseLua(lua_State* l)
 {
-	str filename = file_path(server.request ? server.request->host : _("localhost"), _("/%s",lua2str(1)));
+	str filename = file_path(client.request ? client.request->host : _("localhost"), _("/%s",lua2str(1)));
 	if (luaL_dofile(l,filename->data)) error("Failed to evaluate script %s",filename);
 	lua_pop(l,1);
 	return 0;
@@ -122,7 +123,7 @@ static int UseLua(lua_State* l)
 
 static int IncludeLua(lua_State* l)
 {
-	str filename = file_path(server.request ? server.request->host : _("localhost"), _("/%s",lua2str(1)));
+	str filename = file_path(client.request ? client.request->host : _("localhost"), _("/%s",lua2str(1)));
 	lua_pop(l,1);
 	File fc = load(filename);
 	if (!fc) {
@@ -137,7 +138,7 @@ static int CWDLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	lua_pop(l,n);
-	str2lua(server.request->path);
+	str2lua(client.request->path);
 	return 1;
 }
 
@@ -146,7 +147,7 @@ static int HeaderLua(lua_State* l)
 	int n = lua_gettop(l);
 	str s = lua2str(1);
 	lua_pop(l,n);
-	str2lua(find_header(server.request->headers,s));
+	str2lua(find_header(client.request->headers,s));
 	return 1;
 }
 
@@ -155,7 +156,7 @@ static int ParamLua(lua_State* l)
 	int n = lua_gettop(l);
 	str s = lua2str(1);
 	lua_pop(l,n);
-	str2lua(find_header(server.request->query_vars,s));
+	str2lua(find_header(client.request->query_vars,s));
 	return 1;
 }
 
@@ -292,9 +293,9 @@ static int PostHTTPLua(lua_State* l)
 		lua_pop(l,1);
 	}
 	request_data(req,data);
-	request_callback(req,server.response,callback);
+	request_callback(req,client.response,callback);
 	send_request(req);
-	if (server.response) server.response->status = 0;
+	if (client.response) client.response->status = 0;
 	lua_pop(l,n+1);
 	longjmp(l_jump,1);
 	return 0;
@@ -396,15 +397,6 @@ init_lua()
 	for (i = 0; lua_glob_functions[i].name; ++i)
 		lua_register(lins,lua_glob_functions[i].name,lua_glob_functions[i].func);
 	ProceduresLua(lins,"public");
-	str filename = file_path(server.request ? server.request->host : _("localhost"), _("/common.lua"));
-	if (luaL_dofile(lins,filename->data)) error("Failed to load common.lua");
-	Headers data = server.response->request->query_vars;
-	if(data) over(data,i) {
-		skip_null(data,i);
-		str2lua(Key(data,i));
-		str2lua(Value(data,i));
-		lua_settable(lins,LUA_GLOBALSINDEX);
-	}
 }
 
 void
@@ -418,8 +410,18 @@ int
 run_lua_script(File fc, Headers data)
 {
 	init_lua();
+	int i = 0;
+	str filename = file_path(client.request ? client.request->host : _("localhost"), _("/common.lua"));
+	if (luaL_dofile(lins,filename->data)) error("Failed to load common.lua");
+	data = client.response->request->query_vars;
+	if (data) over(data,i) {
+		skip_null(data,i);
+		str2lua(Key(data,i));
+		str2lua(Value(data,i));
+		lua_settable(lins,LUA_GLOBALSINDEX);
+	}
 	if (!setjmp(l_jump)) {
-		if (server.response) EvalLuaFile(fc);
+		if (client.response) EvalLuaFile(fc);
 		else if (luaL_loadbuffer(lins,fc->data, fc->st.st_size, fc->name.data) || lua_pcall(lins,0,LUA_MULTRET,0)) error("Failed to evaluate script %c",fc->name);
 	}
 	end_lua();
@@ -429,10 +431,10 @@ run_lua_script(File fc, Headers data)
 int
 lws_handler(File fc)
 {
-	cache_control(server.response->headers,"max-age=0, no-cache");
-	date_field(server.response->headers,Date(time(NULL))->data);
-	send_status(server.response->socket,200);
-	send_headers(server.response->socket,server.response->headers);
+	cache_control(client.response->headers,"max-age=0, no-cache");
+	date_field(client.response->headers,Date(time(NULL))->data);
+	send_status(client.response->socket,200);
+	send_headers(client.response->socket,client.response->headers);
 	run_lua_script(fc,NULL);
 	return 200;
 }

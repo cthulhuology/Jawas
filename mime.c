@@ -7,7 +7,7 @@
 #include "include.h"
 #include "defines.h"
 #include "log.h"
-#include "server.h"
+#include "client.h"
 #include "lws.h"
 #include "image.h"
 #include "script.h"
@@ -67,6 +67,13 @@ mimetype_handler(File fc)
 		return error_handler(404);
 	}
 	if (!fc->mime) fc->mime = lookup_mimetype(fc->name.data);
-	content_type(server.response->headers, fc->mime->type.data);
+	content_type(client.response->headers, fc->mime->type.data);
 	return fc->mime->handler(fc);
+}
+
+int
+parseable_file(File fc)
+{
+	if (!fc->mime) fc->mime = lookup_mimetype(fc->name.data);
+	return fc->mime->handler == lws_handler;
 }

@@ -11,7 +11,7 @@ $(PROGRAM) : $(OBJECTS) $(PROGRAM).c
 
 .PHONY: clean
 clean : 
-	rm -rf $(PROGRAM) $(OBJECTS) $(LIBARAY)
+	rm -rf $(PROGRAM) $(OBJECTS) $(LIBARAY) *.i *.s
 
 %.o : %.c 
 	gcc -c $< $(CFLAGS) $(INCLUDES)

@@ -11,71 +11,7 @@
 #include "files.h"
 #include "events.h"
 #include "server.h"
-
-str cwd = NULL;
-int file_index = 0;
-
-File files;
-
-File
-open_file(str filename)
-{
-	int fl = len(filename);
-	File fc = (File)system_reserve(sizeof(struct file_cache_struct) + fl + 1);
-	memcpy(&fc->name.contents[0],filename->data,fl);	// Allocate a str struct by hand!
-	fc->name.data = fc->name.contents;
-	fc->name.length = fl;
-	fc->name.data[fl] = '\0';
-	fc->fd = open(fc->name.data,O_RDONLY,0400);
-	if (fc->fd < 0 || fstat(fc->fd,&fc->st)) {
-		error("Failed to open file %s",filename);
-		return NULL;
-	}
-	if (!(fc->data = mmap(NULL,fc->st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fc->fd,0))) {
-		error("Failed to memory map file %s",filename);
-		close(fc->fd);
-		return NULL;
-	}
-	fc->parsed = NULL;
-	fc->mime = NULL;
-	return fc;
-}
-
-File
-reload(File fc) 
-{
-	munmap(fc->data,fc->st.st_size);
-	close(fc->fd);
-	fc->fd = open(fc->name.data,O_RDONLY,0400);
-	if (fc->fd < 0 || fstat(fc->fd,&fc->st)) {
-		error("Failed to open file %c",fc->name.data);
-		return NULL;
-	}
-	if (!(fc->data = mmap(NULL,fc->st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fc->fd,0))) {
-		error("Failed to memory map file %c",fc->name.data);
-		close(fc->fd);
-		return NULL;
-	}
-	return fc;
-}
-
-void
-close_files()
-{
-	for (int i = 0; i < server.file_index; ++i) {
-		munmap(server.files[i]->data,server.files[i]->st.st_size);
-		close(server.files[i]->fd);
-	}
-}
-
-File
-query_cache(str filename)
-{
-	for (int i = 0; i < server.file_index; ++i)
-		if (cmp(filename,&server.files[i]->name))
-			return server.files[i];
-	return NULL;
-}
+#include "mime.h"
 
 int
 mark_file(File fc, int i, int t, int o, int l)
@@ -111,31 +47,120 @@ parse_file(File fc)
 	return fc;
 }
 
+File
+open_file(str filename)
+{
+	int fl = len(filename);
+	File fc = (File)system_reserve(sizeof(struct file_cache_struct) + fl + 1);
+	memcpy(&fc->name.contents[0],filename->data,fl);	// Allocate a str struct by hand!
+	fc->name.data = fc->name.contents;
+	fc->name.length = fl;
+	fc->name.data[fl] = '\0';
+	fc->fd = open(fc->name.data,O_RDONLY,0400);
+	if (fc->fd < 0 || fstat(fc->fd,&fc->st)) {
+		error("Failed to open file %s",filename);
+		return NULL;
+	}
+	if (!(fc->data = mmap(NULL,fc->st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fc->fd,0))) {
+		error("Failed to memory map file %s",filename);
+		close(fc->fd);
+		return NULL;
+	}
+	add_file_monitor(fc->fd);
+	fc->parsed = NULL;
+	fc->mime = NULL;
+	if (parseable_file(fc)) parse_file(fc);
+	return fc;
+}
+
+File
+reload(int fd) 
+{
+	File fc = NULL;
+	for (int i = 0; i < server.file_index; ++i)
+		if (server.files[i]->fd == fd) 
+			fc = server.files[i];
+	if (! fc) return NULL;
+	munmap(fc->data,fc->st.st_size);
+	close(fc->fd);
+	fc->fd = open(fc->name.data,O_RDONLY,0400);
+	if (fc->fd < 0 || fstat(fc->fd,&fc->st)) {
+		error("Failed to open file %c",fc->name.data);
+		return NULL;
+	}
+	if (!(fc->data = mmap(NULL,fc->st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fc->fd,0))) {
+		error("Failed to memory map file %c",fc->name.data);
+		close(fc->fd);
+		return NULL;
+	}
+	return fc;
+}
+
+void
+close_files()
+{
+	for (int i = 0; i < server.file_index; ++i) {
+		munmap(server.files[i]->data,server.files[i]->st.st_size);
+		close(server.files[i]->fd);
+	}
+}
+
+File
+query_cache(str filename)
+{
+	for (int i = 0; i < server.file_index; ++i)
+		if (cmp(filename,&server.files[i]->name))
+			return server.files[i];
+	return NULL;
+}
+
 void
 set_cwd()
 {
 	char* tmp = getcwd(NULL,0);
-	cwd = ref(tmp,strlen(tmp));
+	server.cwd = ref(tmp,strlen(tmp));
 }
 
 str
 temp_file()
 {
-	return _("/tmp/%i%i",++file_index,time(NULL));
+	return _("/tmp/%i%i",server.file_index,time(NULL));
 }
 
 File
 load(str filename)
 {
 	if (!filename) return NULL;
-	File retval = query_cache(filename);
-	if (retval) return retval;
-	retval = open_file(filename);
-	if (!retval) {
-		error("Failed to open %s\n",filename);
-		return NULL;
+	return query_cache(filename);
+}
+
+void
+load_directory(str directory)
+{
+	DIR* d = opendir(directory->data);
+	if (!d ) {
+		error("Failed to open directory: %s",directory);
+		perror("opendir");
+		return;
 	}
-	add_file_monitor(retval->fd,retval);
-	return retval;
+	for (struct dirent* de = readdir(d); de; de = readdir(d)) {
+		if (de->d_namlen > 0 && de->d_name[0] == '.') continue;
+		str filename = _("%s/%s",directory,ref(de->d_name,de->d_namlen));
+		if (de->d_type & DT_DIR) {
+			debug("Directory file %s",filename);
+			load_directory(filename);
+		} else {
+			debug("Loading file %s",filename);
+			server.files[server.file_index++] = open_file(filename);
+		}
+	}
+	closedir(d);
+}
+
+void
+load_files()
+{
+	set_cwd();
+	load_directory(_("%s/localhost",server.cwd));
 }
 

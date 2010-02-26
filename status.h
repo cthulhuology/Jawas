@@ -7,8 +7,7 @@
 #ifndef __STATUS_H__
 #define __STATUS_H__
 
-#include "responses.h"
-#include "server.h"
+#include "sockets.h"
 
 struct status_struct {
 	int code;

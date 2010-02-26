@@ -11,5 +11,6 @@
 #include "files.h"
 
 int mimetype_handler(File fc);
+int parseable_file(File fc);
 
 #endif

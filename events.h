@@ -18,10 +18,6 @@ enum event_flags { NONE, ONESHOT, SEOF };
 
 struct event_struct {
 	Event next;
-	Socket socket;
-	Request request;
-	Response response;
-	File file;
 	reg fd;
 	enum event_types type;
 	enum event_flags flag;
@@ -33,11 +29,11 @@ Event poll_events();
 Event file_monitor(Event ec);
 
 void monitor_socket(reg f);
-void add_read_socket(reg f, Request r);
-void add_write_socket(reg f, Response r);
-void add_req_socket(reg f, Request r);
-void add_resp_socket(reg f, Response r);
-void add_file_monitor(reg f, File r);
+void add_read_socket(reg f);
+void add_write_socket(reg f);
+void add_req_socket(reg f);
+void add_resp_socket(reg f);
+void add_file_monitor(reg f);
 
 void dump_event(Event e);
 

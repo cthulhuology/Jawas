@@ -33,16 +33,15 @@ endif
 
 
 SOURCES = \
-amazon.c \
 auth.c \
 bsd.c \
+client.c \
+daemon.c \
 database.c \
 dates.c \
 events.c \
-facebook.c \
 files.c \
 forms.c \
-gzip.c \
 headers.c \
 hostnames.c \
 image.c \

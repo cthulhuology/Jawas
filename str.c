@@ -255,8 +255,9 @@ new_str(const char* fmt, va_list args)
 			}
 		else retval->data[ls++] = fmt[i];
 	}
+	retval->data[ls] = '\0';
 	retval->length = ls;
-	advance(ls);
+	advance(ls+1);
 	va_end(args);
 	return retval;	
 }

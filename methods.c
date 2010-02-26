@@ -11,7 +11,7 @@
 #include "status.h"
 #include "uri.h"
 #include "index.h"
-#include "server.h"
+#include "client.h"
 #include "methods.h"
 #include "mime.h"
 #include "forms.h"
@@ -39,11 +39,12 @@ get_method()
 {
 	File fc = NULL;
 	str filename;
-	if (! server.request || !server.request->host || !server.request->path) return error_handler(404);
-	notice("GET %s%s from %s",server.request->host,server.request->path,socket_peer(server.request->socket));
-	filename = deauth_path(server.request->host,server.request->path);
+	if (! client.request || !client.request->host || !client.request->path) return error_handler(404);
+	notice("GET %s%s from %s",client.request->host,client.request->path,socket_peer(client.request->socket));
+	filename = deauth_path(client.request->host,client.request->path);
+	debug("Found Path: %s",filename);
 	fc = is_directory(filename) ?
-		load(get_index(filename)) :
+		get_index(filename) :
 		load(filename);
 	return mimetype_handler(fc);
 }
@@ -51,13 +52,13 @@ get_method()
 int
 post_method()
 {
-	str enctype = find_header(server.request->headers,_("Content-Type"));
-	notice("POST %s%s %s from %s",server.request->host,server.request->path,enctype, socket_peer(server.request->socket));
-	server.request->query_vars = enctype && ncmp(enctype,_("multipart/form-data"),19) ?
-			parse_multipart_body(server.request->query_vars,enctype) :
+	str enctype = find_header(client.request->headers,_("Content-Type"));
+	notice("POST %s%s %s from %s",client.request->host,client.request->path,enctype, socket_peer(client.request->socket));
+	client.request->query_vars = enctype && ncmp(enctype,_("multipart/form-data"),19) ?
+			parse_multipart_body(client.request->query_vars,enctype) :
 		enctype && ncmp(enctype,_("text/json"),9) ?
-			parse_json(server.request->query_vars,server.request->contents,server.request->body):
-		parse_uri_encoded(server.request->query_vars,server.request->contents,server.request->body);
+			parse_json(client.request->query_vars,client.request->contents,client.request->body):
+		parse_uri_encoded(client.request->query_vars,client.request->contents,client.request->body);
 	return get_method();
 }
 

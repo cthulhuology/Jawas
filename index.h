@@ -6,9 +6,10 @@
 
 #ifndef __HAVE_INDEX_H__
 #define __HAVE_INDEX_H__
+#include "files.h"
 
 int is_directory(str filename);
-str get_index(str filename);
+File get_index(str filename);
 str deauth_path(str host, str filename);
 
 #endif

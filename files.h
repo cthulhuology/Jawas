@@ -35,20 +35,14 @@ struct file_cache_struct {
 	struct str_struct  name;
 };
 
-extern File files;
-extern str cwd;
-
-File load(str filename);
-File reload(File fc);
-
-File open_file(str filename);
-File query_cache(str filename);
-File parse_file(File fc);
+void load_files();
 void close_files();
 
-void set_cwd();
+File load(str filename);
+File reload(int fd);
+
 str temp_file();
 
-#define file_path(h,f) _("%s/%s%s",cwd,h,f)
+#define file_path(h,f) _("%s/%s%s",server.cwd,h,f)
 
 #endif

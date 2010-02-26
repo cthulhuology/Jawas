@@ -9,7 +9,7 @@
 #include "str.h"
 #include "log.h"
 #include "headers.h"
-#include "server.h"
+#include "client.h"
 #include "forms.h"
 
 str 
@@ -86,7 +86,7 @@ Headers
 parse_multipart_body(Headers headers, str enctype)
 {
 	str dstname;
-	int i, e, n, l = len(server.request->contents);
+	int i, e, n, l = len(client.request->contents);
 	str boundary = find_boundary(enctype);
 	debug("Boundary: %s", boundary);
 	if (!boundary) {
@@ -94,23 +94,23 @@ parse_multipart_body(Headers headers, str enctype)
 		return headers;
 	}
 	int bl = len(boundary);
-	for (i = search(server.request->contents,server.request->body,boundary); 
+	for (i = search(client.request->contents,client.request->body,boundary); 
 		i < l;
 		i = n + bl) {
-		n = search(server.request->contents,i+1,boundary);
-		debug("Content area [%s]",from(server.request->contents,i,n-i));
-		str srcname = parse_name(server.request->contents,i);
+		n = search(client.request->contents,i+1,boundary);
+		debug("Content area [%s]",from(client.request->contents,i,n-i));
+		str srcname = parse_name(client.request->contents,i);
 		if (! srcname) {
-			i = skip_content_headers(server.request->contents,i);
+			i = skip_content_headers(client.request->contents,i);
 			continue;
 		}
-		e = skip_content_headers(server.request->contents,i);
-		if (found_file(server.request->contents,i,e)) {
+		e = skip_content_headers(client.request->contents,i);
+		if (found_file(client.request->contents,i,e)) {
 			debug("%s is a file",srcname);
-			dstname = save_contents(server.request->contents,e,n-2);
+			dstname = save_contents(client.request->contents,e,n-2);
 		} else {
 			debug("%s is a form value",srcname);
-			dstname = from(server.request->contents,e,n-2-e);
+			dstname = from(client.request->contents,e,n-2-e);
 		}
 		debug("[%s] = [%s]",srcname,dstname);
 		headers = append_header(headers,srcname,dstname);

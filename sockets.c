@@ -11,6 +11,7 @@
 #include "sockets.h"
 #include "timers.h"
 #include "hostnames.h"
+#include "client.h"
 #include "server.h"
 #include "tls.h"
 
@@ -21,10 +22,8 @@ void
 signal_handler(int sig)
 {
 	error("Received signal %i\n",sig);
-	if (server.response->socket) {
-		server.response->socket->closed = 1;
-		close_socket(server.response->socket);
-	}
+	if (client.response->socket) 
+		client.response->socket->closed = 1;
 }
 
 void
@@ -160,16 +159,16 @@ connect_socket(str host, int port, int ssl)
 		timer();
 		connected = 1;
 		if (connect(sock,(struct sockaddr*)&Address,Address_len)) {
-			if (server.alarm) {
+			if (client.alarm) {
 				error("[JAWAS] socket conect timeout!");
-				server.alarm = 0;
+				client.alarm = 0;
 			}
 			perror("connect");
 			error("[JAWAS] failed to connect to %c:%i",host,port);
 			connected = 0;
 			continue;
 		}
-		server.alarm = 0;
+		client.alarm = 0;
 		timeout(0,0);
 		timer();
 		break;

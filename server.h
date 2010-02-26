@@ -1,5 +1,5 @@
 // Server.h
-// Copyright (C) 2007 David J. Goehrig
+// Copyright (C) 2007,2010 David J. Goehrig
 // All Rights Reserved
 //
 
@@ -19,25 +19,19 @@ struct server_struct {
 	reg kq;
 	reg http_sock;
 	reg tls_sock;
-	int alarm;
 	time_t time;
 	TLSInfo tls;
 	TLSInfo tls_client;
-	int done;
-	int numevents;
 	Event event;
-	Socket socket;
-	Request request;
-	Response response;
-	File file;
+	str cwd;
 	File files[MAX_FILES];
 	int file_index;
+	int done;
 };
 
 extern Server server;
 
 void serve(int port, int tls_port);
-void run();
 void stop();
 
 #endif

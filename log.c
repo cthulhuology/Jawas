@@ -7,8 +7,6 @@
 #include "include.h"
 #include "defines.h"
 #include "memory.h"
-#include "server.h"
-#include "index.h"
 #include "log.h"
 #include "dates.h"
 

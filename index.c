@@ -11,15 +11,16 @@
 #include "log.h"
 #include "index.h"
 #include "headers.h"
+#include "client.h"
 #include "server.h"
 
 static char* indexes[] = {
-	"/index.html",
-	"/index.shtml",
-	"/index.lws",
-	"/index.svg",
-	"/index.jws",
-	"/index.xml",
+	"index.html",
+	"index.shtml",
+	"index.lws",
+	"index.svg",
+	"index.jws",
+	"index.xml",
 	NULL
 };
 
@@ -31,6 +32,7 @@ is_directory(str filename)
 		error("Failed to stat file %s",filename);
 		return 0;
 	}
+	debug("Is %s a Directory? %c",filename,st.st_mode & S_IFDIR ? "yes": "no");
 	return st.st_mode & S_IFDIR;
 }
 
@@ -54,20 +56,22 @@ deauth_path(str host, str filename)
 	for (int i = 1; i < l; ++i) {
 		if (at(filename,i) == '/' && is_directory(file_path(host,ref(filename->data+i,l-i)))) {
 			debug("Found auth token [%s]",ref(filename->data+1,i-1));
-			append_header(server.request->headers,_("Token"),ref(filename->data+1,i-1));
+			append_header(client.request->headers,_("Token"),ref(filename->data+1,i-1));
 			return file_path(host,ref(filename->data+i,l-i));
 		}
 	}
 	return file_path(host,filename);
 }
 
-str
+File
 get_index(str filename)
 {
-	struct stat st;
+	File retval = NULL;
 	for (int i = 0; indexes[i]; ++i) {
 		str index_path = _("%s%c",filename,indexes[i]);
-		if (!stat(index_path->data,&st)) return index_path;
+		if ((retval = load(index_path))) return retval;
+		index_path = _("%s/%c",filename,indexes[i]);
+		if ((retval = load(index_path))) return retval;
 	}
 	return NULL;
 }

@@ -14,6 +14,7 @@
 #include "sockets.h"
 #include "uri.h"
 #include "transfer.h"
+#include "client.h"
 
 Response responses;
 
@@ -37,52 +38,51 @@ new_response(Request req)
 void
 dechunk_response()
 {
-	if (is_chunked(server.response->headers)) {
-		str hed = ref(server.response->contents->data,server.response->body);
-		str con = dechunk(server.response->contents);
-		server.response->contents = append(hed,con);
+	if (is_chunked(client.response->headers)) {
+		str hed = ref(client.response->contents->data,client.response->body);
+		str con = dechunk(client.response->contents);
+		client.response->contents = append(hed,con);
 	}
 }
 
 int
 process_response()
 {
-	server.response->contents = read_socket(server.response->socket);
-	if (! server.response->contents) {
-		error("No response contents on Response <%p>\n",server.response);
+	client.response->contents = read_socket(client.response->socket);
+	if (! client.response->contents) {
+		error("No response contents on Response <%p>\n",client.response);
 		return -1;
 	}
-	if (! server.response->body) {
-		server.response->headers = parse_headers(server.response->contents,&server.response->body);
-		if (! server.response->headers) {
-			error("No response headers on Response <%p>\n",server.response);
+	if (! client.response->body) {
+		client.response->headers = parse_headers(client.response->contents,&client.response->body);
+		if (! client.response->headers) {
+			error("No response headers on Response <%p>\n",client.response);
 			return -1;
 		}
 	}
-	server.response->done = server.response->body &&
-		(len(server.response->contents) - server.response->body) >= inbound_content_length(server.response->contents,server.response->headers);
-	if (server.response->done) dechunk_response();
+	client.response->done = client.response->body &&
+		(len(client.response->contents) - client.response->body) >= inbound_content_length(client.response->contents,client.response->headers);
+	if (client.response->done) dechunk_response();
 	return 0;
 }
 
 int
 begin_response()
 {
-	if (!server.response->headers) {
+	if (!client.response->headers) {
 		error("Missing headers, adding new ones");
-		server.response->headers = new_headers();
+		client.response->headers = new_headers();
 	}
-	connection(server.response->headers,"close");
-	transfer_encoding(server.response->headers,"chunked");
-	server_name(server.response->headers,SERVER_VERSION);
-
-	return server.response->contents || server.response->raw_contents;
+	connection(client.response->headers,"close");
+	transfer_encoding(client.response->headers,"chunked");
+	server_name(client.response->headers,SERVER_VERSION);
+	return client.response->contents || client.response->raw_contents;
 }
 
 int
 end_response()
 {
-	write_chunk(server.response->socket,NULL,0);
+	write_chunk(client.response->socket,NULL,0);
 	return 0;
 }
 

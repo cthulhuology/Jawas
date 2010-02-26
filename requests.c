@@ -12,7 +12,7 @@
 #include "events.h"
 #include "requests.h"
 #include "uri.h"
-#include "server.h"
+#include "client.h"
 #include "transfer.h"
 
 Request requests;
@@ -79,35 +79,35 @@ open_request(Socket sc)
 void
 dechunk_request()
 {
-	if (!is_chunked(server.request->headers)) return;
-	str hed = from(server.request->contents,0,server.request->body);
-	str con = dechunk(server.request->contents);
-	server.request->contents = append(hed,con);
+	if (!is_chunked(client.request->headers)) return;
+	str hed = from(client.request->contents,0,client.request->body);
+	str con = dechunk(client.request->contents);
+	client.request->contents = append(hed,con);
 }
 
 int 
 process_request()
 {
-	server.request->contents = read_socket(server.request->socket);
-	if (!server.request->contents) {
-		error("No request contents on request %i\n",server.request);
-		++server.request->retries;
-		debug("retries %i",server.request->retries);
+	client.request->contents = read_socket(client.request->socket);
+	if (!client.request->contents) {
+		error("No request contents on request %i\n",client.request);
+		++client.request->retries;
+		debug("retries %i",client.request->retries);
 		return -1;
 	}
-	if (!server.request->body) {
-		server.request->headers = parse_headers(server.request->contents,&server.request->body);
-		debug("Headers:\n%s",print_headers(NULL,server.request->headers));
-		if (!server.request->headers) {
-			error("No request headers on request %i\n",server.request);
+	if (!client.request->body) {
+		client.request->headers = parse_headers(client.request->contents,&client.request->body);
+		debug("Headers:\n%s",print_headers(NULL,client.request->headers));
+		if (!client.request->headers) {
+			error("No request headers on request %i\n",client.request);
 			return -1;
 		}
-		request_headers(server.request, _("peer"),socket_peer(server.request->socket));
+		request_headers(client.request, _("peer"),socket_peer(client.request->socket));
 	}
-	if (server.request->body) {
-		server.request->done = (len(server.request->contents) - server.request->body) >= inbound_content_length(server.request->contents,server.request->headers);
+	if (client.request->body) {
+		client.request->done = (len(client.request->contents) - client.request->body) >= inbound_content_length(client.request->contents,client.request->headers);
 	}
-	if (server.request->done) dechunk_request();
+	if (client.request->done) dechunk_request();
 	return 0;
 }
 
@@ -136,12 +136,12 @@ str
 parse_method()
 {
 	int i,l;
-	str tmp = server.request->contents;
+	str tmp = client.request->contents;
 	if (!tmp) return NULL;
 	for (i=0;isspace(at(tmp,i));++i);	// skip errorenous spaces
 	for (l = 1; !isspace(at(tmp,i+l)); ++l);
-	server.request->method = from(tmp,i,l);
-	return server.request->method;
+	client.request->method = from(tmp,i,l);
+	return client.request->method;
 }
 
 str
@@ -149,19 +149,19 @@ parse_path()
 {
 	int i,l,end;
 	str qs;
-	str tmp = server.request->contents;
+	str tmp = client.request->contents;
 	if (! tmp) return NULL;
 	for (i = 0;isspace(at(tmp,i));++i);	// skip errorenous spaces
 	for (i = 0; at(tmp,i) && !isspace(at(tmp,i)); ++i);
 	for (;isspace(at(tmp,i));++i);
 	for (end = i; at(tmp,end) && !isspace(at(tmp,end)) && at(tmp,end) != '?'; ++end);
-	server.request->query_vars = NULL;
+	client.request->query_vars = NULL;
 	if (at(tmp,end) == '?') {
 		for (l = 1; !isspace(at(tmp,end + l)); ++l);
 		qs = from(tmp,end,l);
-		server.request->query_vars = parse_uri_encoded(NULL,qs,1);
+		client.request->query_vars = parse_uri_encoded(NULL,qs,1);
 	}
-	return server.request->path = from(tmp,i,end - i);
+	return client.request->path = from(tmp,i,end - i);
 }
 
 RequestInfo
@@ -202,7 +202,7 @@ send_request(Request req)
 			error("Failed to connect to %s:%i\n",req->host,req->port);
 			return 0;
 		}
-		add_req_socket(req->socket->fd,req);
+		add_req_socket(req->socket->fd);
 		return 0;
 	}
 	if (req->length < 0) {

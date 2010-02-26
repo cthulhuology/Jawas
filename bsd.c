@@ -23,12 +23,9 @@ struct kevent el[MAX_EVENTS];
 struct timespec ts = { 0, 100000 };
 
 Event
-poll_events()
+poll_events(reg q, Event e)
 {
 	int n;
-	Event retval = NULL;
-	Event e = server.event;
-	server.event = NULL;
 	memset(cl,0,sizeof(cl));
 	memset(el,0,sizeof(el));
 	for (n = 0; e; ++n) {
@@ -44,16 +41,10 @@ poll_events()
 		e = e->next;
 	}
 #ifdef BITS64
-	n = kevent64(server.kq,cl,n,el,server.numevents,0, &ts);
+	n = kevent64(q,cl,n,el,1,0, &ts);
 #else
-	n = kevent(server.kq,cl,n,el,server.numevents,&ts);
+	n = kevent(q,cl,n,el,1,&ts);
 #endif
-	if (n < 0) goto done;
-	while (n--)  {
-		e = (Event)el[n].udata;
-		e->next = retval;
-		retval = e;
-	}
-done:
-	return retval;
+	if (n < 0) return NULL;
+	return (Event)el[--n].udata;
 }
