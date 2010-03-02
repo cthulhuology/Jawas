@@ -15,13 +15,13 @@ typedef struct client_struct Client;
 struct client_struct {
 	reg kq;
 	reg alarm;
-	Event event;
+	enum event_types event;
 	Socket socket;
 	Request request;
 	Response response;
 };
 extern Client client;
 
-void handle(Socket s);
+void handle(reg fd);
 
 #endif

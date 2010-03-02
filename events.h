@@ -13,20 +13,13 @@
 #include "requests.h"
 #include "responses.h"
 
-enum event_types { READ, WRITE, RESP, REQ, NODE };
-enum event_flags { NONE, ONESHOT, SEOF };
+enum event_types { READ, WRITE, RESP, REQ, NODE, PROC };
+enum event_flags { NONE, ONESHOT, SEOF, EXIT };
 
-struct event_struct {
-	Event next;
-	reg fd;
-	enum event_types type;
-	enum event_flags flag;
-};
+typedef void (*function)(reg fd, enum event_types t);
 
-extern Event events;
-
-Event poll_events();
-Event file_monitor(Event ec);
+reg add_event(reg q, reg fd, enum event_types t, enum event_flags f);
+void poll_events(reg q, function f);
 
 void monitor_socket(reg f);
 void add_read_socket(reg f);
@@ -34,7 +27,6 @@ void add_write_socket(reg f);
 void add_req_socket(reg f);
 void add_resp_socket(reg f);
 void add_file_monitor(reg f);
-
-void dump_event(Event e);
+void add_pid_monitor(pid_t p);
 
 #endif

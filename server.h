@@ -22,7 +22,6 @@ struct server_struct {
 	time_t time;
 	TLSInfo tls;
 	TLSInfo tls_client;
-	Event event;
 	str cwd;
 	File files[MAX_FILES];
 	int file_index;

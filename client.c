@@ -10,21 +10,21 @@
 #include "client.h"
 #include "methods.h"
 #include "status.h"
+#include "server.h"
 
 Client client;
 
 void
 disconnect()
 {
-	debug("Disconnect %p, %i",client.socket,client.socket->fd);
 	close_socket(client.socket);
+	close(client.kq);
 	exit(0);
 }
 
 void
 retry_request()
 {
-	debug("Retry Request %p, %i",client.request,client.request->retries);
 	if (client.request->retries >= MAX_RETRIES)  {
 		error("Failed to read request\n");
 		disconnect();
@@ -36,7 +36,6 @@ retry_request()
 void
 read_request()
 {
-	debug("Read Request %p",client.request);
 	if (process_request()) {
 		retry_request();
 		return;
@@ -46,7 +45,6 @@ read_request()
 		add_read_socket(client.socket->fd);
 		return;
 	}
-	debug("Read Request %p, %i done",client.request,client.socket->fd);
 	client.socket->buf = NULL;
 	client.response = new_response(client.request);
 	parse_path(client.request);
@@ -58,16 +56,12 @@ read_request()
 void
 send_response()
 {
-	debug("Send response to %d",client.socket->fd);
 	str host = parse_host(client.request,find_header(client.request->headers,_("Host")));
-	debug("Connect to host %s",host);
 	str method = parse_method(client.request);
-	debug("Request method %s",method);
 	begin_response();
 	client.response->status = host && method ?
 		dispatch_method(method) :
 		error_handler(400);
-	debug("Sent response with status %d", client.response->status);
 	end_response();
 	disconnect();
 }
@@ -107,30 +101,25 @@ write_request()
 }
 
 void
-run() 
+client_poll(reg fd, enum event_types t) 
 {
-	client.event = poll_events(client.kq,client.event);
-	switch (client.event->type) {
+	switch (client.event) {
 	case READ:
-		debug("Event READ");
 		closed_socket(client.socket,"Read failed") ?
 			disconnect():
 			read_request();
 		break;
 	case WRITE:
-		debug("Event WRITE");
 		closed_socket(client.socket,"Write failed") ?
 			disconnect() :
 			send_response();
 		break;
 	case REQ:
-		debug("Event REQ");
 		closed_socket(client.socket,"Request failed") ?
 			disconnect() :
 			write_request();
 			break;	
 	case RESP:
-		debug("Event RESP");
 		closed_socket(client.socket,"Response failed") ?
 			disconnect() :
 			read_response();
@@ -141,8 +130,15 @@ run()
 }
 
 void
-handle(Socket s)
+run() 
 {
+	poll_events(client.kq, client_poll);
+}
+
+void
+handle(reg fd)
+{
+	Socket s = accept_socket(fd,(server.http_sock == fd ? NULL : server.tls));
 	client.kq = kqueue();
 	client.socket = s;
 	client.request = open_request(client.socket);

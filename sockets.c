@@ -131,12 +131,13 @@ accept_socket(reg fd, TLSInfo tls)
 		error("[JAWAS] failed to accept socket");
 		return NULL;
 	}
-	debug("Conected to socket %d",sock);
+	debug("Connected to socket %d",sock);
 	nonblock(sock);
 	keepalive(sock);
 	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
 	Socket retval = create_socket(sock,tls);
 	while (tls && 0 < accept_tls(retval->tls));
+	debug("Accept returning %p",retval);
 	return retval;
 }
 

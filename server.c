@@ -23,21 +23,36 @@ external_port(reg fd)
 void
 incoming(reg fd)
 {
-	debug("Incoming %i",fd);
-	if (!fd) return;
-	Socket s = accept_socket(fd,(server.http_sock == fd ? NULL : server.tls));
-	if (! fork()) handle(s);
+	pid_t pid = 0;
+	if (! (pid = fork())) handle(fd);
+	if (pid < 0) {
+		perror("fork");
+		exit(1);
+	}
+	add_pid_monitor(pid);
+}
+
+void
+wait_proc(reg pid)
+{
+	int status;
+	if (0 > waitpid(pid,&status,WNOHANG)) {
+		perror("waitpid");
+		exit(1);
+	}
+}
+
+void
+server_poll(reg fd, enum event_types t)
+{
+	external_port(fd) ? incoming(fd) :
+		t == PROC ? wait_proc(fd): reload(fd);
 }
 
 void
 watch()
 {
-	Event e = poll_events(server.kq,server.event);
-	for (server.event = NULL; e; e = e->next) {
-		if (!e->fd) continue;
-		if (external_port(e->fd)) incoming(e->fd);
-		if (e->type == NODE) reload(e->fd);
-	}
+	poll_events(server.kq,server_poll);
 }
 
 void
@@ -53,10 +68,9 @@ stop()
 void
 serve(int port, int tls_port)
 {
-	init_regions();
+	new_region();
 	server.cwd = NULL;
 	server.done = 0;
-	server.event = NULL;
 	server.kq = kqueue();
 	server.http_sock = open_socket(port);
 	server.tls_sock = open_socket(tls_port);

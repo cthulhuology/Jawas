@@ -28,7 +28,7 @@ parse_file(File fc)
 	char* script = fc->data;
 	int o = 0, l = 0, i = 0, e = 0;
 	if (fc->parsed) return fc;
-	fc->parsed = (Parsed)system_reserve(getpagesize());
+	fc->parsed = (Parsed)reserve(getpagesize());
 	memset(fc->parsed,0,getpagesize());
 	for (o = 0; script[o] && o < fc->st.st_size; ++o) {
 		if (!strncmp(&script[o],"<?",2) && isspace(script[o+2])) {
@@ -51,7 +51,7 @@ File
 open_file(str filename)
 {
 	int fl = len(filename);
-	File fc = (File)system_reserve(sizeof(struct file_cache_struct) + fl + 1);
+	File fc = (File)reserve(sizeof(struct file_cache_struct) + fl + 1);
 	memcpy(&fc->name.contents[0],filename->data,fl);	// Allocate a str struct by hand!
 	fc->name.data = fc->name.contents;
 	fc->name.length = fl;
