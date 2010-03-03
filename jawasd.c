@@ -15,6 +15,19 @@ usage(char* name)
 	exit(1);
 }
 
+void
+restart()
+{
+	char buffer[16];
+	memset(buffer,0,16);
+	int fd = open("jawas.pid",O_RDONLY);
+	read(fd,buffer,16);
+	pid_t pid = atoi(buffer);
+	kill(pid,SIGHUP);	
+	close(fd);
+	exit(0);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -23,6 +36,7 @@ main(int argc, char** argv)
 	char* tls_port = (argc > (2 + detach) ? argv[2 + detach] : TLS_SERVER_PORT);
 
 	if (argc > 3) usage(argv[0]);
+	if (argc > 1 && !strcmp(argv[1],"-r")) restart();
 
 	demon(detach);	
 	serve(atoi(port),atoi(tls_port));

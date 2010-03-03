@@ -9,11 +9,15 @@
 #include "events.h"
 #include "memory.h"
 
-Region memory;
+Region memory = NULL;
 
 void
 new_region()
 {
+	if (memory) {
+		munmap(memory,memory->size);
+		memory = NULL;
+	}
 	memory = (Region)mmap(NULL,getpagesize()*CACHE_PAGES,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANON,-1,0);
 	memory->size = getpagesize() * CACHE_PAGES;
 	memory->allocated = memory->size - sizeof(struct region_struct);

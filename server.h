@@ -26,6 +26,7 @@ struct server_struct {
 	File files[MAX_FILES];
 	int file_index;
 	int done;
+	int restart;
 };
 
 extern Server server;

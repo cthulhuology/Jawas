@@ -27,9 +27,12 @@ restart:
 	void kill_child(int sig) {
 		murder = 1;
 	}
+	void restart_child(int sig) {
+		kill(child,SIGHUP);
+	}
 	signal(SIGQUIT,kill_all);
 	signal(SIGTERM,kill_all);
-	signal(SIGHUP,kill_child);
+	signal(SIGHUP,restart_child);
 	while (!waitpid(child,&child_status,WNOHANG)) {
 		if (murder) kill(child,SIGTERM);
 		sleep(1);

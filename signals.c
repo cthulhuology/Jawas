@@ -11,6 +11,13 @@
 #include "server.h"
 
 void
+restart_signal_handler()
+{
+	server.done = 1;
+	server.restart = 1;
+}
+
+void
 gen_signal_handler()
 {
 	server.done = 1;
@@ -25,7 +32,7 @@ alrm_signal_handler()
 void
 general_signal_handlers()
 {
-	signal(SIGHUP,gen_signal_handler);
+	signal(SIGHUP,restart_signal_handler);
 	signal(SIGINT,gen_signal_handler);
 	signal(SIGTERM,gen_signal_handler);
 	signal(SIGALRM,alrm_signal_handler);

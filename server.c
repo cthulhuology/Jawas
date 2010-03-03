@@ -67,22 +67,25 @@ stop()
 void
 serve(int port, int tls_port)
 {
-	new_region();
-	server.cwd = NULL;
-	server.done = 0;
-	server.kq = kqueue();
 	server.http_sock = open_socket(port);
 	server.tls_sock = open_socket(tls_port);
-	server.tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
-	server.tls_client = client_tls("certs");
+	server.kq = kqueue();
 	monitor_socket(server.http_sock);
 	monitor_socket(server.tls_sock);
 	general_signal_handlers();
 	socket_signal_handlers();
+restart:
+	new_region();
+	server.cwd = NULL;
+	server.done = 0;
+	server.restart = 0;
+	server.tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
+	server.tls_client = client_tls("certs");
 	init_strings();
 	load_files();
 	server.time = time(NULL);
 	while(!server.done) watch();
+	if (server.restart) goto restart;	
 	exit(0);
 }
 
