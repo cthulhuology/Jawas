@@ -147,10 +147,8 @@ load_directory(str directory)
 		if (de->d_namlen > 0 && de->d_name[0] == '.') continue;
 		str filename = _("%s/%s",directory,ref(de->d_name,de->d_namlen));
 		if (de->d_type & DT_DIR) {
-			debug("Directory file %s",filename);
 			load_directory(filename);
 		} else {
-			debug("Loading file %s",filename);
 			server.files[server.file_index++] = open_file(filename);
 		}
 	}

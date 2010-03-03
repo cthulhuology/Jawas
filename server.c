@@ -61,7 +61,6 @@ stop()
 	close(server.http_sock);
 	close(server.tls_sock);
 	close(server.kq);
-	close_sockets();
 	close_files();
 }
 

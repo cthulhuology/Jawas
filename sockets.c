@@ -21,15 +21,12 @@
 void
 signal_handler(int sig)
 {
-	error("Received signal %i\n",sig);
-	if (client.response->socket) 
-		client.response->socket->closed = 1;
+	if (client.response->socket) client.response->socket->closed = 1;
 }
 
 void
 socket_signal_handlers()
 {
-	debug("Setting socket signal handlers");
 	signal(SIGPIPE,signal_handler);
 }
 
@@ -131,13 +128,11 @@ accept_socket(reg fd, TLSInfo tls)
 		error("[JAWAS] failed to accept socket");
 		return NULL;
 	}
-	debug("Connected to socket %d",sock);
 	nonblock(sock);
 	keepalive(sock);
 	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
 	Socket retval = create_socket(sock,tls);
 	while (tls && 0 < accept_tls(retval->tls));
-	debug("Accept returning %p",retval);
 	return retval;
 }
 
@@ -175,7 +170,6 @@ connect_socket(str host, int port, int ssl)
 		break;
 	}
 	if (!connected) return NULL;
-//	nonblock(sock);
 	keepalive(sock);
 	socket_timeout(sock,SOCKET_CONNECT_TIMEOUT);
 	retval = create_socket(sock,ssl ? server.tls_client :NULL);
@@ -192,7 +186,6 @@ connect_socket(str host, int port, int ssl)
 void
 close_socket(Socket sc)
 {
-	debug("Closing %p",sc);
 	if (!sc) return;
 	if (sc->tls) close_tls(sc->tls);
 	close(sc->fd);
@@ -269,9 +262,7 @@ int
 send_contents(Socket sc, str buf, int chunked)
 {
 	if (!sc || !buf) return 0;
-	return chunked ? 
-		write_chunked_socket(sc,buf) : 
-		write_socket(sc,buf);
+	return chunked ? write_chunked_socket(sc,buf) : write_socket(sc,buf);
 }
 
 int
@@ -351,10 +342,4 @@ socket_recv(Socket sc)
 	str retval = blank(msg_size);
 	retval->length = recvfrom(sc->fd, retval->data, retval->length, 0, (struct sockaddr *)&Address, (socklen_t *)&Address_len);
 	return retval;
-}
-
-void
-close_sockets() 
-{
-
 }

@@ -39,8 +39,7 @@ find_header(Headers headers, str key)
 	if (! headers || ! key) return NULL;
 	for (i = 0; i < headers->nslots && i < MAX_HEADERS; ++i ) {
 		if (! headers->slots[i].key) continue;
-		if (cmp(headers->slots[i].key,key)) 
-			return headers->slots[i].value;
+		if (cmp(headers->slots[i].key,key)) return headers->slots[i].value;
 	}
 	return NULL;
 }
@@ -48,8 +47,7 @@ find_header(Headers headers, str key)
 int
 free_header_slot(Headers headers)
 {
-	if (headers->nslots < MAX_HEADERS) 
-		return headers->nslots++;
+	if (headers->nslots < MAX_HEADERS) return headers->nslots++;
 	error("MAX HEADERS exceeded");
 	halt;
 	return 0; // never reach here
@@ -59,8 +57,7 @@ Headers
 append_header(Headers headers, str key, str value)
 {
 	int i;
-	if (!headers)
-		headers = new_headers();
+	if (!headers) headers = new_headers();
 	i = free_header_slot(headers);
 	if (i > MAX_HEADERS) return NULL;
 	headers->slots[i].key = key;
@@ -114,8 +111,7 @@ print_headers(str dst, Headers src)
 	str retval = dst;
 	over(src,i) {
 		skip_null(src,i);
-		retval = retval ? 
-			_("%s%s: %s\r\n",retval, Key(src,i),Value(src,i)):
+		retval = retval ? _("%s%s: %s\r\n",retval, Key(src,i),Value(src,i)):
 			_("%s: %s\r\n",Key(src,i),Value(src,i));
 	}
 	return retval;

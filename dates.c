@@ -28,8 +28,7 @@ str
 MicroTime()
 {
 	struct timeval tv;
-	if (gettimeofday(&tv,NULL))
-		return Expires();
+	if (gettimeofday(&tv,NULL)) return Expires();
 	return _("%i", (tv.tv_sec << 20) + tv.tv_usec);
 }
 

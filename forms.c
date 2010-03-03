@@ -20,7 +20,6 @@ find_boundary(str enc)
 	int el = len(enc);
 	for (i = 19; i < el; ++i) {
 		t = from(enc, i, el - i);
-		debug("TMP %s",t);
 		if (ncmp(_("boundary="),t,9)) {
 			t = from(enc, i + 9, el - (i+9));
 			debug("Boundary is %s",t);
@@ -36,18 +35,13 @@ parse_name(str src, int pos)
 	str retval = NULL;
 	int bl = len(src);
 	int off = 6 + search(src,pos,_("name=\""));
-	debug("name offset %i, %i",off,bl);
 	if (off >= bl) return NULL;
-	debug("Working offset %i",off);
 	int end = find(src,off+1,"\"",1);
-	debug("End working offset %i",end);
 	if (end - off > 4000) {
 		error("Filename exceeds legit size");
 		return NULL;	
 	}
-	debug("off %i len %i",off,end-off);
 	retval =  from(src,off,end-off);
-	debug("Found file name: %s",retval);
 	return retval;
 }
 
@@ -69,7 +63,6 @@ str
 save_contents(str src, int pos, int end)
 {
 	str filename = temp_file();
-	debug("Save contents filename %s",filename);
 	char* fname = filename->data;
 	int fd = open(fname,O_WRONLY|O_CREAT,0644);
 	if (fd < 0 ) {
@@ -88,7 +81,6 @@ parse_multipart_body(Headers headers, str enctype)
 	str dstname;
 	int i, e, n, l = len(client.request->contents);
 	str boundary = find_boundary(enctype);
-	debug("Boundary: %s", boundary);
 	if (!boundary) {
 		error("multipart/form-data without boundary");
 		return headers;
@@ -98,21 +90,15 @@ parse_multipart_body(Headers headers, str enctype)
 		i < l;
 		i = n + bl) {
 		n = search(client.request->contents,i+1,boundary);
-		debug("Content area [%s]",from(client.request->contents,i,n-i));
 		str srcname = parse_name(client.request->contents,i);
 		if (! srcname) {
 			i = skip_content_headers(client.request->contents,i);
 			continue;
 		}
 		e = skip_content_headers(client.request->contents,i);
-		if (found_file(client.request->contents,i,e)) {
-			debug("%s is a file",srcname);
-			dstname = save_contents(client.request->contents,e,n-2);
-		} else {
-			debug("%s is a form value",srcname);
-			dstname = from(client.request->contents,e,n-2-e);
-		}
-		debug("[%s] = [%s]",srcname,dstname);
+		dstname = (found_file(client.request->contents,i,e)) ?
+			save_contents(client.request->contents,e,n-2):
+			from(client.request->contents,e,n-2-e);
 		headers = append_header(headers,srcname,dstname);
 	}
 	return headers;

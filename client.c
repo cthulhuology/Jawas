@@ -11,6 +11,7 @@
 #include "methods.h"
 #include "status.h"
 #include "server.h"
+#include "timers.h"
 
 Client client;
 
@@ -59,9 +60,7 @@ send_response()
 	str host = parse_host(client.request,find_header(client.request->headers,_("Host")));
 	str method = parse_method(client.request);
 	begin_response();
-	client.response->status = host && method ?
-		dispatch_method(method) :
-		error_handler(400);
+	client.response->status = host && method ? dispatch_method(method) : error_handler(400);
 	end_response();
 	disconnect();
 }
@@ -105,24 +104,16 @@ client_poll(reg fd, enum event_types t)
 {
 	switch (client.event) {
 	case READ:
-		closed_socket(client.socket,"Read failed") ?
-			disconnect():
-			read_request();
+		closed_socket(client.socket,"Read failed") ? disconnect() : read_request();
 		break;
 	case WRITE:
-		closed_socket(client.socket,"Write failed") ?
-			disconnect() :
-			send_response();
+		closed_socket(client.socket,"Write failed") ? disconnect() : send_response();
 		break;
 	case REQ:
-		closed_socket(client.socket,"Request failed") ?
-			disconnect() :
-			write_request();
-			break;	
+		closed_socket(client.socket,"Request failed") ? disconnect() : write_request();
+		break;
 	case RESP:
-		closed_socket(client.socket,"Response failed") ?
-			disconnect() :
-			read_response();
+		closed_socket(client.socket,"Response failed") ? disconnect() : read_response();
 		break;	
 	default:
 		debug("UNKNOWN EVENT");
@@ -143,7 +134,8 @@ handle(reg fd)
 	client.socket = s;
 	client.request = open_request(client.socket);
 	add_read_socket(client.socket->fd);
-	while (!client.socket->closed) run();
+	timeout(IDLE_TIMEOUT,0);
+	timer();
+	while (!client.socket->closed && !client.alarm) run();
 	exit(0);
 }
-

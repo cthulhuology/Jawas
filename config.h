@@ -21,6 +21,7 @@
 #define MAX_EVENTS 1024
 #define SYSTEM_REGION_SIZE 10000000
 #define MAX_FILES 1024
+#define IDLE_TIMEOUT 5
 #else 
 #define halt exit(1)
 #define LOG_LEVEL  4
@@ -37,6 +38,7 @@
 #define MAX_EVENTS 1024
 #define SYSTEM_REGION_SIZE 10000000
 #define MAX_FILES 1024
+#define IDLE_TIMEOUT 5
 #endif
 
 

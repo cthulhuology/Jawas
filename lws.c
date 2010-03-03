@@ -57,7 +57,6 @@ lua2str(int index)
 void
 str2lua(str s)
 {
-//	if (s) debug("[LUA] to lua [%s]",s);
 	s ? lua_pushlstring(lins,s->data,len(s)) : lua_pushnil(lins);
 }
 
@@ -88,7 +87,6 @@ static int PrintLua(lua_State* l)
 	int n = lua_gettop(l);
 	for (int i = 1; i <= n; ++i) {
 		str out =  lua2str(i);
-//		debug("Lua printing [%s]",out);
 		write_chunked_socket(client.request->socket,out);
 	}
 	lua_pop(l,n);
@@ -98,8 +96,7 @@ static int PrintLua(lua_State* l)
 static int DebugLua(lua_State* l)
 {
 	int n = lua_gettop(l);
-	for (int i = 1; i <= n; ++i)
-		debug("%s",lua2str(i));
+	for (int i = 1; i <= n; ++i) debug("%s",lua2str(i));
 	lua_pop(l,n);
 	return 0;
 }
@@ -271,7 +268,6 @@ static int RandomLua(lua_State* l)
 	str data = blank(12);
 	read(luarandfd,data->data,12);
 	str o = hex(data);
-//	debug("ranom number is [%s] length is %i",o,o->length);
 	str2lua(o);
 	return 1;
 }
