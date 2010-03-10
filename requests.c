@@ -165,13 +165,15 @@ parse_path()
 }
 
 RequestInfo
-start_request(RequestInfo ri, Request req) {
+start_request(RequestInfo ri, Request req) 
+{
 	start_usage(req->usage);
 	return ri;
 }
 
 RequestInfo
-end_request(RequestInfo ri, Request req) {
+end_request(RequestInfo ri, Request req) 
+{
 	RequestInfo tmp;
 	stop_usage(req->usage);
 	debug("Request %s:%i%s",req->host,req->port,req->path);

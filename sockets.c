@@ -82,7 +82,8 @@ bind_socket(reg fd, IPAddress addr, int port)
 }
 
 int
-listen_socket(reg fd) {
+listen_socket(reg fd) 
+{
 	if (listen(fd,128)) { // See man page on listen
 		close(fd);
 		return 0;

@@ -71,4 +71,5 @@ usage.c
 include rules.mk
 include dist.mk
 
-
+graph:
+	perl dep_graph.pl > graph.dot && dot -Gsize=1000,800  -Tsvg graph.dot > graph.svg

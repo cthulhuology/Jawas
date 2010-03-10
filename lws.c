@@ -76,13 +76,15 @@ EvalLuaFile(File fc)
 	}
 }
 
-static int ExitLua(lua_State* L)
+static int 
+ExitLua(lua_State* L)
 {
 	longjmp(l_jump,1);
 	return 0;
 }
 
-static int PrintLua(lua_State* l)
+static int 
+PrintLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	for (int i = 1; i <= n; ++i) {
@@ -93,7 +95,8 @@ static int PrintLua(lua_State* l)
 	return 0;
 }
 
-static int DebugLua(lua_State* l)
+static int 
+DebugLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	for (int i = 1; i <= n; ++i) debug("%s",lua2str(i));
@@ -101,7 +104,8 @@ static int DebugLua(lua_State* l)
 	return 0;
 }
 
-static int ErrorLua(lua_State* l)
+static int 
+ErrorLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	for (int i = 1; i <= n; ++i)
@@ -110,7 +114,8 @@ static int ErrorLua(lua_State* l)
 	return 0;
 }
 
-static int UseLua(lua_State* l)
+static int 
+UseLua(lua_State* l)
 {
 	str filename = file_path(client.request ? client.request->host : _("localhost"), _("/%s",lua2str(1)));
 	if (luaL_dofile(l,filename->data)) error("Failed to evaluate script %s",filename);
@@ -118,7 +123,8 @@ static int UseLua(lua_State* l)
 	return 0;
 }
 
-static int IncludeLua(lua_State* l)
+static int 
+IncludeLua(lua_State* l)
 {
 	str filename = file_path(client.request ? client.request->host : _("localhost"), _("/%s",lua2str(1)));
 	lua_pop(l,1);
@@ -131,7 +137,8 @@ static int IncludeLua(lua_State* l)
 	return 0;
 }
 
-static int CWDLua(lua_State* l)
+static int 
+CWDLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	lua_pop(l,n);
@@ -139,7 +146,8 @@ static int CWDLua(lua_State* l)
 	return 1;
 }
 
-static int HeaderLua(lua_State* l)
+static int 
+HeaderLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	str s = lua2str(1);
@@ -148,7 +156,8 @@ static int HeaderLua(lua_State* l)
 	return 1;
 }
 
-static int ParamLua(lua_State* l)
+static int 
+ParamLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	str s = lua2str(1);
@@ -157,7 +166,8 @@ static int ParamLua(lua_State* l)
 	return 1;
 }
 
-static int NowLua(lua_State* l)
+static int 
+NowLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	lua_pop(l,n);
@@ -165,7 +175,8 @@ static int NowLua(lua_State* l)
 	return 1;
 }
 
-static int QueryLua(lua_State* l)
+static int 
+QueryLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	str qstr = lua2str(1);
@@ -200,7 +211,8 @@ static int QueryLua(lua_State* l)
 	return 1;
 }
 
-static int EncodeLua(lua_State* l)
+static int 
+EncodeLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	str s = lua2str(1);
@@ -209,7 +221,8 @@ static int EncodeLua(lua_State* l)
 	return 1;
 }
 
-static int DecodeLua(lua_State* l)
+static int 
+DecodeLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	str s = lua2str(1);
@@ -218,7 +231,8 @@ static int DecodeLua(lua_State* l)
 	return 1;
 }
 
-static int MD5SumLua(lua_State* l)
+static int 
+MD5SumLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	str s = lua2str(1);
@@ -227,7 +241,8 @@ static int MD5SumLua(lua_State* l)
 	return 1;
 }
 
-static int Hmac1Lua(lua_State* l)
+static int 
+Hmac1Lua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	str secret = lua2str(1);
@@ -239,7 +254,8 @@ static int Hmac1Lua(lua_State* l)
 	return 1;
 }
 
-static int Base64Lua(lua_State* l)
+static int 
+Base64Lua(lua_State* l)
 {
 
 	int n = lua_gettop(l);
@@ -249,7 +265,8 @@ static int Base64Lua(lua_State* l)
 	return 1;
 }
 
-static int HexLua(lua_State* l)
+static int 
+HexLua(lua_State* l)
 {
 
 	int n = lua_gettop(l);
@@ -260,7 +277,8 @@ static int HexLua(lua_State* l)
 }
 
 int luarandfd = 0;
-static int RandomLua(lua_State* l)
+static int 
+RandomLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	lua_pop(l,n);
@@ -272,7 +290,8 @@ static int RandomLua(lua_State* l)
 	return 1;
 }
 
-static int PostHTTPLua(lua_State* l)
+static int 
+PostHTTPLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	str proto = lua2str(1);
@@ -297,7 +316,8 @@ static int PostHTTPLua(lua_State* l)
 	return 0;
 }
 
-static int SocketLua(lua_State* l)
+static int 
+SocketLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	str host = lua2str(1);
@@ -314,7 +334,8 @@ static int SocketLua(lua_State* l)
 	return 1;
 }
 
-static int SendLua(lua_State* l)
+static int 
+SendLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	Socket s = (Socket)lua_topointer(l,1);
@@ -327,7 +348,8 @@ static int SendLua(lua_State* l)
 	return 1;
 }
 
-static int ReceiveLua(lua_State* l)
+static int 
+ReceiveLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	Socket s = (Socket)lua_topointer(l,1);
@@ -337,7 +359,8 @@ static int ReceiveLua(lua_State* l)
 	return 1;
 }
 
-static int JSONLua(lua_State* l)
+static int 
+JSONLua(lua_State* l)
 {
 	int n = lua_gettop(l);
 	str json = lua2str(1);

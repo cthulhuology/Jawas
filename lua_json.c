@@ -115,11 +115,29 @@ number(str s, int* o)
 	return retval;
 }
 
-int array(str s, int o) { return at(s,o) == '['; }
-int array_end(str s, int o) { return at(s,o) == ']'; }
+int 
+array(str s, int o) 
+{ 
+	return at(s,o) == '['; 
+}
 
-int object(str s, int o) { return at(s,o) == '{'; }
-int object_end(str s, int o)  { return at(s,o) == '}'; }
+int
+array_end(str s, int o) 
+{ 
+	return at(s,o) == ']'; 
+}
+
+int 
+object(str s, int o) 
+{ 
+	return at(s,o) == '{'; 
+}
+
+int 
+object_end(str s, int o)
+{
+	return at(s,o) == '}'; 
+}
 
 str
 parse_array(str s, int* o)
