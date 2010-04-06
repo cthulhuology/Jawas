@@ -1,0 +1,2 @@
+#!/bin/bash
+ps  | grep jawasd | cut -f1 -d" " | xargs kill -9
