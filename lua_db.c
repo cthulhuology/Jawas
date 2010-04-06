@@ -9,6 +9,7 @@
 #include "defines.h"
 #include "memory.h"
 #include "log.h"
+#include "headers.h"
 #include "database.h"
 
 #include <lua.h>
@@ -18,12 +19,16 @@
 extern lua_State* lins;
 extern str lins_buffer;
 extern Database lins_database;
+extern Database db;
 
 str lua2str(int index);
 void str2lua(str s);
 
+Headers stored_procedures;
+
 static int DBClosureLua(lua_State* l)
 {
+	if (! lins_database) lins_database = new_database();
 	int n = lua_gettop(l);
 	str qry = lua2str(lua_upvalueindex(1));
 	for (int i = 1; i <= n; ++i)
@@ -50,20 +55,33 @@ static int DBClosureLua(lua_State* l)
 	return 1;
 }
 
-int ProceduresLua(lua_State* l, char* schema)
+int PrepareProcedures(char* schema) 
 {
-	int n = lua_gettop(l);
-	lua_pop(l,n);
+	new_database();
 	str sql = _("SELECT * from functions_in('%c');", schema);
 	int res = query(sql);
 	if (res < 0) {
-		str2lua(db_error());
+		dblog("%s",db_error());
+		close_database(db);
 		return 1;
 	}
-	for (int i = 0; i < res; ++i) {
+	stored_procedures = new_headers();
+	for (int i = 0; i < res && i < MAX_HEADERS; ++i) {
 		str proc = fetch(i,0);
-		str2lua(proc); 				// once to bind it
-		str2lua(_("SELECT * FROM %s(", proc));	// once to store base query
+		append_header(stored_procedures,proc,_("SELECT * FROM %s(",proc));
+	}
+	close_database(db);
+	return 0;
+}
+
+int ProceduresLua(lua_State* l)
+{
+	int i;
+	int n = lua_gettop(l);
+	lua_pop(l,n);
+	over (stored_procedures,i) {
+		str2lua(Key(stored_procedures,i)); 				// once to bind it
+		str2lua(Value(stored_procedures,i));		// once to store base query
 		lua_pushcclosure(l,DBClosureLua,1);
 		lua_settable(l,LUA_GLOBALSINDEX);
 	}

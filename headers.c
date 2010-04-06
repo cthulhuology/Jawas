@@ -134,7 +134,7 @@ Headers
 parse_headers(str buf, int* body)
 {
 	char c;
-	int i,l,o,reset,count;
+	int i,l,o,reset = 0,count;
 	int lb = len(buf);
 	Headers headers = new_headers();
 	if (! headers) {

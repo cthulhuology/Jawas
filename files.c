@@ -159,6 +159,6 @@ void
 load_files()
 {
 	set_cwd();
-	load_directory(_("%s/localhost",server.cwd));
+	load_directory(_("%s/dloh.org",server.cwd));
 }
 

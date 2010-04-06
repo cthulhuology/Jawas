@@ -27,6 +27,7 @@ struct server_struct {
 	int file_index;
 	int done;
 	int restart;
+	int procs;
 };
 
 extern Server server;

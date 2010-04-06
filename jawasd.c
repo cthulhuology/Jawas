@@ -12,7 +12,7 @@ void
 usage(char* name)
 {
 	fprintf(stderr,"Usage %s [-d] [port] [tls]\n", name);
-	exit(1);
+	exit(JAWAS_EXIT_USAGE);
 }
 
 void
@@ -25,7 +25,7 @@ restart()
 	pid_t pid = atoi(buffer);
 	kill(pid,SIGHUP);	
 	close(fd);
-	exit(0);
+	exit(JAWAS_EXIT_DONE);
 }
 
 int

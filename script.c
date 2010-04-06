@@ -15,9 +15,9 @@ int
 script_handler(File fc)
 {
 	int total = 0;
-	cache_control(client.response->headers,"max-age=86400, public");
-	date_field(client.response->headers,Date(time(NULL))->data);
-	expires(client.response->headers,Expires()->data);
+//	cache_control(client.response->headers,"max-age=86400, public");
+//	date_field(client.response->headers,Date(time(NULL))->data);
+//	expires(client.response->headers,Expires()->data);
 	send_status(client.response->socket,200);
 	send_headers(client.response->socket,client.response->headers);
 	while (!client.response->socket->closed && total < fc->st.st_size)

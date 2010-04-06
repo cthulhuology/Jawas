@@ -8,7 +8,7 @@
 
 #ifndef PROD
 #define halt for(;;) {};
-#define LOG_LEVEL 4
+#define LOG_LEVEL 1
 #define DB_CONNECT_STRING DB_STR(jawas_dev,HOSTADDR,5432)
 #define SERVER_PORT "8080"
 #define TLS_SERVER_PORT "4433"

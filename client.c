@@ -10,6 +10,7 @@
 #include "client.h"
 #include "methods.h"
 #include "status.h"
+#include "sockets.h"
 #include "server.h"
 #include "timers.h"
 
@@ -20,7 +21,7 @@ disconnect()
 {
 	close_socket(client.socket);
 	close(client.kq);
-	exit(0);
+	exit(JAWAS_EXIT_DONE);
 }
 
 void
@@ -130,6 +131,7 @@ void
 handle(reg fd)
 {
 	Socket s = accept_socket(fd,(server.http_sock == fd ? NULL : server.tls));
+	nodelay(s);
 	client.kq = kqueue();
 	client.socket = s;
 	client.request = open_request(client.socket);
@@ -137,5 +139,5 @@ handle(reg fd)
 	timeout(IDLE_TIMEOUT,0);
 	timer();
 	while (!client.socket->closed && !client.alarm) run();
-	exit(0);
+	exit(JAWAS_EXIT_DONE);
 }

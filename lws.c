@@ -178,6 +178,7 @@ NowLua(lua_State* l)
 static int 
 QueryLua(lua_State* l)
 {
+	if (!lins_database) lins_database = new_database();
 	int n = lua_gettop(l);
 	str qstr = lua2str(1);
 	str qry = NULL;
@@ -406,7 +407,7 @@ void
 init_lua()
 {
 	int i = 0;
-	lins_database = new_database();
+	lins_database = NULL;
 	lins = lua_open();
 	luaL_openlibs(lins);
 	luaopen_base(lins);
@@ -415,14 +416,14 @@ init_lua()
 	luaopen_math(lins);
 	for (i = 0; lua_glob_functions[i].name; ++i)
 		lua_register(lins,lua_glob_functions[i].name,lua_glob_functions[i].func);
-	ProceduresLua(lins,"public");
+	ProceduresLua(lins);
 }
 
 void
 end_lua()
 {
 	lua_close(lins);
-	close_database(lins_database);
+	if (lins_database) close_database(lins_database);
 }
 
 int

@@ -1,5 +1,6 @@
 
 #include "include.h"
+#include "defines.h"
 
 void
 demon(int detach)
@@ -10,7 +11,7 @@ demon(int detach)
 	int child_status = 0;
 restart:
 	if (murder) kill(child,SIGTERM);
-	if (done) exit(0);
+	if (done) exit(JAWAS_EXIT_DONE);
 	if (detach) child = fork();
 	if (child == 0) return;
 	char* pid = NULL;

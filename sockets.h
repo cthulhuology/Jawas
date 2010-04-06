@@ -27,6 +27,7 @@ extern Socket sockets;
 
 void socket_signal_handlers();
 int nonblock(reg);
+int nodelay(reg);
 
 int new_socket(int stream);
 int open_socket(int port);

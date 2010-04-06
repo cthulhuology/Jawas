@@ -25,14 +25,18 @@ struct request_struct {
 	str cb;
 	str method;
 	str host;
-	int port;
 	str path;
+	int port;
 	int body;
 	int done;
 	int written;
 	int length;
 	int retries;
 	int ssl;
+	int keepalive;
+	int websocket;
+	int proxy;
+	int cached;
 };
 
 typedef struct request_info_struct* RequestInfo;

@@ -48,14 +48,13 @@ str
 base64(str s)
 {
 	str retval;
-	str t;
 	BUF_MEM* ptr;
 	BIO* src;
 	BIO* dst;
 	dst = BIO_new(BIO_f_base64());
 	src = BIO_new(BIO_s_mem());
 	dst = BIO_push(dst,src);
-	BIO_write(dst,t->data,t->length);
+	BIO_write(dst,s->data,s->length);
 	if (1>BIO_flush(dst)) return NULL;
 	BIO_get_mem_ptr(dst,&ptr);
 	retval = copy(ptr->data,ptr->length-1);

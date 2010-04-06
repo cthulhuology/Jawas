@@ -10,7 +10,7 @@ HOSTADDR=$(shell ifconfig | grep inet | cut -f2 -d" " | head -n1)
 
 LIBS = -lpq -lssl -lcrypto -lz
 
-CFLAGS += --std=c99 -Wall -DHOSTADDR="$(HOSTADDR)" 
+CFLAGS += --std=c99 -Wall -DHOSTADDR="$(HOSTADDR)"  -O2
 
 LDFLAGS =
 

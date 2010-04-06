@@ -41,6 +41,9 @@ new_request(str method, str host, str path)
 	retval->length = -1;
 	retval->retries = 0;
 	retval->ssl = 0;
+	retval->keepalive = 0;
+	retval->proxy = 0;
+	retval->cached = 0;
 	return retval;
 }
 
@@ -85,29 +88,43 @@ dechunk_request()
 	client.request->contents = append(hed,con);
 }
 
+int
+request_retry()
+{
+	error("No request contents on request %i\n",client.request);
+	++client.request->retries;
+	debug("retries %i",client.request->retries);
+	return -1;
+}
+
+int
+process_request_contents()
+{
+	client.request->headers = parse_headers(client.request->contents,&client.request->body);
+	debug("Headers:\n%s",print_headers(NULL,client.request->headers));
+	if (!client.request->headers) {
+		error("No request headers on request %i\n",client.request);
+		return -1;
+	}
+	request_headers(client.request, _("peer"),socket_peer(client.request->socket));
+	return 0;
+}
+
+int
+request_done()
+{
+	if (client.request->body)
+		client.request->done = (len(client.request->contents) - client.request->body) >= inbound_content_length(client.request->contents,client.request->headers);
+	return client.request->done;
+}
+
 int 
 process_request()
 {
 	client.request->contents = read_socket(client.request->socket);
-	if (!client.request->contents) {
-		error("No request contents on request %i\n",client.request);
-		++client.request->retries;
-		debug("retries %i",client.request->retries);
-		return -1;
-	}
-	if (!client.request->body) {
-		client.request->headers = parse_headers(client.request->contents,&client.request->body);
-		debug("Headers:\n%s",print_headers(NULL,client.request->headers));
-		if (!client.request->headers) {
-			error("No request headers on request %i\n",client.request);
-			return -1;
-		}
-		request_headers(client.request, _("peer"),socket_peer(client.request->socket));
-	}
-	if (client.request->body) {
-		client.request->done = (len(client.request->contents) - client.request->body) >= inbound_content_length(client.request->contents,client.request->headers);
-	}
-	if (client.request->done) dechunk_request();
+	if (!client.request->contents) return request_retry();
+	if (!client.request->body && process_request_contents()) return -1;
+	if (request_done()) dechunk_request();
 	return 0;
 }
 

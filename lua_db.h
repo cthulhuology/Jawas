@@ -7,6 +7,7 @@
 #define __HAVE_LUA_DB_H__
 
 #include <lua.h>
-int ProceduresLua(lua_State* l, char* schema);
+int PrepareProcedures(char* schema);
+int ProceduresLua(lua_State* l);
 
 #endif

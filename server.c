@@ -11,6 +11,7 @@
 #include "log.h"
 #include "files.h"
 #include "lws.h"
+#include "lua_db.h"
 
 Server server;
 
@@ -24,29 +25,32 @@ void
 incoming(reg fd)
 {
 	pid_t pid = 0;
+	if (server.procs >= MAX_PROCS) return;
+	++server.procs;
 	if (! (pid = fork())) handle(fd);
 	if (pid < 0) {
 		perror("fork");
-		exit(1);
+		exit(JAWAS_EXIT_FORK);
 	}
 	add_pid_monitor(pid);
 }
 
 void
-wait_proc(reg pid)
+wait_proc()
 {
 	int status;
-	if (0 > waitpid(pid,&status,WNOHANG)) {
-		perror("waitpid");
-		exit(1);
+	while (0 < waitpid(-1,&status,WNOHANG)) {
+		--server.procs;
+		if (status) fprintf(stderr,"Child exited with status %d\n",status);
 	}
 }
 
 void
 server_poll(reg fd, enum event_types t)
 {
+	wait_proc();
 	external_port(fd) ? incoming(fd) :
-		t == PROC ? wait_proc(fd): reload(fd);
+		t != PROC ? reload(fd) : wait_proc();
 }
 
 void
@@ -84,8 +88,9 @@ restart:
 	init_strings();
 	load_files();
 	server.time = time(NULL);
+	PrepareProcedures("public"); 
 	while(!server.done) watch();
 	if (server.restart) goto restart;	
-	exit(0);
+	exit(JAWAS_EXIT_DONE);
 }
 

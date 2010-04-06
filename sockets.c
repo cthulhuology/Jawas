@@ -201,7 +201,7 @@ read_socket(Socket sc)
 			read_tls(sc->tls,sc->buf->data + sc->buf->length,Max_Buffer_Size) :
 			read(sc->fd,sc->buf->data + sc->buf->length,Max_Buffer_Size)); 
 		sc->buf->length += advance(delta)) {
-		fprintf(stderr,"Read %i bytes at %p\n",delta,sc->buf);
+	//	fprintf(stderr,"Read %i bytes at %p\n",delta,sc->buf);
 		if (delta == 0) {
 			fprintf(stderr,"READ ZERO!!!\n");
 			sc->closed = 1;
@@ -209,7 +209,7 @@ read_socket(Socket sc)
 		}
 		if (delta == -1 ) {
 			if (errno == EAGAIN) {
-				fprintf(stderr,"Returning %d bytes [%s]\n",len(sc->buf),sc->buf->data);
+			//	fprintf(stderr,"Returning %d bytes [%s]\n",len(sc->buf),sc->buf->data);
 				return sc->buf;
 			}
 			error("ERROR %i occured", errno);
