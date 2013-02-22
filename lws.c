@@ -410,10 +410,10 @@ init_lua()
 	lins_database = NULL;
 	lins = lua_open();
 	luaL_openlibs(lins);
-	luaopen_base(lins);
-	luaopen_string(lins);
-	luaopen_table(lins);
-	luaopen_math(lins);
+//	luaopen_base(lins);
+//	luaopen_string(lins);
+//	luaopen_table(lins);
+//	luaopen_math(lins);
 	for (i = 0; lua_glob_functions[i].name; ++i)
 		lua_register(lins,lua_glob_functions[i].name,lua_glob_functions[i].func);
 	ProceduresLua(lins);
