@@ -13,6 +13,8 @@
 #include "server.h"
 #include "mime.h"
 
+#include <sys/mman.h>
+
 int
 mark_file(File fc, int i, int t, int o, int l)
 {
@@ -27,9 +29,10 @@ parse_file(File fc)
 {
 	char* script = fc->data;
 	int o = 0, l = 0, i = 0, e = 0;
+	size_t page_size = sysconf(_SC_PAGESIZE);
 	if (fc->parsed) return fc;
-	fc->parsed = (Parsed)reserve(getpagesize());
-	memset(fc->parsed,0,getpagesize());
+	fc->parsed = (Parsed)reserve(page_size);
+	memset(fc->parsed,0,page_size);
 	for (o = 0; script[o] && o < fc->st.st_size; ++o) {
 		if (!strncmp(&script[o],"<?",2) && isspace(script[o+2])) {
 			if (l < o) i = mark_file(fc,i,TEXT,l,o-l);
@@ -61,12 +64,12 @@ open_file(str filename)
 		error("Failed to open file %s",filename);
 		return NULL;
 	}
-	if (!(fc->data = mmap(NULL,fc->st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fc->fd,0))) {
+	if (!(fc->data = mmap(NULL,fc->st.st_size,PROT_READ,MAP_SHARED,fc->fd,0))) {
 		error("Failed to memory map file %s",filename);
 		close(fc->fd);
 		return NULL;
 	}
-	add_file_monitor(fc->fd);
+	add_file_monitor(fc->fd, filename);
 	fc->parsed = NULL;
 	fc->mime = NULL;
 	if (parseable_file(fc)) parse_file(fc);
@@ -88,7 +91,7 @@ reload(int fd)
 		error("Failed to open file %c",fc->name.data);
 		return NULL;
 	}
-	if (!(fc->data = mmap(NULL,fc->st.st_size,PROT_READ,MAP_FILE|MAP_SHARED,fc->fd,0))) {
+	if (!(fc->data = mmap(NULL,fc->st.st_size,PROT_READ,MAP_SHARED,fc->fd,0))) {
 		error("Failed to memory map file %c",fc->name.data);
 		close(fc->fd);
 		return NULL;
@@ -137,22 +140,15 @@ load(str filename)
 void
 load_directory(str directory)
 {
-	DIR* d = opendir(directory->data);
-	if (!d ) {
-		error("Failed to open directory: %s",directory);
-		perror("opendir");
-		return;
+	char *path[2] = { directory->data, NULL };
+	FTS* f = fts_open(path,FTS_LOGICAL,NULL);	// NULL is the comparator
+	FTSENT* fe;
+	for (fe = fts_children(f,0); fe; fe = fe->fts_link) {	// no option
+		if (fe->fts_namelen > 0 && fe->fts_name[0] == '.') continue;
+		str filename = ref(fe->fts_accpath,strlen(fe->fts_accpath)); 
+		server.files[server.file_index++] = open_file(filename);
 	}
-	for (struct dirent* de = readdir(d); de; de = readdir(d)) {
-		if (de->d_namlen > 0 && de->d_name[0] == '.') continue;
-		str filename = _("%s/%s",directory,ref(de->d_name,de->d_namlen));
-		if (de->d_type & DT_DIR) {
-			load_directory(filename);
-		} else {
-			server.files[server.file_index++] = open_file(filename);
-		}
-	}
-	closedir(d);
+	fts_close(f);
 }
 
 void

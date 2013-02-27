@@ -17,6 +17,7 @@
 typedef struct server_struct Server;
 struct server_struct {
 	reg kq;
+	reg in;
 	reg http_sock;
 	reg tls_sock;
 	time_t time;

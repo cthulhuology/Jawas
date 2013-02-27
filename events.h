@@ -13,6 +13,12 @@
 #include "requests.h"
 #include "responses.h"
 
+#ifdef LINUX
+#define NODE_FLAGS  IN_MODIFY | IN_DELETE
+#else
+#define NODE_FLAGS NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_RENAME | NOTE_REVOKE
+#endif
+
 enum event_types { READ, WRITE, RESP, REQ, NODE, PROC };
 enum event_flags { NONE, ONESHOT, SEOF, EXIT };
 
@@ -26,7 +32,7 @@ void add_read_socket(reg f);
 void add_write_socket(reg f);
 void add_req_socket(reg f);
 void add_resp_socket(reg f);
-void add_file_monitor(reg f);
+void add_file_monitor(reg f, str filename);
 void add_pid_monitor(pid_t p);
 
 #endif

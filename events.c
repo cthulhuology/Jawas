@@ -48,13 +48,22 @@ add_resp_socket(reg f)
 }
 
 void
-add_file_monitor(reg f)
+add_file_monitor(reg f, str filename)
 {
+#ifdef LINUX
+	inotify_add_watch(server.in,filename->data, NODE_FLAGS);
+	add_event(server.kq, server.in, NODE, ONESHOT);
+#else
 	add_event(server.kq, f, NODE, ONESHOT);
+#endif
 }
 
 void
 add_pid_monitor(pid_t p)
 {
+#ifdef LINUX
+
+#else
 	add_event(server.kq, p, PROC, EXIT);
+#endif
 }

@@ -3,6 +3,8 @@
 // All Rights Reserved
 //
 
+typedef unsigned short u_short;
+
 #include <sys/mman.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
@@ -15,10 +17,12 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <ctype.h>
+#include <fts.h>
 #include <dirent.h>
 #include <errno.h>
 #ifdef LINUX
 #include <sys/epoll.h>
+#include <sys/inotify.h>
 #else
 #include <sys/event.h>
 #endif

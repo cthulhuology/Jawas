@@ -6,7 +6,7 @@ PROGRAM = jawasd
 LIBRARY =
 ARCH := $(shell uname)
 
-HOSTADDR=$(shell ifconfig | grep inet | cut -f2 -d" " | head -n1)
+HOSTADDR="0.0.0.0"
 
 LIBS = -lpq -lssl -lcrypto -lz
 
@@ -19,22 +19,24 @@ ifeq ($(ARCH),Darwin)
 	INCLUDES = -I/opt/local/include/postgresql84/
 	LDFLAGS += -L/opt/local/lib/postgresql84/  -L/usr/local/lib
 	LIBS += -llua
+	SOURCES = bsd.c
 endif
 ifeq ($(ARCH),FreeBSD)
 	CFLAGS += -ggdb -DXP_UNIX  -DFREEBSD  -fpic
 	INCLUDES = -I/usr/local/include/ -I/usr/local/include/luajit-2.0
 	LDFLAGS += -L/usr/local/lib
 	LIBS += -lluajit
+	SOURCES = bsd.c
 endif
 ifeq ($(ARCH),Linux)
 	CFLAGS += -ggdb -DXP_UNIX -DLINUX
 	INCLUDES = -I/usr/include/postgresql/
+	SOURCES = linux.c
 endif
 
 
-SOURCES = \
+SOURCES += \
 auth.c \
-bsd.c \
 client.c \
 daemon.c \
 database.c \
