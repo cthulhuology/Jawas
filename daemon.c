@@ -12,8 +12,12 @@ demon(int detach)
 restart:
 	if (murder) kill(child,SIGTERM);
 	if (done) exit(JAWAS_EXIT_DONE);
-	if (detach) child = fork();
-	if (child == 0) return;
+	if (detach) {
+		child = fork();
+		if (child != 0) exit(0);
+		child = fork();
+		if (child == 0) return;
+	}
 	char pid[17];
 	int pidfd = open("jawas.pid",O_CREAT|O_WRONLY|O_TRUNC,0600);
 	if (pidfd > 0) {
