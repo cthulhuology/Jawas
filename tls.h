@@ -11,7 +11,7 @@
 
 typedef struct tls_struct* TLSInfo;
 struct tls_struct {
-	SSL_METHOD* method;
+	const SSL_METHOD* method;
 	SSL_CTX* ctx;
 	RSA* rsa;
 	BIO* err;	
