@@ -13,7 +13,7 @@
 int log_fd = 2;
 int log_level = LOG_LEVEL;
 
-const int max_log_lvl = 3;
+const int max_log_lvl = 4;
 int log_msgs[] =  {
 	LOG_ERR,
 	LOG_WARNING,
@@ -34,7 +34,8 @@ log_msg(int lvl, char* fmt,  ...)
 	va_list args;
 	if (lvl < 0 || lvl > log_level || lvl > max_log_lvl) return;
 	va_start(args,fmt);
-	vsyslog(log_msgs[lvl],fmt,args);
+	str msg = new_str(fmt,args);
+	syslog(log_msgs[lvl],msg->data);
 	va_end(args);
 }
 

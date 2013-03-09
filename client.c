@@ -131,6 +131,7 @@ void
 handle(reg fd)
 {
 	client.socket = accept_socket(fd,(server.http_sock == fd ? NULL : server.tls));
+	close(fd);	// close the parent fd, as we'll never accept again
 	nodelay(client.socket->fd);
 	
 #ifdef LINUX

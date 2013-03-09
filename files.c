@@ -143,10 +143,20 @@ load_directory(str directory)
 	char *path[2] = { directory->data, NULL };
 	FTS* f = fts_open(path,FTS_LOGICAL,NULL);	// NULL is the comparator
 	FTSENT* fe;
-	for (fe = fts_children(f,0); fe; fe = fe->fts_link) {	// no option
+	debug("Opening directory %s", directory);
+	for (fe = fts_read(f); fe; fe = fts_read(f)) {	// no option
+		debug("Testing %c",  fe->fts_name);
 		if (fe->fts_namelen > 0 && fe->fts_name[0] == '.') continue;
-		str filename = ref(fe->fts_accpath,strlen(fe->fts_accpath)); 
-		server.files[server.file_index++] = open_file(filename);
+		if (fe->fts_info & FTS_F) {
+			str filename = ref(fe->fts_accpath,strlen(fe->fts_accpath)); 
+			debug("Opening file %s",filename);
+			server.files[server.file_index++] = open_file(filename);
+		}
+	//	 else if (fe->fts_info & FTS_D) {
+	//		str dirname = ref(fe->fts_accpath,strlen(fe->fts_accpath)); 
+	//		debug("Opening directory %s",dirname);
+	//		load_directory(dirname);
+	//	}
 	}
 	fts_close(f);
 }

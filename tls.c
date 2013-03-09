@@ -32,7 +32,7 @@ init_tls(char* keyfile, char* password)
 	tls->err = BIO_new_fp(stderr,BIO_NOCLOSE);	
 	tls->method = SSLv23_method();
 	tls->ctx = SSL_CTX_new(tls->method);
-	if (!SSL_CTX_load_verify_locations(tls->ctx,"certs.pem",NULL)) {
+	if (!SSL_CTX_load_verify_locations(tls->ctx,"server.pem",NULL)) {
 		error("Failed to use certificate chain file certs.pem");
 		return NULL;
 	}

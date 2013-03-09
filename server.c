@@ -92,7 +92,9 @@ restart:
 	server.tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
 	server.tls_client = client_tls("certs");
 	init_strings();
+	debug("Loading files...");
 	load_files();
+	debug("Done Loading files...");
 	server.time = time(NULL);
 	PrepareProcedures("public"); 
 	while(!server.done) watch();
