@@ -1,6 +1,6 @@
 JAWAS - Just Another Web Application Server
 
-Copyright (C) 2009 David J. Goehrig  <dave@nexttolast.com>
+Copyright (C) 2013 David J. Goehrig  <dave@nexttolast.com>
 
 -----------------------------------------------------------------------------------------------------
 This webserver is released under the AGPL, see the file COPYING.txt for details.
@@ -8,11 +8,10 @@ This webserver is released under the AGPL, see the file COPYING.txt for details.
 
 About Jawas
 
-Jawas was started around 6 years ago as a project to develop a new general purpose web application
-server for the development of a wide variety of online games.  It has been in production for 6 years
-now, and has been used by quite a few projects.  It uses a modified version of the SpiderMonkey engine
-to provide Javascript scripting on the backend.  Currently, Jawas is geared towards running on
-Mac OS X and FreeBSD.  Linux support is iffy.
+Jawas was started around 10 years ago as a project to develop a new general purpose web application
+server for the development of a wide variety of online games.  It has been in production for 10 years
+now, and has been used by quite a few projects.  This version uses Luajit for scripting on the backend. 
+Currently, Jawas supports Mac OS X, FreeBSD, and Linux on 64bit platforms.
 
 Building Jawas
 
@@ -38,7 +37,7 @@ The version of code released under the AGPL has been stripped of a number of fea
 clients.   As such, some of the functionality of the production version is currently missing.  If you
 would like to contribute code, please email me a patch at:
 
-	dave@nexttolast.com
+	dave@dloh.org
 
 If I like your style, I'll add you to the git repository at:
 
@@ -46,4 +45,4 @@ If I like your style, I'll add you to the git repository at:
 
 Happy Coding
 
-	Dave Goehrig <dave@nexttolast.com>
+	Dave Goehrig <dave@dloh.org>

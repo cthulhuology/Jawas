@@ -152,11 +152,6 @@ load_directory(str directory)
 			debug("Opening file %s",filename);
 			server.files[server.file_index++] = open_file(filename);
 		}
-	//	 else if (fe->fts_info & FTS_D) {
-	//		str dirname = ref(fe->fts_accpath,strlen(fe->fts_accpath)); 
-	//		debug("Opening directory %s",dirname);
-	//		load_directory(dirname);
-	//	}
 	}
 	fts_close(f);
 }
@@ -165,6 +160,6 @@ void
 load_files()
 {
 	set_cwd();
-	load_directory(_("%s/dloh.org",server.cwd));
+	load_directory(_("%s",server.cwd));
 }
 
