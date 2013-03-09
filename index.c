@@ -4,6 +4,7 @@
 // All Rights Reserved
 //
 
+#define _BSD_SOURCE
 #include "include.h"
 #include "defines.h"
 #include "memory.h"

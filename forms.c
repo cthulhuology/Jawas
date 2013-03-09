@@ -70,7 +70,8 @@ save_contents(str src, int pos, int end)
 		perror("open");
 		return filename;	
 	}
-	write(fd,&src->data[pos],end - pos);
+	if (write(fd,&src->data[pos],end - pos) < 0)
+		error("Failed to write to %s", filename);
 	close(fd);
 	return filename;		
 }

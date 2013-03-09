@@ -14,11 +14,12 @@ restart:
 	if (done) exit(JAWAS_EXIT_DONE);
 	if (detach) child = fork();
 	if (child == 0) return;
-	char* pid = NULL;
+	char pid[17];
 	int pidfd = open("jawas.pid",O_CREAT|O_WRONLY|O_TRUNC,0600);
 	if (pidfd > 0) {
-		asprintf(&pid,"%i\n",getpid());
-		write(pidfd,pid,strlen(pid));
+		snprintf(&pid[0],16,"%i\n",getpid());
+		if (write(pidfd,pid,strlen(pid)) < 0)
+			fprintf(stderr,"Failed to write pid");
 		close(pidfd);
 	} else perror("open");
 	void kill_all(int sig) {

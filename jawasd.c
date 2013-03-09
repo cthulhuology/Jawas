@@ -21,7 +21,7 @@ restart()
 	char buffer[16];
 	memset(buffer,0,16);
 	int fd = open("jawas.pid",O_RDONLY);
-	read(fd,buffer,16);
+	if (read(fd,buffer,16) < 0) exit(JAWAS_EXIT_DONE);
 	pid_t pid = atoi(buffer);
 	kill(pid,SIGHUP);	
 	close(fd);

@@ -285,7 +285,8 @@ RandomLua(lua_State* l)
 	lua_pop(l,n);
 	if (!luarandfd) luarandfd = open("/dev/random",O_RDONLY);
 	str data = blank(12);
-	read(luarandfd,data->data,12);
+	if (read(luarandfd,data->data,12) < 0)
+		error("Failed to read from /dev/random");
 	str o = hex(data);
 	str2lua(o);
 	return 1;

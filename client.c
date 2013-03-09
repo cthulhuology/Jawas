@@ -79,7 +79,7 @@ read_response()
 		return;
 	}
 	Response tmp = client.response;
-	client.request = client.request = client.response->request;
+	client.request = client.response->request;
 	client.socket = client.request->socket;
 	client.response = client.request->response;
 	append_header(client.response->headers,_("data"),from(tmp->contents,tmp->body,len(tmp->contents) - tmp->body));
@@ -130,10 +130,14 @@ run()
 void
 handle(reg fd)
 {
-	Socket s = accept_socket(fd,(server.http_sock == fd ? NULL : server.tls));
-	nodelay(s);
+	client.socket = accept_socket(fd,(server.http_sock == fd ? NULL : server.tls));
+	nodelay(client.socket->fd);
+	
+#ifdef LINUX
+	client.kq = epoll_create1(0);
+#else
 	client.kq = kqueue();
-	client.socket = s;
+#endif
 	client.request = open_request(client.socket);
 	add_read_socket(client.socket->fd);
 	timeout(IDLE_TIMEOUT,0);

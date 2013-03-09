@@ -5,6 +5,9 @@
 
 typedef unsigned short u_short;
 
+#define _BSD_SOURCE
+#define _POSIX_SOURCE
+
 #include <sys/mman.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
@@ -27,6 +30,7 @@ typedef unsigned short u_short;
 #include <sys/event.h>
 #endif
 #ifdef LINUX
+#define _GNU_SOURCE
 #define __USE_GNU
 #endif
 #include <fcntl.h>
@@ -40,5 +44,6 @@ typedef unsigned short u_short;
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+#include <syslog.h>
 #include <time.h>
 #include <unistd.h>

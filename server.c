@@ -73,10 +73,11 @@ serve(int port, int tls_port)
 {
 	server.http_sock = open_socket(port);
 	server.tls_sock = open_socket(tls_port);
-	server.kq = kqueue();
 #ifdef LINUX
+	server.kq = epoll_create1(0);
 	server.in = inotify_init1(IN_NONBLOCK);
 #else
+	server.kq = kqueue();
 	server.in = 0;
 #endif
 	monitor_socket(server.http_sock);

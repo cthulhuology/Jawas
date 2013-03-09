@@ -22,15 +22,17 @@ ifeq ($(ARCH),Darwin)
 	SOURCES = bsd.c
 endif
 ifeq ($(ARCH),FreeBSD)
-	CFLAGS += -ggdb -DXP_UNIX  -DFREEBSD  -fpic
-	INCLUDES = -I/usr/local/include/ -I/usr/local/include/luajit-2.0
+	CFLAGS += -ggdb -DXP_UNIX  -DFREEBSD  -fpic -DBITS64
+	INCLUDES = -I/usr/local/include/ -I/usr/local/include/luajit-2.0/
 	LDFLAGS += -L/usr/local/lib
 	LIBS += -lluajit
 	SOURCES = bsd.c
 endif
 ifeq ($(ARCH),Linux)
-	CFLAGS += -ggdb -DXP_UNIX -DLINUX
-	INCLUDES = -I/usr/include/postgresql/
+	CFLAGS += -ggdb -DXP_UNIX -DLINUX -DBITS64
+	INCLUDES = -I/usr/include/postgresql/ -I/usr/local/include/luajit-2.0/
+	LDFLAGS += -L/usr/local/lib
+	LIBS += -lluajit
 	SOURCES = linux.c
 endif
 
