@@ -4,17 +4,20 @@
 -- All Rights Reserved
 --
 
-drop sequence guid_seq;
+drop user if exists jawas;
+create user jawas with login;
+
+drop sequence if exists guid_seq;
 create sequence guid_seq;
 
-drop table object;
+drop table if exists object;
 create table object (
 	id		bigint,
 	data		text
 );
 grant all on object to jawas;
 
-drop table scripts;
+drop table if exists scripts;
 create table scripts (
 	id		bigint,
 	site		varchar,
