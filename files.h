@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "str.h"
+#include <unistd.h>
 
 typedef struct parsed_struct* Parsed;
 struct parsed_struct {

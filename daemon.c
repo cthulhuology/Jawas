@@ -2,13 +2,33 @@
 #include "include.h"
 #include "defines.h"
 
+int murder = 0;
+int child = 0;
+int done = 0;
+int child_status = 0;
+
+void kill_all(int sig) {
+	fprintf(stderr,"process %d got killall\n", getpid());
+	murder = 1;
+	done = 1;
+	kill(0,SIGTERM);	// kill our process group
+	exit(0);
+}
+
+void kill_child(int sig) {
+	fprintf(stderr,"process %d got kill child %d\n", getpid(), child);
+	murder = 1;
+	kill(child,SIGTERM);	// kill our child
+}
+
+void restart_child(int sig) {
+	fprintf(stderr,"process %d got restart child %d\n", getpid(), child);
+	kill(child,SIGHUP);
+}
+
 void
 demon(int detach)
 {
-	int murder = 0;
-	int child = 0;
-	int done = 0;
-	int child_status = 0;
 restart:
 	if (murder) kill(child,SIGTERM);
 	if (done) exit(JAWAS_EXIT_DONE);
@@ -16,8 +36,8 @@ restart:
 		child = fork();
 		if (child != 0) exit(0);
 		child = fork();
-		if (child == 0) return;
 	}
+	if (child == 0) return;
 	char pid[17];
 	int pidfd = open("jawas.pid",O_CREAT|O_WRONLY|O_TRUNC,0600);
 	if (pidfd > 0) {
@@ -26,21 +46,11 @@ restart:
 			fprintf(stderr,"Failed to write pid");
 		close(pidfd);
 	} else perror("open");
-	void kill_all(int sig) {
-		murder = 1;
-		done = 1;
-	}
-	void kill_child(int sig) {
-		murder = 1;
-	}
-	void restart_child(int sig) {
-		kill(child,SIGHUP);
-	}
 	signal(SIGQUIT,kill_all);
 	signal(SIGTERM,kill_all);
 	signal(SIGHUP,restart_child);
 	while (!waitpid(child,&child_status,WNOHANG)) {
-		if (murder) kill(child,SIGTERM);
+		if (murder) kill_child(SIGTERM);
 		sleep(1);
 	}
 	goto restart;

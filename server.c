@@ -27,7 +27,7 @@ incoming(reg fd)
 	pid_t pid = 0;
 	if (server.procs >= MAX_PROCS) return;
 	++server.procs;
-	if (! (pid = fork())) handle(fd);
+	if (! (pid = fork())) return handle(fd);
 	if (pid < 0) {
 		perror("fork");
 		exit(JAWAS_EXIT_FORK);
@@ -39,7 +39,7 @@ void
 wait_proc()
 {
 	int status;
-	while (0 < waitpid(-1,&status,WNOHANG)) {
+	while (0 < waitpid(-1,&status,WNOHANG) && ! server.done) {
 		--server.procs;
 		if (status) fprintf(stderr,"Child exited with status %d\n",status);
 	}
@@ -72,7 +72,9 @@ void
 serve(int port, int tls_port)
 {
 	server.http_sock = open_socket(port);
-	server.tls_sock = open_socket(tls_port);
+	if (use_tls) {
+		server.tls_sock = open_socket(tls_port);
+	}
 #ifdef LINUX
 	server.kq = epoll_create1(0);
 	server.in = inotify_init1(IN_NONBLOCK);
@@ -81,7 +83,9 @@ serve(int port, int tls_port)
 	server.in = 0;
 #endif
 	monitor_socket(server.http_sock);
-	monitor_socket(server.tls_sock);
+	if (use_tls) {
+		monitor_socket(server.tls_sock);
+	}
 	general_signal_handlers();
 	socket_signal_handlers();
 restart:
@@ -89,8 +93,10 @@ restart:
 	server.cwd = NULL;
 	server.done = 0;
 	server.restart = 0;
-	server.tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
-	server.tls_client = client_tls("certs");
+	if (use_tls) {
+		server.tls = init_tls(TLS_KEYFILE,TLS_PASSWORD);
+		server.tls_client = client_tls("certs");
+	}
 	init_strings();
 	debug("Loading files...");
 	load_files();
@@ -98,6 +104,8 @@ restart:
 	server.time = time(NULL);
 	PrepareProcedures("public"); 
 	while(!server.done) watch();
+	// kill our process group
+	kill(0,SIGTERM);
 	if (server.restart) goto restart;	
 	exit(JAWAS_EXIT_DONE);
 }

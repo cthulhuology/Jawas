@@ -21,3 +21,4 @@
 #define SYSTEM_REGION_SIZE 10000000
 #define MAX_FILES 1024
 #define IDLE_TIMEOUT 5
+#define use_tls 0

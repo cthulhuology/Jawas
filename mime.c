@@ -15,7 +15,7 @@
 #include "mime.h"
 
 static MimeTypes mime_types[] = {
-	{ {4, "html"}, {9, "text/html"                }, lws_handler },
+	{ {4, "html"}, {9, "text/html"                }, script_handler },
 	{ {5, "shtml"}, {9, "text/html"               }, img_handler },
 	{ {3, "lws"},  { 9, "text/html"               }, lws_handler },
 	{ {3, "lws"},  { 9, "text/html"		      }, lws_handler },

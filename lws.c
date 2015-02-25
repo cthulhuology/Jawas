@@ -118,6 +118,7 @@ static int
 UseLua(lua_State* l)
 {
 	str filename = file_path(client.request ? client.request->host : _("localhost"), _("/%s",lua2str(1)));
+	fprintf(stderr,"Running file %s\n", filename->data);
 	if (luaL_dofile(l,filename->data)) error("Failed to evaluate script %s",filename);
 	lua_pop(l,1);
 	return 0;
@@ -410,6 +411,8 @@ init_lua()
 	int i = 0;
 	lins_database = NULL;
 	lins = lua_open();
+	fprintf(stderr,"got %p lins\n", lins);
+	if (! lins) return;
 	luaL_openlibs(lins);
 //	luaopen_base(lins);
 //	luaopen_string(lins);
@@ -433,6 +436,8 @@ run_lua_script(File fc, Headers data)
 	init_lua();
 	int i = 0;
 	str filename = file_path(client.request ? client.request->host : _("localhost"), _("/common.lua"));
+	fprintf(stderr,"attempting to load %s\n", filename->data);
+	if (! lins) return 0;
 	if (luaL_dofile(lins,filename->data)) error("Failed to load common.lua");
 	data = client.response->request->query_vars;
 	if (data) over(data,i) {

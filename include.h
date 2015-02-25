@@ -3,7 +3,7 @@
 // All Rights Reserved
 //
 
-typedef unsigned short u_short;
+// typedef unsigned short u_short;
 
 #define _BSD_SOURCE
 #define _POSIX_SOURCE
@@ -23,6 +23,7 @@ typedef unsigned short u_short;
 #include <fts.h>
 #include <dirent.h>
 #include <errno.h>
+#include <unistd.h>
 #ifdef LINUX
 #include <sys/epoll.h>
 #include <sys/inotify.h>

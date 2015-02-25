@@ -65,7 +65,10 @@ new_socket(int stream)
 	int one = 1;
 	reg fd = socket(AF_INET,stream ? SOCK_STREAM : SOCK_DGRAM,0);
 	if (0 > fd) return 0;
-	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&one,sizeof(one));
+	if (setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&one,sizeof(one))) {
+		perror("setsockopt");
+		exit(0);
+	}
 	return fd;
 }
 

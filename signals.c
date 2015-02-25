@@ -21,6 +21,7 @@ void
 gen_signal_handler()
 {
 	server.done = 1;
+	exit(0);
 }
 
 void

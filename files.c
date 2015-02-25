@@ -12,7 +12,7 @@
 #include "events.h"
 #include "server.h"
 #include "mime.h"
-
+#include <unistd.h>
 #include <sys/mman.h>
 
 int
@@ -29,7 +29,11 @@ parse_file(File fc)
 {
 	char* script = fc->data;
 	int o = 0, l = 0, i = 0, e = 0;
-	size_t page_size = sysconf(_SC_PAGESIZE);
+	#ifdef _SC_PAGESIZE
+		size_t page_size = sysconf(_SC_PAGESIZE);
+	#else
+		size_t page_size = 4096;
+	#endif
 	if (fc->parsed) return fc;
 	fc->parsed = (Parsed)reserve(page_size);
 	memset(fc->parsed,0,page_size);

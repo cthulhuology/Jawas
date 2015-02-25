@@ -15,10 +15,10 @@ CFLAGS += --std=c99 -Wall -DHOSTADDR="$(HOSTADDR)"  -O2
 LDFLAGS =
 
 ifeq ($(ARCH),Darwin)
-	CFLAGS += -ggdb -DXP_UNIX -fnested-functions -m64 -DBITS64
-	INCLUDES = -I/opt/local/include/postgresql84/
-	LDFLAGS += -L/opt/local/lib/postgresql84/  -L/usr/local/lib
-	LIBS += -llua
+	CFLAGS += -ggdb -DXP_UNIX -fnested-functions -m64 -DBITS64 -D_DARWIN_C_SOURCE
+	INCLUDES = -I/Applications/Postgres.app/Contents/Versions/9.4/include/ -I/usr/local/include/luajit-2.0/
+	LDFLAGS += -L/Applications/Postgres.app/Contents/Versions/9.4/lib  -L/usr/local/lib
+	LIBS += -lluajit-5.1
 	SOURCES = bsd.c
 endif
 ifeq ($(ARCH),FreeBSD)
