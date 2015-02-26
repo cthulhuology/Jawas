@@ -17,7 +17,7 @@ LDFLAGS =
 ifeq ($(ARCH),Darwin)
 	CFLAGS += -ggdb -DXP_UNIX -fnested-functions -m64 -DBITS64 -D_DARWIN_C_SOURCE
 	INCLUDES = -I/Applications/Postgres.app/Contents/Versions/9.4/include/ -I/usr/local/include/luajit-2.0/
-	LDFLAGS += -L/Applications/Postgres.app/Contents/Versions/9.4/lib  -L/usr/local/lib
+	LDFLAGS += -L/Applications/Postgres.app/Contents/Versions/9.4/lib  -L/usr/local/lib -pagezero_size 10000 -image_base 100000000
 	LIBS += -lluajit-5.1
 	SOURCES = bsd.c
 endif
